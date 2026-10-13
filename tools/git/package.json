@@ -1,0 +1,9 @@
+{
+  "name": "agency-git-sync",
+  "private": true,
+  "type": "module",
+  "description": "Pure-JS git (isomorphic-git) so the repo can be committed and pushed without installing Xcode/git.",
+  "dependencies": {
+    "isomorphic-git": "^1.27.1"
+  }
+}

@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agency
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: agency
+    ports:
+      - "127.0.0.1:5432:5432"        # local machine only
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agency -d agency"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  dbmate:                            # runs migrations: docker compose run --rm dbmate up
+    image: ghcr.io/amacneil/dbmate:2
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgres://agency:${POSTGRES_PASSWORD}@postgres:5432/agency?sslmode=disable
+      DBMATE_MIGRATIONS_DIR: /db/migrations
+      DBMATE_SCHEMA_FILE: /db/schema.sql
+    volumes:
+      - ./db:/db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"        # local machine only
+    environment:
+      - GENERIC_TIMEZONE=Europe/London
+      - TZ=Europe/London
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows
+
+  # The CRM app is added here as a production build in milestone 8.
+
+  cloudflared:                       # milestone 6: exposes ONLY /api/webhooks/* (rules set in Cloudflare)
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+
+volumes:
+  pg_data:
+  n8n_data:

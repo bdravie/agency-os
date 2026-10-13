@@ -1,0 +1,10 @@
+.env
+data/*
+!data/.gitkeep
+.venv/
+__pycache__/
+*.pyc
+.cache/
+node_modules/
+.next/
+crm/.env*

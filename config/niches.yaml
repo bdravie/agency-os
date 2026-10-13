@@ -1,0 +1,114 @@
+# One block per niche. The Lead Engine reads everything from here.
+# Check SIC codes on Companies House and show dates/exhibitor links each season.
+
+defaults:
+  home_postcode: "CHANGE ME"     # your postcode, used for "around me" searches
+  radius_km: 15
+  towns:                          # areas to score with best-area ranking
+    - London
+    - Manchester
+    - Birmingham
+    - Leeds
+    - Bristol
+    - Liverpool
+    - Sheffield
+    - Nottingham
+    - Leicester
+    - Newcastle upon Tyne
+    - Glasgow
+    - Edinburgh
+    - Cardiff
+    - Brighton
+    - Reading
+  focus_niches: [hvac, roofing, pest_control]   # your current focus, used as CRM defaults
+
+niches:
+  # --- Focus niches: home services. Many are sole traders: only Ltd/LLP/PLC get email,
+  # --- everyone else is reached through social and content.
+  hvac:
+    offer: "Weekly jobs and revenue digest, plus job photos turned into social posts"
+    search_terms: ["hvac", "air conditioning installer", "heating engineer", "boiler installer", "heat pump installer"]
+    sic_codes: ["43220"]          # plumbing, heat and air-conditioning installation
+    shows:
+      - name: "InstallerSHOW"
+        exhibitor_url: ""
+      - name: "HVAC Expo / Heating & Ventilation Show"
+        exhibitor_url: ""
+    gap_signals: ["no quote form", "no online booking", "few Google reviews", "slow review replies", "no recent social posts"]
+
+  roofing:
+    offer: "Before/after job photos turned into a week of social posts, plus a weekly jobs digest"
+    search_terms: ["roofer", "roofing contractor", "flat roofing", "roof repairs"]
+    sic_codes: ["43910"]          # roofing activities
+    shows:
+      - name: "UK Construction Week"
+        exhibitor_url: ""
+    gap_signals: ["no quote form", "no before/after gallery", "few Google reviews", "no website"]
+
+  pest_control:
+    offer: "Weekly jobs and contracts digest, plus social posts that win commercial contracts"
+    search_terms: ["pest control", "pest controller", "rodent control", "wasp nest removal"]
+    sic_codes: ["81291"]          # disinfecting and exterminating services
+    shows:
+      - name: "PestEx"
+        exhibitor_url: ""
+    gap_signals: ["no online booking", "reviews mention phones", "no commercial contracts page", "few Google reviews"]
+
+  marketing_agencies:
+    offer: "White-label automation builds and weekly client reports for agencies"
+    search_terms: ["marketing agency", "digital marketing agency", "social media agency"]
+    sic_codes: ["73110", "73120", "70210"]
+    shows:
+      - name: "B2B Marketing Expo"
+        exhibitor_url: ""        # paste the exhibitor list URL each season
+    gap_signals: ["no case studies page", "manual monthly reports", "small team"]
+
+  ecommerce:
+    offer: "Daily sales and stock digest, reorder alerts, AI product descriptions"
+    search_terms: []             # rarely on Google Maps: use Companies House + shows
+    sic_codes: ["47910"]
+    shows:
+      - name: "eCommerce Expo"
+        exhibitor_url: ""
+      - name: "Retail Technology Show"
+        exhibitor_url: ""
+    gap_signals: ["Shopify store", "no email capture", "many SKUs"]
+
+  creators:
+    offer: "Record once, post everywhere: content repurposing engine"
+    search_terms: []             # use YouTube Data API channel search instead
+    youtube_topics: ["business coaching", "fitness coaching", "marketing tips"]
+    sic_codes: []
+    shows: []
+    gap_signals: ["long videos but few shorts", "no newsletter", "irregular posting"]
+
+  aesthetics:                    # phase 2 offer (lead follow-up) needs a DPA template
+    offer: "Instant replies to DMs and enquiries, booked into the diary"
+    search_terms: ["aesthetics clinic", "skin clinic", "botox clinic"]
+    sic_codes: ["96020", "86900"]
+    shows:
+      - name: "CCR Expo"
+        exhibitor_url: ""
+      - name: "Aesthetics Conference and Exhibition (ACE)"
+        exhibitor_url: ""
+    gap_signals: ["no online booking", "slow review replies", "reviews mention phones"]
+
+  dental:
+    offer: "Missed-call text-back, recall campaigns, review engine"
+    search_terms: ["dentist", "dental practice", "cosmetic dentist"]
+    sic_codes: ["86230"]
+    shows:
+      - name: "The Dentistry Show"
+        exhibitor_url: ""
+      - name: "BDIA Dental Showcase"
+        exhibitor_url: ""
+    gap_signals: ["no online booking", "reviews mention phones", "no recall messages"]
+
+  trades:                        # many are sole traders: social and content only
+    offer: "Every call answered and quoted"
+    search_terms: ["plumber", "heating engineer", "roofer", "electrician"]
+    sic_codes: ["43220", "43210", "43910"]
+    shows:
+      - name: "InstallerSHOW"
+        exhibitor_url: ""
+    gap_signals: ["no quote form", "few reviews", "no website"]

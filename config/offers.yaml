@@ -1,0 +1,70 @@
+# Starting catalogue for the CRM Offers page (milestone 5). Edit prices freely.
+# Prices in GBP. Pilot clients: about 50% off setup in exchange for a testimonial.
+
+offers:
+  # --- Home services (HVAC, roofing, pest control). Phase 1: business data only.
+  - name: "Weekly jobs and revenue digest"
+    niche: home_services
+    outcome: "Every Monday: jobs done, revenue, quotes outstanding and reviews, in one email"
+    setup_price_gbp: 600
+    monthly_price_gbp: 150
+    demo_path: demos/trades-digest
+    loom_url: ""
+
+  - name: "Job photos to social posts"
+    niche: home_services
+    outcome: "Snap a job photo, get a week of before/after posts across Facebook, Instagram and Google"
+    setup_price_gbp: 500
+    monthly_price_gbp: 200
+    demo_path: ""
+    loom_url: ""
+
+  # Phase 2 (needs a data processing agreement): missed-call text-back, enquiry follow-up.
+
+  - name: "Weekly client report"
+    niche: marketing_agencies
+    outcome: "Client reports that write and send themselves every Monday"
+    setup_price_gbp: 750
+    monthly_price_gbp: 200
+    demo_path: demos/client-report
+    loom_url: ""
+
+  - name: "White-label build partner"
+    niche: marketing_agencies
+    outcome: "We build the automations your clients ask for, under your brand"
+    setup_price_gbp: 0
+    monthly_price_gbp: 1000        # block of build hours each month
+    demo_path: ""
+    loom_url: ""
+
+  - name: "Record once, post everywhere"
+    niche: creators
+    outcome: "One long video becomes a week of shorts, posts and a newsletter"
+    setup_price_gbp: 750
+    monthly_price_gbp: 300
+    demo_path: demos/repurpose
+    loom_url: ""
+
+  - name: "Shop morning digest"
+    niche: ecommerce
+    outcome: "Daily sales and stock briefing with reorder suggestions"
+    setup_price_gbp: 900
+    monthly_price_gbp: 250
+    demo_path: demos/shop-digest
+    loom_url: ""
+
+  - name: "Lead Engine"
+    niche: any
+    outcome: "Local and trade-show leads, enriched and scored, in your CRM"
+    setup_price_gbp: 1500
+    monthly_price_gbp: 300         # plus scraping costs at cost
+    demo_path: ""
+    loom_url: ""
+
+  - name: "Social Engine"
+    niche: any
+    outcome: "Post once to six platforms and see which posts bring leads"
+    setup_price_gbp: 900
+    monthly_price_gbp: 250
+    demo_path: ""
+    loom_url: ""
