@@ -1,0 +1,14 @@
+{
+  "name": "agency-os",
+  "private": true,
+  "description": "Root scripts: database migrations (dbmate via npm, no Docker) and git sync.",
+  "scripts": {
+    "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
+    "db:status": "dbmate --migrations-dir db/migrations status",
+    "db:new": "dbmate --migrations-dir db/migrations new",
+    "push": "node tools/git/sync.mjs"
+  },
+  "devDependencies": {
+    "dbmate": "^2.21.0"
+  }
+}

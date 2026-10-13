@@ -1,6 +1,6 @@
 # Agency OS
 
-This repo runs a one-person AI automation agency based in the UK. At its centre is the owner's **own CRM**, hosted locally: one Postgres database and one Next.js app. It is for the owner's use only (not sold), and it is the single place for all business data: leads, deals, clients, quotes, content, proposals and tracking.
+This repo runs a one-person AI automation agency based in the UK. At its centre is the owner's **own CRM**: one Postgres database (hosted on Neon's free tier, London region, because the laptop has no disk space for Docker) and one Next.js app running locally. It is for the owner's use only (not sold), and it is the single place for all business data: leads, deals, clients, quotes, content, proposals and tracking.
 
 Around the CRM sit:
 
@@ -22,21 +22,22 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 
 ## Stack
 
-- **Database**: Postgres 16 in Docker, bound to 127.0.0.1 only. The schema lives in SQL migrations in `db/migrations/`, run with dbmate (`docker compose run --rm dbmate up`). Never change the schema any other way; never edit an applied migration, add a new one.
+- **Database**: hosted Postgres 16+ on **Neon** (free tier, AWS eu-west-2 London), reached via `DATABASE_URL` with `sslmode=require`. The schema lives in SQL migrations in `db/migrations/`, run with dbmate from npm (`npm run db:migrate`; no Docker). Never change the schema any other way; never edit an applied migration, add a new one. Docker Compose (local Postgres/n8n) is optional for later, once there is disk space.
+- **Git**: no system git (no disk space for Xcode). Commit and push with `node tools/git/sync.mjs "message"` (isomorphic-git) after every change.
 - **CRM app**: Next.js (App Router, TypeScript) in `crm/`, using the `pg` driver with parameterised queries. Single user: password from `APP_PASSWORD`, signed session cookie. Every page and API route requires login except `/api/webhooks/*`, and every webhook verifies its signature or secret. Listens on 127.0.0.1:3000.
 - **Python tools**: Python 3.12 with `uv`, code in `src/agency/`, tests in `tests/` (pytest), `psycopg` for the database. All tracking goes through one `log_activity()` function writing to the `activities` table.
 - **AI**: the official `anthropic` SDK. Model choice lives in one place, `src/agency/llm.py` (and a matching `crm/lib/llm.ts` if the app needs AI):
   - `claude-opus-5-5` for hard reasoning or long documents (use sparingly)
   - `claude-sonnet-5-5` as the default for writing and agent logic
   - `claude-haiku-5-5` for high-volume, short tasks (classification, first lines, scoring)
-- **Automation runner**: n8n in Docker at http://localhost:5678. Export finished workflows as JSON into `n8n/workflows/` or the demo's own folder.
-- **Webhooks from the internet**: Cloudflare Tunnel (`docker compose --profile tunnel up -d`), exposing only `/api/webhooks/*`.
+- **Automation runner**: n8n, deferred. Until there is disk space for Docker (or an n8n Cloud plan), schedule jobs with Python CLIs run by macOS `launchd`, and keep n8n workflow JSON exports in `n8n/workflows/` or the demo's own folder so they can be imported later.
+- **Webhooks from the internet**: Cloudflare Tunnel using the standalone `cloudflared` binary (or `docker compose --profile tunnel up -d` if Docker is available), exposing only `/api/webhooks/*`.
 - **Payments and booking**: Stripe (test mode until live), Cal.com (hosted) with webhooks.
 - **Lead sources**: Google Places API (New) for local searches (stay inside free monthly caps), Apify (Google Maps Scraper, Exhibitor List Scraper), Companies House API.
 - **Social**: Upload-Post API for posting and analytics, ManyChat for comment-to-DM.
 - **Config**: niches in `config/niches.yaml`, starting offers and prices in `config/offers.yaml`. Never hard-code a niche or a price.
 - **Secrets** come from `.env` (see `.env.example`). Never print, log or commit secret values.
-- **Backups**: `scripts/backup.sh` (milestone 8) to a cloud-synced folder. Treat the database as the business's most valuable asset: never run destructive commands against it.
+- **Backups**: `scripts/backup.sh` (milestone 8) to a cloud-synced folder, plus Neon's built-in point-in-time restore. Treat the database as the business's most valuable asset: never run destructive commands against it.
 
 ## Conventions
 

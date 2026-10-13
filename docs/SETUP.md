@@ -4,17 +4,17 @@ Work through this top to bottom. Everything you sign up for goes into `.env` (co
 
 ## 1. Install on your Mac (needed now)
 
-> [!WARNING]
-> Your Mac has ~1.5 GB free. Docker Desktop plus Postgres and n8n images need about **8–10 GB**. Free up space (or use the hosted-database option) before milestone 0 can run.
+> [!NOTE]
+> Low-disk setup (~1.5 GB free): no Docker, no Xcode. The database is hosted on Neon's free tier; everything else runs from small local tools.
 
-| Tool | How | Why |
+| Tool | Status | Why |
 |---|---|---|
-| Git (lightweight) | Already set up: `node tools/git/sync.mjs "message"` (pure JavaScript, ~9 MB; no Xcode needed) | Commit and push to GitHub |
-| Homebrew (optional) | Paste the one-liner from https://brew.sh (needs Xcode tools, ~1–2 GB) | Easiest way to install uv and jq |
-| uv | No Homebrew: `curl -LsSf https://astral.sh/uv/install.sh \| sh` (~40 MB, brings its own Python) | Python project/env manager |
-| Docker Desktop | https://www.docker.com/products/docker-desktop/ (Apple Silicon) | Runs Postgres and n8n |
-| jq | No Homebrew: download `jq-macos-arm64` from https://jqlang.org/download/ | Used by the Claude Code safety hooks only |
-| Node.js 20+ | Already installed (v24) | CRM app and git tool |
+| Node.js 20+ | ✅ Installed (v24) | CRM app, dbmate, git tool |
+| Git (lightweight) | ✅ Installed: `npm run push -- "message"` (isomorphic-git, ~9 MB) | Commit and push to GitHub |
+| dbmate | ✅ Installed via npm: `npm run db:migrate` | Database migrations |
+| uv + Python 3.12 | ✅ Installed in `~/.local/bin` (run `source ~/.local/bin/env` in new terminals) | Python tools |
+| Docker Desktop | ⏸ Skipped (needs ~8–10 GB) | Optional later for local Postgres/n8n |
+| jq | Optional: download `jq-macos-arm64` from https://jqlang.org/download/ | Only for Claude Code safety hooks |
 
 ### GitHub token (for pushing)
 
@@ -32,20 +32,19 @@ Put these in `.env`:
 
 | Key | What to put |
 |---|---|
-| `POSTGRES_PASSWORD` | Long random string. Generate: `openssl rand -hex 24` |
-| `DATABASE_URL` | Same password inside: `postgres://agency:<PASSWORD>@127.0.0.1:5432/agency?sslmode=disable` |
+| `DATABASE_URL` | From Neon (see section 3): `postgres://…neon.tech/neondb?sslmode=require` |
 | `APP_PASSWORD` | The password you'll type to open the CRM at http://localhost:3000 |
-| `SESSION_SECRET` | Another random string: `openssl rand -hex 32` |
+| `SESSION_SECRET` | ✅ Already generated for you |
 | `DEMO_MODE` | `true` while building/filming, `false` for real data |
 | `SENDER_NAME`, `BUSINESS_NAME` | Your real name and business name (used in email footers) |
-| n8n login | You create an owner account the first time you open http://localhost:5678 |
 
 ## 3. Accounts and API keys, in the order you need them
 
 | When | Service | Sign up | `.env` key | Cost |
 |---|---|---|---|---|
+| **Now (M0)** | Neon (hosted Postgres) | https://neon.tech → sign up with GitHub → New project, Postgres 17, region **AWS Europe West 2 (London)** → **Connect** → copy the connection string | `DATABASE_URL` | Free (0.5 GB) |
 | **Now (M0)** | Anthropic API | https://console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` | Pay-as-you-go; add ~£10 credit |
-| **Now** | GitHub token | see "GitHub token" above | `GITHUB_TOKEN` | Free |
+| ✅ Done | GitHub token | see "GitHub token" above | `GITHUB_TOKEN` | Free |
 | M2 | Upwork (freelancer profile) | https://www.upwork.com | — | Free + Connects |
 | M2/M4 | Loom | https://www.loom.com | — | Free tier |
 | M5 | Stripe (test mode first) | https://dashboard.stripe.com → Developers → API keys | `STRIPE_SECRET_KEY` (`sk_test_…`) | Free; fees per payment |
@@ -62,16 +61,22 @@ Put these in `.env`:
 
 > Restrict every Google key to the Places API only, and add a billing budget alert at £5.
 
-## 4. First run (after steps 1–2 and the Anthropic key)
+## 4. First run (after Neon and the Anthropic key are in `.env`)
 
 ```bash
-cp .env.example .env            # then fill it in by hand
-chmod +x .claude/hooks/*.sh
-docker compose up -d            # Postgres + n8n
-docker compose run --rm dbmate up
-uv sync
+source ~/.local/bin/env         # puts uv on your PATH (new terminals)
+npm run db:migrate              # creates all tables on Neon
 uv run pytest
 uv run python scripts/check_setup.py
 ```
 
 You should see `OK API` and `OK Database`.
+
+## 5. Everyday commands
+
+| Task | Command |
+|---|---|
+| Push changes to GitHub | `npm run push -- "what changed"` |
+| See pending changes | `node tools/git/sync.mjs --status` |
+| New migration | `npm run db:new -- add_something` then `npm run db:migrate` |
+| Migration status | `npm run db:status` |

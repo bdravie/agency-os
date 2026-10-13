@@ -4,6 +4,10 @@ Your own locally hosted CRM, plus the tools around it to win and deliver automat
 
 ## How to start
 
+**Current setup (low disk space):** the database is hosted on Neon's free tier, migrations run with `npm run db:migrate`, and changes are pushed with `npm run push -- "message"`. No Docker or Xcode needed. Full checklist of accounts, API keys and commands: [`docs/SETUP.md`](docs/SETUP.md).
+
+Original Docker-based steps (for when there is disk space):
+
 1. Install: Claude Code (comes with a Claude Pro plan), Docker Desktop, Node.js 20+, `uv` (https://docs.astral.sh/uv/), `jq` (needed by the hooks; on a Mac: `brew install jq`), and git.
 2. Unzip this folder, open a terminal in it, and run `git init`.
 3. Make the hooks executable: `chmod +x .claude/hooks/*.sh`
