@@ -6,6 +6,7 @@ import { query } from "./db";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { STAGES } from "./stages";
+import { draftProposal, scoreFit } from "./proposal";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -188,4 +189,28 @@ export async function saveProposal(form: FormData) {
   if (rows[0] && rows[0].old !== status) await logActivity("proposal_status", { channel: "upwork", body: `Proposal #${id}: ${rows[0].old} → ${status}` });
   revalidatePath("/proposals");
   revalidatePath(`/proposals/${id}`);
+}
+
+export async function createProposal(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const job = str(form, "job_text");
+  if (!job || job.length < 40) return "Paste the full job post (at least a few sentences).";
+  if (job.length > 20000) return "That job post is too long.";
+  let id: number;
+  try {
+    const [score, reason] = await scoreFit(job);
+    if (score < 6 && form.get("force") !== "on") {
+      return `Fit score ${score}/10: ${reason} Tick "Draft anyway" to write it regardless.`;
+    }
+    const draft = await draftProposal(job);
+    const rows = await query<{ id: number }>(
+      `INSERT INTO proposals (job_title, job_url, job_text, draft, fit_score, status) VALUES ($1,$2,$3,$4,$5,'Draft') RETURNING id`,
+      [str(form, "job_title"), str(form, "job_url"), job, draft, score],
+    );
+    id = rows[0].id;
+    await logActivity("proposal_drafted", { channel: "upwork", body: str(form, "job_title") ?? `Proposal #${id}` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  redirect(`/proposals/${id}`);
 }

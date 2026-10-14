@@ -12,9 +12,12 @@ export default async function Proposals({ searchParams }: { searchParams: Promis
       WHERE ($1 = '' OR status = $1) ORDER BY created_at DESC LIMIT 200`, [status]);
   return (
     <>
-      <h1>Proposals</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>Proposals</h1>
+        <Link href="/proposals/new"><button>+ New proposal</button></Link>
+      </div>
       <p className="muted">
-        Drafts come from <code>uv run python -m agency.proposal job.txt</code>. Filter:{" "}
+        Filter:{" "}
         {["", "Draft", "Sent", "Interview", "Won", "Lost"].map((s) => (
           <Link key={s} href={s ? `/proposals?status=${s}` : "/proposals"} style={{ marginRight: 10, fontWeight: s === status ? 700 : 400 }}>{s || "All"}</Link>
         ))}
