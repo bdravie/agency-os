@@ -9,6 +9,7 @@ const links = [
   ["/deals", "Deals"],
   ["/tasks", "Tasks"],
   ["/proposals", "Proposals"],
+  ["/content", "Content"],
 ] as const;
 
 export default async function Nav() {

@@ -8,6 +8,7 @@ import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { STAGES } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
+import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -205,4 +206,88 @@ export async function createProposal(_prev: string | null, form: FormData): Prom
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }
   redirect(`/proposals/${id}`);
+}
+
+const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"];
+
+export async function generateIdeasAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  try {
+    const existing = (await query<{ idea: string }>(`SELECT idea FROM content_items ORDER BY created_at DESC LIMIT 40`)).map((r) => r.idea);
+    const ideas = await generateIdeas(str(form, "audience"), existing);
+    if (ideas.length === 0) return "No ideas came back. Try again.";
+    for (const i of ideas) {
+      await query(`INSERT INTO content_items (idea, hook, format, status) VALUES ($1,$2,$3,'Idea')`, [i.idea, i.hook ?? null, i.format ?? null]);
+    }
+    await logActivity("content_ideas_generated", { body: `${ideas.length} ideas` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  redirect("/content");
+}
+
+export async function writeScriptAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "id");
+  try {
+    const [item] = await query<{ idea: string; status: string }>(`SELECT idea, status FROM content_items WHERE id = $1`, [id]);
+    if (!item) return "Item not found.";
+    const s = await writeScript(item.idea);
+    await query(
+      `UPDATE content_items SET hook = $2, script = $3, caption = $4, keyword = $5,
+              status = CASE WHEN status = 'Idea' THEN 'Scripted' ELSE status END WHERE id = $1`,
+      [id, s.favourite_hook, formatScript(s), s.caption, String(s.keyword ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "") || null],
+    );
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  revalidatePath(`/content/${id}`);
+  revalidatePath("/content");
+  return null;
+}
+
+export async function moveContent(id: number, status: string) {
+  await requireLogin();
+  if (!CONTENT_STATUSES.includes(status)) throw new Error("Unknown status");
+  await query(
+    `UPDATE content_items SET status = $2, posted_at = CASE WHEN $2::text = 'Posted' THEN COALESCE(posted_at, now()) ELSE posted_at END WHERE id = $1`,
+    [id, status],
+  );
+  revalidatePath("/content");
+}
+
+export async function saveContent(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  await query(
+    `UPDATE content_items SET idea = COALESCE($2, idea), hook = $3, script = $4, caption = $5, keyword = $6 WHERE id = $1`,
+    [id, str(form, "idea"), str(form, "hook"), str(form, "script"), str(form, "caption"), str(form, "keyword")],
+  );
+  revalidatePath(`/content/${id}`);
+  revalidatePath("/content");
+}
+
+export async function repurposeAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const transcript = str(form, "transcript");
+  if (!transcript || transcript.length < 200) return "Paste a longer transcript (at least a few paragraphs).";
+  try {
+    const r = await repurpose(transcript);
+    for (const v of r.short_videos.slice(0, 3)) {
+      await query(
+        `INSERT INTO content_items (idea, format, script, caption, keyword, status) VALUES ($1,'Short video',$2,$3,$4,'Scripted')`,
+        [v.idea, v.script, v.caption, String(v.keyword ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "") || null],
+      );
+    }
+    for (const p of r.linkedin_posts.slice(0, 3)) {
+      await query(`INSERT INTO content_items (idea, format, platforms, script, status) VALUES ($1,'LinkedIn post','{linkedin}',$2,'Scripted')`, [p.idea, p.text]);
+    }
+    if (r.newsletter?.text) {
+      await query(`INSERT INTO content_items (idea, format, platforms, script, status) VALUES ($1,'Newsletter','{newsletter}',$2,'Scripted')`, [r.newsletter.idea, r.newsletter.text]);
+    }
+    await logActivity("content_repurposed", { body: "3 shorts, 3 LinkedIn posts, 1 newsletter" });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  redirect("/content");
 }
