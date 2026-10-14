@@ -11,7 +11,18 @@ export function extractJson<T>(reply: string): T {
   const start = text.search(/[\[{]/);
   const end = Math.max(text.lastIndexOf("]"), text.lastIndexOf("}"));
   if (start < 0 || end <= start) throw new Error("The AI reply had no JSON in it. Try again.");
-  return JSON.parse(text.slice(start, end + 1)) as T;
+  const body = text.slice(start, end + 1);
+  try {
+    return JSON.parse(body) as T;
+  } catch (err) {
+    // A reply cut off mid-array: keep the complete elements and close the array.
+    if (text[start] === "[") {
+      for (let cut = body.lastIndexOf("}"); cut > 0; cut = body.lastIndexOf("}", cut - 1)) {
+        try { return JSON.parse(body.slice(0, cut + 1) + "]") as T; } catch {}
+      }
+    }
+    throw err;
+  }
 }
 
 export type Idea = { idea: string; format?: string; hook?: string };
@@ -21,7 +32,7 @@ export async function generateIdeas(audience: string | null, existing: string[])
   const task = await prompt("content-ideas.md");
   const text =
     `${guide}\n\n${audience ? `AUDIENCE FOR THIS BATCH: ${audience}\n\n` : ""}${task}\n\nEXISTING:\n${existing.map((e) => `- ${e}`).join("\n") || "(none)"}\n\nGenerate 20 ideas.`;
-  const ideas = extractJson<Idea[]>(await ask(text, "haiku", 3500));
+  const ideas = extractJson<Idea[]>(await ask(text, "haiku", 6000));
   return ideas.filter((i) => typeof i.idea === "string" && i.idea.trim()).slice(0, 20);
 }
 
