@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { query } from "./db";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
+import { STAGES } from "./stages";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -141,8 +142,6 @@ export async function importCompanies(_prev: ImportResult | null, form: FormData
   revalidatePath("/companies");
   return { created, merged, skipped };
 }
-
-export const STAGES = ["New", "Contacted", "Replied", "Call booked", "Proposal sent", "Won", "Lost"] as const;
 
 export async function moveDeal(dealId: number, stage: string, lostReason?: string) {
   await requireLogin();

@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { STAGES } from "@/lib/actions";
+import { STAGES } from "@/lib/stages";
 import Board from "@/components/Board";
 
 export const dynamic = "force-dynamic";
