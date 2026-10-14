@@ -25,7 +25,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
       <p><Link href="/companies">← Companies</Link></p>
       <h1>{company.name}</h1>
       <p className="muted">
-        {[company.domain, company.phone, company.postcode, company.niche, company.is_ltd === false ? "not a limited company" : null].filter(Boolean).join(" · ")}
+        {[company.domain, company.generic_email, company.phone, company.postcode, company.niche, company.is_ltd === false ? "not a limited company" : null].filter(Boolean).join(" · ")}
       </p>
 
       <div className="grid">
