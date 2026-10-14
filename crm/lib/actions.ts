@@ -147,7 +147,7 @@ export async function moveDeal(dealId: number, stage: string, lostReason?: strin
   await requireLogin();
   if (!(STAGES as readonly string[]).includes(stage)) throw new Error("Unknown stage");
   const rows = await query<{ company_id: number | null; title: string; old: string }>(
-    `UPDATE deals d SET stage = $2::deal_stage, lost_reason = CASE WHEN $2 = 'Lost' THEN $3 ELSE NULL END
+    `UPDATE deals d SET stage = $2::text::deal_stage, lost_reason = CASE WHEN $2::text = 'Lost' THEN $3::text ELSE NULL END
        FROM (SELECT id, stage::text AS old FROM deals WHERE id = $1) prev
       WHERE d.id = prev.id RETURNING d.company_id, d.title, prev.old`,
     [dealId, stage, lostReason ?? null],

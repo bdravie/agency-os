@@ -23,7 +23,7 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
     const before = deals;
     setDeals(deals.map((d) => (d.id === id ? { ...d, stage } : d))); // optimistic
     start(async () => {
-      try { await moveDeal(id, stage, reason); } catch { setDeals(before); }
+      try { await moveDeal(id, stage, reason); } catch (err) { console.error("moveDeal failed", err); setDeals(before); window.alert("Could not move the deal. Check the server log."); }
     });
   }
 
