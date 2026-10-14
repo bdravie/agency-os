@@ -16,3 +16,10 @@ button { background:var(--accent); color:#fff; border:0; border-radius:6px; padd
 button.link { background:none; color:var(--muted); padding:0; }
 table { width:100%; border-collapse:collapse; } th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); } th { color:var(--muted); font-weight:600; font-size:13px; }
 @media (max-width:800px) { .grid { grid-template-columns:1fr; } }
+.board { display:grid; grid-template-columns:repeat(7, minmax(190px, 1fr)); gap:12px; overflow-x:auto; align-items:start; }
+.col { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; min-height:200px; }
+.col.over { border-color:var(--accent); }
+.col h2 { display:flex; justify-content:space-between; margin:0; } .col h2 span { color:var(--text); }
+.totals { margin:2px 0 10px; }
+.deal { display:flex; flex-direction:column; gap:2px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px; cursor:grab; }
+.deal:active { cursor:grabbing; }

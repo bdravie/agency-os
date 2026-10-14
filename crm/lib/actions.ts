@@ -141,3 +141,32 @@ export async function importCompanies(_prev: ImportResult | null, form: FormData
   revalidatePath("/companies");
   return { created, merged, skipped };
 }
+
+export const STAGES = ["New", "Contacted", "Replied", "Call booked", "Proposal sent", "Won", "Lost"] as const;
+
+export async function moveDeal(dealId: number, stage: string, lostReason?: string) {
+  await requireLogin();
+  if (!(STAGES as readonly string[]).includes(stage)) throw new Error("Unknown stage");
+  const rows = await query<{ company_id: number | null; title: string; old: string }>(
+    `UPDATE deals d SET stage = $2::deal_stage, lost_reason = CASE WHEN $2 = 'Lost' THEN $3 ELSE NULL END
+       FROM (SELECT id, stage::text AS old FROM deals WHERE id = $1) prev
+      WHERE d.id = prev.id RETURNING d.company_id, d.title, prev.old`,
+    [dealId, stage, lostReason ?? null],
+  );
+  if (!rows[0] || rows[0].old === stage) return;
+  await logActivity("stage_changed", {
+    company_id: rows[0].company_id, deal_id: dealId,
+    body: `${rows[0].title}: ${rows[0].old} → ${stage}${stage === "Lost" && lostReason ? ` (${lostReason})` : ""}`,
+  });
+  revalidatePath("/deals");
+  revalidatePath("/");
+}
+
+export async function addLooseTask(form: FormData) {
+  await requireLogin();
+  const title = str(form, "title");
+  if (!title) return;
+  await query(`INSERT INTO tasks (title, due_at) VALUES ($1,$2)`, [title, str(form, "due")]);
+  revalidatePath("/tasks");
+  revalidatePath("/");
+}
