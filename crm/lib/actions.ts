@@ -169,3 +169,23 @@ export async function addLooseTask(form: FormData) {
   revalidatePath("/tasks");
   revalidatePath("/");
 }
+
+const PROPOSAL_STATUSES = ["Draft", "Sent", "Interview", "Won", "Lost"];
+
+export async function saveProposal(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  const status = str(form, "status") ?? "Draft";
+  if (!PROPOSAL_STATUSES.includes(status)) return;
+  const connects = str(form, "connects_used");
+  const rows = await query<{ old: string }>(
+    `UPDATE proposals p SET draft = $2, status = $3, connects_used = $4,
+            sent_at = CASE WHEN $3::text <> 'Draft' AND p.sent_at IS NULL THEN now() ELSE p.sent_at END
+       FROM (SELECT id, status AS old FROM proposals WHERE id = $1) prev
+      WHERE p.id = prev.id RETURNING prev.old`,
+    [id, str(form, "draft"), status, connects === null ? null : Number(connects)],
+  );
+  if (rows[0] && rows[0].old !== status) await logActivity("proposal_status", { channel: "upwork", body: `Proposal #${id}: ${rows[0].old} → ${status}` });
+  revalidatePath("/proposals");
+  revalidatePath(`/proposals/${id}`);
+}

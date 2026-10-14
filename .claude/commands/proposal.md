@@ -6,9 +6,7 @@ Draft an Upwork proposal for this job post:
 
 $ARGUMENTS
 
-If `src/agency/proposal.py` exists, run it with the job text. Otherwise do it directly:
-
-1. Read `portfolio/portfolio.md` and `prompts/proposal.md`.
-2. Give a fit score from 1 to 10 with one line of reasoning. If it's below 6, say so and stop.
-3. Write a proposal under 150 words: their problem in their own words, how I'd solve it (name their tools), the single most relevant Loom from my portfolio, a timeline, and one smart question.
-4. Never mention a project that isn't in my portfolio.
+1. Save the job post text to a scratch file, then run `uv run python -m agency.proposal <file> --title "<job title>" --url "<job url if given>"`.
+2. It scores fit with Haiku (skips below 6 unless `--force`), drafts under 145 words with Sonnet, and saves to the proposals table as Draft.
+3. Show me the fit score and the draft, and say it is saved in the CRM under Proposals.
+4. Never mention a project that is not in `portfolio/portfolio.md`.
