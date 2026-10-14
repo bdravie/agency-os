@@ -16,14 +16,18 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
   function drop(stage: string, e: React.DragEvent) {
     e.preventDefault();
     setOver(null);
-    const id = Number(e.dataTransfer.getData("text/plain"));
+    move(Number(e.dataTransfer.getData("text/plain")), stage);
+  }
+
+  function move(id: number, stage: string) {
     const deal = deals.find((d) => d.id === id);
     if (!deal || deal.stage === stage) return;
     const reason = stage === "Lost" ? window.prompt("Why was it lost? (optional)") ?? undefined : undefined;
     const before = deals;
     setDeals(deals.map((d) => (d.id === id ? { ...d, stage } : d))); // optimistic
     start(async () => {
-      try { await moveDeal(id, stage, reason); } catch (err) { console.error("moveDeal failed", err); setDeals(before); window.alert("Could not move the deal. Check the server log."); }
+      try { await moveDeal(id, stage, reason); }
+      catch (err) { console.error("moveDeal failed", err); setDeals(before); window.alert(`Could not move the deal: ${err instanceof Error ? err.message : err}`); }
     });
   }
 
@@ -46,6 +50,10 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
                 <b>{d.title}</b>
                 {d.company_id && <Link href={`/companies/${d.company_id}`}>{d.company_name}</Link>}
                 <span className="muted">{gbp(d.setup)} + {gbp(d.monthly)}/mo</span>
+                <div className="moves">
+                  <button disabled={stages.indexOf(stage) === 0} onClick={() => move(d.id, stages[stages.indexOf(stage) - 1])} title="Move back">◀</button>
+                  <button disabled={stages.indexOf(stage) === stages.length - 1} onClick={() => move(d.id, stages[stages.indexOf(stage) + 1])} title="Move forward">▶</button>
+                </div>
               </article>
             ))}
           </section>
