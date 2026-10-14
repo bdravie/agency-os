@@ -9,6 +9,7 @@ import { normaliseDomain, parseCsv } from "./csv";
 import { STAGES } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
+import { findGenericEmail, safeDomain } from "./websites";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -299,4 +300,40 @@ export async function scheduleContent(form: FormData) {
   await query(`UPDATE content_items SET scheduled_for = $2 WHERE id = $1`, [num(form, "id"), date]);
   revalidatePath("/content/calendar");
   revalidatePath(`/content/${num(form, "id")}`);
+}
+
+export async function setWebsite(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "company_id");
+  const domain = normaliseDomain(str(form, "domain"));
+  const email = str(form, "generic_email")?.toLowerCase() ?? null;
+  if (str(form, "domain") && !domain) return "That doesn't look like a website address.";
+  if (domain && !safeDomain(domain)) return "That domain isn't allowed.";
+  try {
+    if (domain && (await query(`SELECT 1 FROM suppression WHERE lower(domain) = $1`, [domain])).length) {
+      return "That domain is on your suppression list. Don't contact it.";
+    }
+    await query(`UPDATE companies SET domain = $2, generic_email = $3 WHERE id = $1`, [id, domain, email]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("companies_domain_uniq")) return "Another company already has that domain. It may be a duplicate.";
+    if (msg.includes("companies_generic_email_chk")) return "Only generic addresses are stored (info@, hello@, contact@, enquiries@...).";
+    return `Could not save: ${msg}`;
+  }
+  revalidatePath(`/companies/${id}`);
+  return null;
+}
+
+export async function findEmailAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "company_id");
+  const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [id]);
+  if (!c?.domain || !safeDomain(c.domain)) return "Save a website address first.";
+  const email = await findGenericEmail(c.domain);
+  if (!email) return "No generic email found on the homepage or contact page (or the site doesn't allow checking). Look manually.";
+  if ((await query(`SELECT 1 FROM suppression WHERE lower(email) = $1`, [email])).length) return "That address is on your suppression list.";
+  await query(`UPDATE companies SET generic_email = $2 WHERE id = $1`, [id, email]);
+  await logActivity("email_found", { company_id: id, body: email });
+  revalidatePath(`/companies/${id}`);
+  return null;
 }

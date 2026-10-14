@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
-import { addContact, addDeal, addTask, completeTask, logContact, saveNotes } from "@/lib/actions";
+import { addContact, addDeal, addTask, completeTask, findEmailAction, logContact, saveNotes, setWebsite } from "@/lib/actions";
+import { googleSearchUrl } from "@/lib/websites";
+import ActionForm from "@/components/ActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,25 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
       </p>
 
       <div className="grid">
+        <section className="card">
+          <h2>Website &amp; email</h2>
+          {!company.domain && (
+            <p><a href={googleSearchUrl(company.name, company.postcode)} target="_blank" rel="noreferrer">Search Google for this company ↗</a></p>
+          )}
+          <ActionForm action={setWebsite} label="Save" busyLabel="Saving…">
+            <input type="hidden" name="company_id" value={id} />
+            <input name="domain" defaultValue={company.domain ?? ""} placeholder="Website, e.g. acme.co.uk" />
+            <input name="generic_email" defaultValue={company.generic_email ?? ""} placeholder="Generic email (info@, hello@…)" />
+          </ActionForm>
+          {company.domain && !company.generic_email && (
+            <div style={{ marginTop: 8 }}>
+              <ActionForm action={findEmailAction} label="Find generic email" busyLabel="Checking the site…">
+                <input type="hidden" name="company_id" value={id} />
+              </ActionForm>
+            </div>
+          )}
+        </section>
+
         <section className="card">
           <h2>Log activity</h2>
           <form action={logContact} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
