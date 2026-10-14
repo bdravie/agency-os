@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { query } from "./db";
+import { logActivity } from "./activity";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { STAGES } from "./stages";
@@ -13,15 +14,6 @@ const str = (f: FormData, k: string) => {
   return v === "" ? null : v;
 };
 const num = (f: FormData, k: string) => Number(str(f, k) ?? 0) || 0;
-
-export async function logActivity(
-  type: string, o: { company_id?: number | null; contact_id?: number | null; deal_id?: number | null; channel?: string | null; body?: string | null } = {},
-) {
-  await query(
-    `INSERT INTO activities (company_id, contact_id, deal_id, type, channel, body) VALUES ($1,$2,$3,$4,$5,$6)`,
-    [o.company_id ?? null, o.contact_id ?? null, o.deal_id ?? null, type, o.channel ?? null, o.body ?? null],
-  );
-}
 
 export async function createCompany(form: FormData) {
   await requireLogin();
