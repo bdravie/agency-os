@@ -31,9 +31,9 @@ scripts/              # setup check, backup, restore
 > Read CLAUDE.md and BUILD_PLAN.md. Set up milestone 0. (1) A uv Python project with anthropic, psycopg[binary], httpx, python-dotenv, pyyaml and pytest. (2) `src/agency/llm.py`: a small wrapper around the Anthropic client with one function `ask(prompt, model="sonnet", system=None, max_tokens=1500)` and the three model IDs from CLAUDE.md. (3) `src/agency/config.py` that loads `.env`. (4) Start Postgres and n8n with `docker compose up -d`. (5) Write the first dbmate migration in `db/migrations/` with these tables: companies (name, domain, phone, address, postcode, niche, company_number, is_ltd, sic_codes, status, source, owner_notes, created_at, updated_at), contacts (company_id, name, role, email, phone, linkedin_url, consent_basis, created_at), deals (company_id, contact_id, title, stage, setup_value_gbp, monthly_value_gbp, offer_id nullable, source, expected_close, lost_reason, created_at, updated_at), tasks (title, due_at, done_at, company_id, deal_id), activities (company_id, contact_id, deal_id, type, channel, body, meta jsonb, occurred_at), offers (name, niche, outcome, description, setup_price_gbp, monthly_price_gbp, loom_url, demo_path, active), quotes (deal_id, offer_id, line_items jsonb, total_setup_gbp, total_monthly_gbp, status, sent_at, accepted_at, payment_link), client_services (company_id, offer_id, setup_fee_gbp, monthly_fee_gbp, start_date, status, next_review_date), proposals (job_title, job_url, job_text, draft, fit_score, status, connects_used, sent_at), content_items (idea, hook, format, platforms, script, caption, keyword, status, posted_at), and suppression (domain, email, reason, added_at). Deal stages: New, Contacted, Replied, Call booked, Proposal sent, Won, Lost. Add sensible indexes and updated_at triggers. Run the migration with `docker compose run --rm dbmate up`. (6) `scripts/check_setup.py` confirms the API key works with a one-line Haiku call and that the database is reachable and migrated.
 
 **Done when:**
-- [ ] `uv run python scripts/check_setup.py` prints OK for the API and the database
-- [ ] `docker compose ps` shows postgres and n8n healthy
-- [ ] `.env` is git-ignored and `git status` shows no secrets
+- [x] `uv run python scripts/check_setup.py` prints OK for the API and the database
+- [x] ~~`docker compose ps` shows postgres and n8n healthy~~ (skipped: Neon hosted DB, Docker deferred)
+- [x] `.env` is git-ignored and `git status` shows no secrets
 
 ---
 
@@ -44,9 +44,9 @@ scripts/              # setup check, backup, restore
 > Build milestone 1: a Next.js (App Router, TypeScript) CRM in `crm/` using the `pg` driver against DATABASE_URL (no ORM migrations: the schema lives in `db/migrations/`). Single-user login with a password from APP_PASSWORD and a signed session cookie; every page and API route requires it except `/api/webhooks/*`. Pages: Today (tasks due, deals needing follow-up, recent activity), Companies (searchable table, filters by niche and status, CSV import and export), Company detail (contacts, deals, activity timeline, notes, tasks, quick "log email/DM/call" buttons), Deals (kanban board by stage with drag-and-drop, setup and monthly values, totals per stage), Tasks. Clean, fast, keyboard-friendly design; it will be filmed for marketing. Add a `DEMO_MODE` banner and `scripts/seed_demo.py` that fills fake data (example.com emails, 07700 900xxx phones only). The app should listen on 127.0.0.1:3000 only.
 
 **Done when:**
-- [ ] You can add a company, a contact and a deal, drag the deal across stages and see it in the activity timeline
-- [ ] CSV import of 50 companies works and duplicates (same domain) are merged
-- [ ] The app cannot be opened without the password
+- [x] You can add a company, a contact and a deal, drag the deal across stages and see it in the activity timeline
+- [x] CSV import of 50 companies works and duplicates (same domain) are merged
+- [x] The app cannot be opened without the password
 
 ---
 
