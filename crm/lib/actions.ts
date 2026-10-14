@@ -291,3 +291,12 @@ export async function repurposeAction(_prev: string | null, form: FormData): Pro
   }
   redirect("/content");
 }
+
+export async function scheduleContent(form: FormData) {
+  await requireLogin();
+  const date = str(form, "date");
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  await query(`UPDATE content_items SET scheduled_for = $2 WHERE id = $1`, [num(form, "id"), date]);
+  revalidatePath("/content/calendar");
+  revalidatePath(`/content/${num(form, "id")}`);
+}

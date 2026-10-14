@@ -12,7 +12,10 @@ export default async function Content() {
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Content</h1>
-        <Link href="/content/repurpose"><button>Repurpose a transcript</button></Link>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <Link href="/content/calendar">Calendar</Link>
+          <Link href="/content/repurpose"><button>Repurpose a transcript</button></Link>
+        </div>
       </div>
       <details className="card" style={{ marginBottom: 16 }}>
         <summary>Generate 20 video ideas</summary>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
-import { saveContent, writeScriptAction } from "@/lib/actions";
+import { saveContent, scheduleContent, writeScriptAction } from "@/lib/actions";
 import ActionForm from "@/components/ActionForm";
 import CopyButton from "@/components/CopyButton";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function ContentItem({ params }: { params: Promise<{ id: string }> }) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [c] = await query<any>(`SELECT * FROM content_items WHERE id = $1`, [id]);
+  const [c] = await query<any>(`SELECT *, scheduled_for::text AS day FROM content_items WHERE id = $1`, [id]);
   if (!c) notFound();
   return (
     <>
@@ -24,6 +24,12 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
           <ActionForm action={writeScriptAction} label={c.script ? "Rewrite script" : "Write script"} busyLabel="Writing… (about 15 seconds)">
             <input type="hidden" name="id" value={id} />
           </ActionForm>
+          <h2 style={{ marginTop: 16 }}>Schedule</h2>
+          <form action={scheduleContent} style={{ display: "flex", gap: 8 }}>
+            <input type="hidden" name="id" value={id} />
+            <input type="date" name="date" defaultValue={c.day ?? ""} />
+            <button>{c.day ? "Reschedule" : "Schedule"}</button>
+          </form>
         </section>
         <form action={saveContent} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <input type="hidden" name="id" value={id} />
