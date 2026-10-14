@@ -1,0 +1,47 @@
+{
+  "name": "Weekly client report (Mondays 08:00)",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [ { "field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 8 } ] } },
+      "name": "Every Monday 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": { "command": "cd /path/to/agency-os && uv run python -m agency.client_report data/clients/CLIENT/metrics.csv --client \"CLIENT NAME\"" },
+      "name": "Build report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": { "fileSelector": "/path/to/agency-os/output/client-report/CLIENT-NAME/report.html", "options": {} },
+      "name": "Read report.html",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "you@your-agency.example.com",
+        "toEmail": "you@your-agency.example.com",
+        "subject": "Review: weekly report for CLIENT NAME",
+        "emailFormat": "html",
+        "html": "={{ $json.data ? Buffer.from($json.data, 'base64').toString('utf8') : '' }}",
+        "options": {}
+      },
+      "name": "Email to me for review",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [720, 0]
+    }
+  ],
+  "connections": {
+    "Every Monday 08:00": { "main": [ [ { "node": "Build report", "type": "main", "index": 0 } ] ] },
+    "Build report": { "main": [ [ { "node": "Read report.html", "type": "main", "index": 0 } ] ] },
+    "Read report.html": { "main": [ [ { "node": "Email to me for review", "type": "main", "index": 0 } ] ] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "note": "Template, not yet tested in n8n. Sends the draft to the OWNER for review; it never emails the client. Replace the placeholder paths and addresses." }
+}

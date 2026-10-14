@@ -10,3 +10,4 @@ node_modules/
 crm/.env*
 .pytest_cache/
 .ruff_cache/
+output/
