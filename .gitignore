@@ -8,3 +8,5 @@ __pycache__/
 node_modules/
 .next/
 crm/.env*
+.pytest_cache/
+.ruff_cache/
