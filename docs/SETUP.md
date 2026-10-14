@@ -15,6 +15,9 @@ Work through this top to bottom. Everything you sign up for goes into `.env` (co
 | uv + Python 3.12 | ✅ Installed in `~/.local/bin` (run `source ~/.local/bin/env` in new terminals) | Python tools |
 | Docker Desktop | ⏸ Skipped (needs ~8–10 GB) | Optional later for local Postgres/n8n |
 | jq | Optional: download `jq-macos-arm64` from https://jqlang.org/download/ | Only for Claude Code safety hooks |
+| Neon CLI | ✅ Via `npx neon` (v8.4.3); sign in with `npx neon login` | Create/link the database |
+| Neon agent skills | ✅ 8 skills in `.agents/skills/` | Neon guidance for the coding agent |
+| Neon MCP server | ✅ Global Antigravity config (`~/.gemini/config/mcp_config.json`), OAuth, no key on disk | Lets the agent manage Neon; sign in on first use |
 
 ### GitHub token (for pushing)
 
@@ -43,7 +46,7 @@ Put these in `.env`:
 | When | Service | Sign up | `.env` key | Cost |
 |---|---|---|---|---|
 | **Now (M0)** | Neon (hosted Postgres) | https://neon.tech → sign up with GitHub → New project, Postgres 17, region **AWS Europe West 2 (London)** → **Connect** → copy the connection string | `DATABASE_URL` | Free (0.5 GB) |
-| **Now (M0)** | Anthropic API | https://console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` | Pay-as-you-go; add ~£10 credit |
+| ✅ Done | Anthropic API | https://console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` | Pay-as-you-go; add ~£10 credit |
 | ✅ Done | GitHub token | see "GitHub token" above | `GITHUB_TOKEN` | Free |
 | M2 | Upwork (freelancer profile) | https://www.upwork.com | — | Free + Connects |
 | M2/M4 | Loom | https://www.loom.com | — | Free tier |
