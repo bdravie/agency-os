@@ -48,6 +48,28 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - British English in anything client-facing. Prices in GBP.
 - Before saying a milestone is done, run the tests, run the feature once on demo data, and check the done-checklist.
 
+## Working method (self-annealing)
+
+In this repo, **directives** are the living instruction documents: this file, `BUILD_PLAN.md`, `prompts/*.md`, `docs/*.md` and each demo's `README.md`. **Tools** are the scripts and commands that do the work: `uv run python -m agency.*`, `npm run db:migrate`, `node tools/git/sync.mjs`, `scripts/*`.
+
+**1. Self-anneal when things break** - Read error messages. Check logs. Update the script that failed. Add test cases. Fix the root cause. Don't just try the same thing again.
+- Update the directive with what you learned (API limits, timing, edge cases).
+
+**2. Update directives as you learn** - Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations, update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
+
+### Self-annealing loop
+
+Errors are learning opportunities. When something breaks:
+1. Fix it
+2. Update the tool
+3. Test the tool
+4. Update the directive
+5. System is now stronger
+
+## Safety & grounding
+
+**Always use the tools** - Never bypass execution tools. They exist for reliability and auditability. (For example: change the schema only through a migration, commit only through `tools/git/sync.mjs`, back up only through `agency.backup`.)
+
 ## Owner preferences
 
 - Explain what you are about to change in one or two sentences, then do it.
