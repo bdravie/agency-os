@@ -37,3 +37,11 @@ def test_apply_profile_marks_a_struck_off_company_not_eligible():
     assert compliance.apply_profile(c, "01234567", "ltd", "dissolved") == "not_eligible"
     assert c.params[0][4] == "not_eligible"
     assert compliance.apply_profile(c, "01234567", "ltd", "active") == "eligible"
+
+
+def test_settings_are_trimmed(monkeypatch):
+    from agency import config
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@host/db?sslmode=require\n")
+    assert config.require("DATABASE_URL").endswith("sslmode=require")
+    monkeypatch.setenv("SOME_KEY", "  \n")
+    assert config.get("SOME_KEY", "fallback") == "fallback"

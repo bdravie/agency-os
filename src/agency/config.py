@@ -18,7 +18,7 @@ for _k, _v in dotenv_values(ROOT / ".env").items():
 
 def get(name: str, default: str | None = None) -> str | None:
     """Return an environment value, or the default if missing/empty."""
-    value = os.getenv(name)
+    value = (os.getenv(name) or "").strip()   # secrets pasted into Codespaces often carry a trailing newline or space
     return value if value else default
 
 
