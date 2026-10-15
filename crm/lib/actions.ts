@@ -11,6 +11,10 @@ import { draftProposal, scoreFit } from "./proposal";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
 import { dailyCap, lookupWebsite } from "./places";
+import { ask } from "./llm";
+import { gbp, totals, type LineItem } from "./quote";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -407,4 +411,86 @@ export async function markOutreachSent(companyId: number, kind: "first" | "follo
   }
   revalidatePath(`/companies/${companyId}`);
   revalidatePath("/");
+}
+
+// ---- Offers and quotes ----
+
+export async function saveOffer(form: FormData) {
+  await requireLogin();
+  await query(
+    `UPDATE offers SET name = COALESCE($2, name), niche = $3, outcome = $4, setup_price_gbp = $5, monthly_price_gbp = $6,
+            loom_url = $7, demo_path = $8, active = $9 WHERE id = $1`,
+    [num(form, "id"), str(form, "name"), str(form, "niche"), str(form, "outcome"), num(form, "setup"), num(form, "monthly"),
+     str(form, "loom_url"), str(form, "demo_path"), form.get("active") === "on"],
+  );
+  revalidatePath("/offers");
+}
+
+export async function addOffer(form: FormData) {
+  await requireLogin();
+  const name = str(form, "name");
+  if (!name) return;
+  await query(
+    `INSERT INTO offers (name, niche, outcome, setup_price_gbp, monthly_price_gbp) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (name) DO NOTHING`,
+    [name, str(form, "niche"), str(form, "outcome"), num(form, "setup"), num(form, "monthly")],
+  );
+  revalidatePath("/offers");
+}
+
+export async function draftScope(dealId: number, offerIds: number[]): Promise<{ scope?: string; error?: string }> {
+  await requireLogin();
+  try {
+    const [deal] = await query<{ title: string; company: string | null; notes: string | null; company_id: number | null }>(
+      `SELECT d.title, c.name AS company, c.owner_notes AS notes, d.company_id FROM deals d LEFT JOIN companies c ON c.id = d.company_id WHERE d.id = $1`, [dealId]);
+    if (!deal) return { error: "Deal not found." };
+    const offers = offerIds.length ? await query<{ name: string; outcome: string | null }>(`SELECT name, outcome FROM offers WHERE id = ANY($1::bigint[])`, [offerIds]) : [];
+    if (offers.length === 0) return { error: "Tick at least one offer first." };
+    const activity = deal.company_id
+      ? await query<{ type: string; body: string | null }>(`SELECT type, body FROM activities WHERE company_id = $1 ORDER BY occurred_at DESC LIMIT 8`, [deal.company_id])
+      : [];
+    const prompt =
+      `${await readFile(path.join(process.cwd(), "..", "prompts", "quote-scope.md"), "utf8")}\n\n` +
+      `CLIENT: ${deal.company ?? "the client"}\nDEAL: ${deal.title}\nNOTES: ${deal.notes ?? "(none)"}\n` +
+      `RECENT ACTIVITY:\n${activity.map((a) => `- ${a.type}: ${a.body ?? ""}`).join("\n") || "(none)"}\n\n` +
+      `OFFERS TO DESCRIBE:\n${offers.map((o) => `- ${o.name}: ${o.outcome ?? ""}`).join("\n")}`;
+    return { scope: await ask(prompt, "sonnet", 3000) };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function createQuote(form: FormData) {
+  await requireLogin();
+  const dealId = num(form, "deal_id");
+  const ids = form.getAll("offer_id").map(Number).filter(Boolean);
+  if (!ids.length) throw new Error("Pick at least one offer.");
+  const [deal] = await query<{ company_id: number | null; title: string }>(`SELECT company_id, title FROM deals WHERE id = $1`, [dealId]);
+  if (!deal) throw new Error("Deal not found.");
+  const offers = await query<{ id: number; name: string; outcome: string | null }>(`SELECT id, name, outcome FROM offers WHERE id = ANY($1::bigint[]) ORDER BY id`, [ids]);
+  const items: LineItem[] = offers.map((o) => ({
+    offer_id: o.id, name: o.name, outcome: o.outcome, setup_gbp: Math.max(0, num(form, `setup_${o.id}`)), monthly_gbp: Math.max(0, num(form, `monthly_${o.id}`)),
+  }));
+  const discount = Math.max(0, num(form, "discount"));
+  const t = totals(items, discount);
+  const rows = await query<{ id: number }>(
+    `INSERT INTO quotes (deal_id, offer_id, line_items, total_setup_gbp, total_monthly_gbp, status, scope, timeline, discount_gbp, valid_until)
+     VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$8, current_date + 14) RETURNING id`,
+    [dealId, items[0].offer_id, JSON.stringify(items), t.setup, t.monthly, str(form, "scope"), str(form, "timeline"), discount],
+  );
+  await query(`UPDATE deals SET setup_value_gbp = $2, monthly_value_gbp = $3 WHERE id = $1`, [dealId, t.setup, t.monthly]);
+  await logActivity("quote_created", { company_id: deal.company_id, deal_id: dealId, body: `Quote #${rows[0].id}: ${gbp(t.setup)} setup + ${gbp(t.monthly)}/mo` });
+  redirect(`/quotes/${rows[0].id}`);
+}
+
+export async function setQuoteStatus(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  const status = str(form, "status");
+  if (!status || !["Draft", "Sent", "Declined"].includes(status)) return;
+  const [q] = await query<{ deal_id: number; company_id: number | null }>(
+    `UPDATE quotes q SET status = $2, sent_at = CASE WHEN $2::text = 'Sent' AND q.sent_at IS NULL THEN now() ELSE q.sent_at END
+       FROM deals d WHERE q.id = $1 AND d.id = q.deal_id RETURNING q.deal_id, d.company_id`, [id, status]);
+  if (q) await logActivity(`quote_${status.toLowerCase()}`, { company_id: q.company_id, deal_id: q.deal_id, body: `Quote #${id} marked ${status}` });
+  revalidatePath(`/quotes/${id}`);
+  revalidatePath("/quotes");
 }

@@ -25,3 +25,5 @@ table { width:100%; border-collapse:collapse; } th, td { text-align:left; paddin
 .deal:active { cursor:grabbing; }
 .moves { display:flex; justify-content:space-between; margin-top:6px; }
 .moves button { background:var(--line); padding:2px 10px; font-size:12px; } .moves button:disabled { opacity:.25; cursor:default; }
+.quote h2 { margin-top: 20px; }
+@media print { nav, .demo, .noprint { display:none !important; } body { background:#fff; color:#000; } .card { border:0; background:#fff; } .muted { color:#555; } .page { padding:0; } }

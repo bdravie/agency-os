@@ -108,7 +108,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
 
         <section className="card">
           <h2>Deals</h2>
-          <ul>{deals.map((d: any) => <li key={d.id}>{d.title} <span className="muted">{d.stage} · {gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span></li>)}</ul>
+          <ul>{deals.map((d: any) => <li key={d.id}>{d.title} <span className="muted">{d.stage} · {gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span> <Link href={`/quotes/new?deal=${d.id}`}>Create quote</Link></li>)}</ul>
           <details><summary>Add deal</summary>
             <form action={addDeal} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
               <input type="hidden" name="company_id" value={id} />
