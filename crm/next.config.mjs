@@ -17,7 +17,7 @@ export default {
   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
   experimental: {
     serverActions: {
-      bodySizeLimit: "3mb", // transcript uploads (the app itself limits files to 2 MB)
+      bodySizeLimit: "17mb", // uploads: transcripts (2 MB) and training files (up to 5 files of 3 MB); the app enforces its own limits
       allowedOrigins: inCodespace ? ["*.app.github.dev"] : [],
     },
   },

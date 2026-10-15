@@ -170,6 +170,12 @@ Per-client before-and-after tracking (`/outcomes`). Kickoff baselines, monthly m
 
 ---
 
+## Extra: Enablement (built)
+
+Client training (`/enablement`): sessions held with attendees and a 1-3 skill level per person, skills/prompts/templates delivered (pasted text and stored files), recurring session schedules that keep a task open, and a flag for retained clients with no session in 30+ days (Today and Enablement, with a one-click task). Migration: `20261021100000_enablement.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

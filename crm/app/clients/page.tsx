@@ -37,7 +37,8 @@ export default async function Clients() {
           <section key={companyId} className="card">
             <div className="row-between">
               <h2 style={{ margin: 0 }}><Link href={`/companies/${companyId}`}>{services[0].company}</Link></h2>
-              {tracked.has(companyId) ? <Link href={`/outcomes/${tracked.get(companyId)}`} className="muted">Results</Link> : <Link href={`/outcomes/new?company=${companyId}`} className="muted">Start tracking results</Link>}
+              <span className="row" style={{ gap: 14 }}><Link href={`/enablement/${companyId}`} className="muted">Training</Link>
+              {tracked.has(companyId) ? <Link href={`/outcomes/${tracked.get(companyId)}`} className="muted">Results</Link> : <Link href={`/outcomes/new?company=${companyId}`} className="muted">Start tracking results</Link>}</span>
             </div>
             {services.map((s: any) => (
               <ToastForm key={s.id} action={saveService} success="Client updated" className="row" style={{ padding: "8px 0", borderTop: "1px solid var(--line-soft)" }}>

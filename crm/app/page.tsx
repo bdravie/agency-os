@@ -4,6 +4,7 @@ import { Check, FileSignature, Plus, Video } from "lucide-react";
 import { query } from "@/lib/db";
 import { loadRevenue } from "@/lib/revenue";
 import { loadOutcomes, needsAttention } from "@/lib/outcomeData";
+import { dueForSession, loadTraining } from "@/lib/enablementData";
 import { completeTask } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -31,7 +32,9 @@ export default async function Today() {
     loadRevenue(),
     query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'email_logged' AND occurred_at > now() - interval '7 days'`),
     loadOutcomes(),
+    loadTraining(),
   ]);
+  const noSession = dueForSession(training);
   const atRisk = outcomes.filter(needsAttention);
 
   const last = backup[0]?.last ? new Date(backup[0].last) : null;
@@ -61,6 +64,7 @@ export default async function Today() {
         <Stat label="Open pipeline" value={gbp(revenue.pipelineOneOff)} hint={`one-off, plus ${gbp(revenue.pipelineMonthly)}/mo recurring · ${revenue.openDeals} deal${revenue.openDeals === 1 ? "" : "s"}`} href="/deals" />
         <Stat label="Tasks due" value={tasks.length} hint={overdue ? `${overdue} overdue` : "Nothing overdue"} href="/tasks" />
         <Stat label="Clients to check on" value={atRisk.length} hint={atRisk.length ? atRisk.slice(0, 2).map((l) => l.outcome.company_name).join(", ") + (atRisk.length > 2 ? "…" : "") : outcomes.length ? "Results are on track" : "Track results on the Outcomes page"} href="/outcomes" />
+        <Stat label="Training overdue" value={noSession.length} hint={noSession.length ? noSession.slice(0, 2).map((r) => r.name).join(", ") + (noSession.length > 2 ? "…" : "") : "Retained clients are up to date"} href="/enablement" />
         <Stat label="Outreach this week" value={outreach[0].n} hint="emails you've logged as sent" />
       </section>
 

@@ -22,6 +22,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - Audits record a client's recurring tasks as roles and hours, never people's names, emails or phone numbers (the app refuses contact details). Tasks involving special-category data are scored but held out of the recommendations until a data processing agreement and DPIA are in place. AI audit reports are drafted only when the owner clicks, with the model set by `AUDIT_MODEL`.
 - Call transcripts are added only for calls where everyone knew they were recorded. Emails, phone numbers and speaker names are masked before saving, the original upload is never kept, and AI analysis runs only when the owner clicks, with the model set by `CALLS_MODEL`.
 - Outcomes record business metrics only (missed calls, response times, bookings, hours), never data about a client's end customers. Client reports, case studies and testimonial emails are drafts the owner sends: a case study needs the client's approval before use, AI wording runs only when clicked (`OUTCOMES_MODEL`), and the email carries the owner's name, business name and opt-out line.
+- Enablement keeps a client's trained staff as a name and role only (never emails or phone numbers) with a 1-3 skill level. It is a training record, not a performance rating, and anyone can be removed on request. Training files are stored in the database and served as downloads only, from an allow-list of file types.
 
 ## Stack
 
