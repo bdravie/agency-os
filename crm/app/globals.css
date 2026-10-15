@@ -260,3 +260,21 @@ button.pill { background: var(--surface); }
 button.pill:hover { background: var(--surface-2); }
 button.pill.on { background: var(--accent-soft); }
 .moves button { padding: 2px 10px; }
+
+/* Status stepper and next-step prompt */
+.stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); }
+.stepper ol { display: flex; gap: 4px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
+.stepper li { border: 0; padding: 0; display: flex; align-items: center; }
+.stepper li + li::before { content: ""; width: 22px; height: 1px; background: var(--line); margin-right: 4px; }
+.step { background: transparent; color: var(--text-2); min-height: 34px; padding: 4px 12px 4px 6px; border-radius: 999px; font-weight: 500; }
+.step:hover { background: var(--surface-2); }
+.step-dot { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+.step.done .step-dot { background: var(--good-soft); border-color: transparent; color: var(--good); }
+.step.now { background: var(--accent-soft); color: #cfe0ff; }
+.step.now .step-dot { background: var(--accent-strong); border-color: transparent; color: #fff; }
+.park.on { border-color: var(--bad); color: var(--bad); }
+.next { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--accent-soft); border: 1px solid rgba(79, 141, 253, 0.35); }
+.next-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #9bbdff; }
+.next b { display: block; margin-top: 2px; }
+.next.warn { background: var(--warn-soft); border-color: rgba(251, 191, 36, 0.35); }
+.next.warn .next-label { color: var(--warn); }

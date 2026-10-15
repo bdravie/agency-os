@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import ToastForm from "@/components/ToastForm";
 import { ExternalLink } from "lucide-react";
 import { query } from "@/lib/db";
 import { saveProposal } from "@/lib/actions";
@@ -20,7 +21,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
         description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{p.job_url && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Job post <ExternalLink size={13} aria-hidden /></a>}</span>}
       />
       <div className="grid">
-        <form action={saveProposal} className="card stack" style={{ gap: 10 }}>
+        <ToastForm action={saveProposal} success="Proposal saved" className="card stack" style={{ gap: 10 }}>
           <input type="hidden" name="id" value={id} />
           <h2>Your draft (edit freely)</h2>
           <textarea id="draft" name="draft" rows={16} defaultValue={p.draft ?? ""} aria-label="Draft" />
@@ -32,7 +33,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
             <button>Save</button>
             <CopyButton targetId="draft" />
           </div>
-        </form>
+        </ToastForm>
         <section className="card">
           <h2>Job post</h2>
           <p style={{ whiteSpace: "pre-wrap" }}>{p.job_text}</p>

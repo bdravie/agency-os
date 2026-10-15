@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ToastForm from "@/components/ToastForm";
 import { Check, FileSignature, Plus, Video } from "lucide-react";
 import { query } from "@/lib/db";
 import { completeTask } from "@/lib/actions";
@@ -70,10 +71,10 @@ export default async function Today() {
             ) : (
               <ul>{tasks.map((t: any) => (
                 <li key={t.id} className="row">
-                  <form action={completeTask}>
+                  <ToastForm action={completeTask} success="Task done">
                     <input type="hidden" name="task_id" value={t.id} />
                     <button className="link" title="Mark done" aria-label={`Mark done: ${t.title}`}><Check size={16} /></button>
-                  </form>
+                  </ToastForm>
                   <span style={{ flex: 1 }}>
                     {t.title}
                     {t.company_id && !t.title.includes(t.company_name) && <> <Link href={`/companies/${t.company_id}`} className="muted">{t.company_name}</Link></>}

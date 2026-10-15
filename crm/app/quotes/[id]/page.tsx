@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ToastForm from "@/components/ToastForm";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import { acceptQuote, setQuoteStatus } from "@/lib/actions";
@@ -38,17 +39,17 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
             <span>Accepted {q.accepted_at && new Date(q.accepted_at).toLocaleDateString("en-GB", { dateStyle: "medium" })} · <Link href="/clients">See Clients</Link></span>
           ) : (
             <>
-              <form action={setQuoteStatus} className="row">
+              <ToastForm action={setQuoteStatus} success="Quote updated" className="row">
                 <input type="hidden" name="id" value={id} />
                 <select name="status" defaultValue={q.status} aria-label="Status">
                   <option>Draft</option><option>Sent</option><option>Declined</option>
                 </select>
                 <button className="secondary">Update status</button>
-              </form>
-              <form action={acceptQuote}>
+              </ToastForm>
+              <ToastForm action={acceptQuote} success="Quote accepted">
                 <input type="hidden" name="id" value={id} />
                 <button title="Moves the deal to Won and creates the client">Mark as accepted</button>
-              </form>
+              </ToastForm>
             </>
           )}
         </div>

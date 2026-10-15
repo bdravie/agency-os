@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ToastForm from "@/components/ToastForm";
 import { notFound } from "next/navigation";
 import { Check, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { query } from "@/lib/db";
@@ -9,6 +10,7 @@ import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
+import StatusStepper from "@/components/StatusStepper";
 import { ActivityIcon, activityLabel } from "@/components/activity";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 
@@ -31,6 +33,18 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
     [company.domain, company.generic_email]);
   const blocker = company.is_ltd === false ? "Outreach is for limited companies only." : suppressed ? "This company is on your suppression list." : null;
 
+  const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
+  const next: { text: string; href?: string; warn?: boolean } =
+    company.is_ltd === false ? { text: "Not a limited company: outreach isn't allowed for this one.", warn: true }
+    : suppressed ? { text: "On your suppression list: do not contact.", warn: true }
+    : !company.domain ? { text: "Find their website, so you can check they're a real agency.", href: "#website" }
+    : !company.generic_email ? { text: "Find a generic email address (info@, hello@) on their site.", href: "#website" }
+    : company.status === "New" ? { text: "Write one true, specific opening line, then send the first email.", href: "#outreach" }
+    : company.status === "Contacted" ? { text: followUp?.due_at ? `Send the one follow-up, due ${when(followUp.due_at)}.` : "Send the one follow-up if you haven't heard back.", href: "#outreach" }
+    : company.status === "Replied" ? { text: "They replied: offer a short call or the free pilot, and create a deal.", href: "#deals" }
+    : company.status === "Client" ? { text: "Client: keep an eye on the next review date.", href: "/clients" }
+    : { text: "Parked as not a fit. Reopen it above if that changes." };
+
   return (
     <>
       <PageHeader
@@ -49,22 +63,33 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         }
       />
 
+      <StatusStepper companyId={id} status={company.status} />
+
       <div className="split">
         <div className="stack">
+          <div className={`next${next.warn ? " warn" : ""}`} role="note">
+            <div>
+              <div className="next-label">Next step</div>
+              <b>{next.text}</b>
+              {next.href && <a href={next.href}>{next.href.startsWith("/") ? "Open" : "Take me there"} →</a>}
+            </div>
+          </div>
           <section className="card">
             <h2>Log activity</h2>
-            <form action={logContact} className="row">
+            <ToastForm action={logContact} success="Activity logged" reset className="row">
               <input type="hidden" name="company_id" value={id} />
               <select name="type" aria-label="Type"><option value="email">Email</option><option value="dm">DM</option><option value="call">Call</option><option value="note">Note</option></select>
               <input name="body" placeholder="What happened?" aria-label="What happened" style={{ flex: 1, minWidth: 200 }} />
               <button>Log</button>
-            </form>
+            </ToastForm>
           </section>
 
-          <section className="card">
-            <h2>Outreach email</h2>
-            <OutreachDraft companyId={id} to={company.generic_email} first={drafts.first} followUp={drafts.followUp} blocker={blocker} />
-          </section>
+          <details className="card" id="outreach" open={!!company.generic_email && !blocker}>
+            <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has a generic email</span>}</summary>
+            <div style={{ marginTop: 14 }}>
+              <OutreachDraft companyId={id} to={company.generic_email} first={drafts.first} followUp={drafts.followUp} blocker={blocker} />
+            </div>
+          </details>
 
           <section className="card">
             <h2>Activity</h2>
@@ -84,7 +109,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="stack">
-          <section className="card">
+          <section className="card" id="website">
             <h2>Website &amp; email</h2>
             {!company.domain && (
               <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
@@ -109,18 +134,15 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           </section>
 
           <section className="card">
-            <h2>Notes &amp; status</h2>
-            <form action={saveNotes} className="stack" style={{ gap: 8 }}>
+            <h2>Notes</h2>
+            <ToastForm action={saveNotes} success="Notes saved" className="stack" style={{ gap: 8 }}>
               <input type="hidden" name="company_id" value={id} />
               <textarea name="notes" rows={4} defaultValue={company.owner_notes ?? ""} placeholder="Anything worth remembering" aria-label="Notes" />
-              <select name="status" defaultValue={company.status} aria-label="Status">
-                {["New", "Contacted", "Replied", "Client", "Not a fit"].map((s) => <option key={s}>{s}</option>)}
-              </select>
               <button className="secondary">Save</button>
-            </form>
+            </ToastForm>
           </section>
 
-          <section className="card">
+          <section className="card" id="deals">
             <h2>Deals</h2>
             {deals.length === 0 && <p className="muted">No deals yet.</p>}
             <ul>{deals.map((d: any) => (
@@ -130,12 +152,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               </li>
             ))}</ul>
             <details style={{ marginTop: 10 }}><summary>Add a deal</summary>
-              <form action={addDeal} className="stack" style={{ gap: 8, marginTop: 10 }}>
+              <ToastForm action={addDeal} success="Deal added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
                 <input type="hidden" name="company_id" value={id} />
                 <input name="title" placeholder="Deal title" required aria-label="Deal title" />
                 <div className="row"><input name="setup" type="number" min="0" step="1" placeholder="Setup £" aria-label="Setup" style={{ width: 110 }} /><input name="monthly" type="number" min="0" step="1" placeholder="Monthly £" aria-label="Monthly" style={{ width: 110 }} /></div>
                 <button className="secondary">Add deal</button>
-              </form>
+              </ToastForm>
             </details>
           </section>
 
@@ -146,7 +168,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               <li key={c.id}><b>{c.name}</b> <span className="muted">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</span><br /><span className="muted">via {c.consent_basis}</span></li>
             ))}</ul>
             <details style={{ marginTop: 10 }}><summary>Add a contact</summary>
-              <form action={addContact} className="stack" style={{ gap: 8, marginTop: 10 }}>
+              <ToastForm action={addContact} success="Contact added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
                 <input type="hidden" name="company_id" value={id} />
                 <input name="name" placeholder="Name" required aria-label="Name" />
                 <input name="role" placeholder="Role" aria-label="Role" />
@@ -157,7 +179,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                   {["form", "booking", "replied", "messaged", "client"].map((c) => <option key={c}>{c}</option>)}
                 </select>
                 <button className="secondary">Add contact</button>
-              </form>
+              </ToastForm>
             </details>
           </section>
 
@@ -166,20 +188,20 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             {tasks.length === 0 && <p className="muted">No open tasks.</p>}
             <ul>{tasks.map((t: any) => (
               <li key={t.id} className="row">
-                <form action={completeTask}>
+                <ToastForm action={completeTask} success="Task done">
                   <input type="hidden" name="task_id" value={t.id} />
                   <button className="link" title="Mark done" aria-label={`Mark done: ${t.title}`}><Check size={16} /></button>
-                </form>
+                </ToastForm>
                 <span style={{ flex: 1 }}>{t.title}</span>
                 {t.due_at && <span className="muted">{when(t.due_at)}</span>}
               </li>
             ))}</ul>
-            <form action={addTask} className="row" style={{ marginTop: 10 }}>
+            <ToastForm action={addTask} success="Task added" reset className="row" style={{ marginTop: 10 }}>
               <input type="hidden" name="company_id" value={id} />
               <input name="title" placeholder="New task" required aria-label="New task" style={{ flex: 1, minWidth: 120 }} />
               <input name="due" type="datetime-local" aria-label="Due" />
               <button className="secondary">Add</button>
-            </form>
+            </ToastForm>
           </section>
         </div>
       </div>

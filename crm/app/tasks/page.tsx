@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ToastForm from "@/components/ToastForm";
 import { Check, CheckCheck } from "lucide-react";
 import { query } from "@/lib/db";
 import { addLooseTask, completeTask } from "@/lib/actions";
@@ -23,11 +24,11 @@ export default async function Tasks() {
   return (
     <>
       <PageHeader title="Tasks" description={`${tasks.length} open`} />
-      <form action={addLooseTask} className="card row" style={{ marginBottom: 20 }}>
+      <ToastForm action={addLooseTask} success="Task added" reset className="card row" style={{ marginBottom: 20 }}>
         <input name="title" placeholder="Add a task…" aria-label="New task" required autoFocus style={{ flex: 1, minWidth: 200 }} />
         <input name="due" type="datetime-local" aria-label="Due date" />
         <button>Add task</button>
-      </form>
+      </ToastForm>
 
       {tasks.length === 0 && <div className="card"><EmptyState title="Nothing to do" icon={<CheckCheck size={22} />}>You&apos;re all caught up.</EmptyState></div>}
       <div className="stack">
@@ -39,10 +40,10 @@ export default async function Tasks() {
               <h2 className={g.tone}>{g.title} · {items.length}</h2>
               <ul>{items.map((t: any) => (
                 <li key={t.id} className="row">
-                  <form action={completeTask}>
+                  <ToastForm action={completeTask} success="Task done">
                     <input type="hidden" name="task_id" value={t.id} />
                     <button className="link" title="Mark done" aria-label={`Mark done: ${t.title}`}><Check size={16} /></button>
-                  </form>
+                  </ToastForm>
                   <span style={{ flex: 1 }}>{t.title}{t.company_id && <> <Link href={`/companies/${t.company_id}`} className="muted">{t.company_name}</Link></>}</span>
                   {t.due_at && <span className={g.key === "overdue" ? "badge tone-bad" : "muted"}>{when(t.due_at)}</span>}
                 </li>

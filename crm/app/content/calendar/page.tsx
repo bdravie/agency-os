@@ -2,6 +2,7 @@ import Link from "next/link";
 import { query } from "@/lib/db";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { scheduleContent } from "@/lib/actions";
+import ToastForm from "@/components/ToastForm";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -55,11 +56,11 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
           {unscheduled.map((u: any) => (
             <li key={u.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
               <span><Link href={`/content/${u.id}`}>{u.idea}</Link> <span className="muted">{u.status}</span></span>
-              <form action={scheduleContent} style={{ display: "flex", gap: 6 }}>
+              <ToastForm action={scheduleContent} success="Date saved" style={{ display: "flex", gap: 6 }}>
                 <input type="hidden" name="id" value={u.id} />
                 <input type="date" name="date" defaultValue={days.some((d) => iso(d) === iso(new Date())) ? iso(new Date()) : iso(days[0])} aria-label="Date" required />
                 <button className="secondary">Schedule</button>
-              </form>
+              </ToastForm>
             </li>
           ))}
           {unscheduled.length === 0 && <li className="muted">Everything is scheduled.</li>}

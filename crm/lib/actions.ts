@@ -41,7 +41,7 @@ export async function createCompany(form: FormData) {
 export async function saveNotes(form: FormData) {
   await requireLogin();
   const id = num(form, "company_id");
-  await query(`UPDATE companies SET owner_notes = $1, status = COALESCE($2, status) WHERE id = $3`, [str(form, "notes"), str(form, "status"), id]);
+  await query(`UPDATE companies SET owner_notes = $1 WHERE id = $2`, [str(form, "notes"), id]);
   revalidatePath(`/companies/${id}`);
 }
 
@@ -540,4 +540,17 @@ export async function saveService(form: FormData) {
   if (review && !/^\d{4}-\d{2}-\d{2}$/.test(review)) return;
   await query(`UPDATE client_services SET status = $2, next_review_date = $3 WHERE id = $1`, [num(form, "id"), status, review]);
   revalidatePath("/clients");
+}
+
+const COMPANY_STATUSES = ["New", "Contacted", "Replied", "Client", "Not a fit"];
+
+export async function setCompanyStatus(companyId: number, status: string) {
+  await requireLogin();
+  if (!COMPANY_STATUSES.includes(status)) throw new Error("Unknown status");
+  const [row] = await query<{ name: string; old: string }>(
+    `UPDATE companies c SET status = $2 FROM (SELECT id, status AS old FROM companies WHERE id = $1) prev
+      WHERE c.id = prev.id RETURNING c.name, prev.old`, [companyId, status]);
+  if (row && row.old !== status) await logActivity("status_changed", { company_id: companyId, body: `${row.old} → ${status}` });
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/companies");
 }
