@@ -20,6 +20,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - The `suppression` table is checked by every list-building and outreach feature.
 - Scrapers respect robots.txt, rate limits and each tool's free caps, and print what each run cost.
 - Audits record a client's recurring tasks as roles and hours, never people's names, emails or phone numbers (the app refuses contact details). Tasks involving special-category data are scored but held out of the recommendations until a data processing agreement and DPIA are in place. AI audit reports are drafted only when the owner clicks, with the model set by `AUDIT_MODEL`.
+- Call transcripts are added only for calls where everyone knew they were recorded. Emails, phone numbers and speaker names are masked before saving, the original upload is never kept, and AI analysis runs only when the owner clicks, with the model set by `CALLS_MODEL`.
 
 ## Stack
 

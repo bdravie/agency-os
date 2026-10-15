@@ -11,7 +11,7 @@ import { gbp } from "@/lib/quote";
 import AuditTaskForm from "@/components/AuditTaskForm";
 import AuditReportPanel from "@/components/AuditReportPanel";
 import ToastForm from "@/components/ToastForm";
-import { Badge, EmptyState, PageHeader } from "@/components/ui";
+import { EmptyState, PageHeader, Pill } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,7 @@ export default async function AuditPage({ params }: { params: Promise<{ id: stri
       <PageHeader
         back={{ href: "/audits", label: "Audits" }}
         title={audit.title}
-        description={<span className="row" style={{ gap: 10 }}><Link href={`/companies/${audit.company_id}`}>{audit.company_name}</Link>{audit.deal_id && <Link href={`/deals/${audit.deal_id}`}>Deal: {audit.deal_title}</Link>}<Badge value={audit.status === "intake" ? "Draft" : audit.status === "report_drafted" ? "Scripted" : "Won"} /><span className="muted">{audit.status === "intake" ? "Intake" : audit.status === "report_drafted" ? "Report drafted" : "Delivered"}</span></span>}
+        description={<span className="row" style={{ gap: 10 }}><Link href={`/companies/${audit.company_id}`}>{audit.company_name}</Link>{audit.deal_id && <Link href={`/deals/${audit.deal_id}`}>Deal: {audit.deal_title}</Link>}<Pill label={audit.status === "intake" ? "Intake" : audit.status === "report_drafted" ? "Report drafted" : "Delivered"} tone={audit.status === "intake" ? "neutral" : audit.status === "report_drafted" ? "blue" : "good"} /></span>}
       />
 
       <div className="stack">

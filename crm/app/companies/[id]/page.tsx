@@ -13,6 +13,7 @@ import OutreachDraft from "@/components/OutreachDraft";
 import StatusStepper from "@/components/StatusStepper";
 import ContactDetailsForm from "@/components/ContactDetailsForm";
 import AuditsCard from "@/components/AuditsCard";
+import CallsCard from "@/components/CallsCard";
 import { creditUsage } from "@/lib/usage";
 import { nextStep } from "@/lib/nextStep";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
@@ -156,6 +157,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               <button className="secondary">Save</button>
             </ToastForm>
           </section>
+
+          <CallsCard companyId={id} />
 
           <AuditsCard companyId={id} withDocuments />
 

@@ -61,6 +61,11 @@ export function LaneTab({ colour, label, count, hint }: { colour: string; label:
   );
 }
 
+/** A coloured label with its own text (unlike Badge, which maps a known value to a colour). */
+export function Pill({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "blue" | "violet" | "cyan" | "warn" | "good" | "bad" | "orange" }) {
+  return <span className={`badge tone-${tone}`}>{label}</span>;
+}
+
 export function Stat({ label, value, hint, href }: { label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string }) {
   const body = (
     <>

@@ -9,6 +9,7 @@ import { CHANNELS, STAGE_META, channelLabel, lostLabel, stageLabel, type Stage }
 import DealStageControl from "@/components/DealStageControl";
 import DealOffersCard from "@/components/DealOffersCard";
 import AuditsCard from "@/components/AuditsCard";
+import CallsCard from "@/components/CallsCard";
 import ToastForm from "@/components/ToastForm";
 import { ActivityIcon, activityLabel } from "@/components/activity";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
@@ -66,6 +67,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       <div className="split">
         <div className="stack">
           <DealOffersCard dealId={id} />
+          {deal.company_id && <CallsCard companyId={deal.company_id} dealId={id} />}
           {deal.company_id && <AuditsCard companyId={deal.company_id} dealId={id} />}
 
           <section className="card">

@@ -463,3 +463,7 @@ tr.dim td { color: var(--muted); }
 tr.held td { color: var(--muted); }
 .report-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
 .report-form textarea, .report-form input[type="text"], .report-form input[type="number"] { width: 100%; font-weight: 400; }
+
+/* Objection responses */
+.response-box { margin-top: 8px; padding: 10px 12px; background: var(--good-soft); border-radius: var(--radius-sm); }
+.response-box .field-label { color: var(--good); }

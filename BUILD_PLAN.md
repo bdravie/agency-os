@@ -158,6 +158,12 @@ Decided 2026-10-15: leave these off until closer to launch. **Anything that spen
 
 ---
 
+## Extra: Calls and Objection Library (built)
+
+Upload a .vtt/.txt transcript or paste notes against a deal (`/calls/new`). Privacy masking happens before saving; "Analyse with AI" (paid, click-only, `CALLS_DAILY_CAP`) extracts summary, pains, budget signals, objections, next step and follow-up date, and creates the follow-up task. `/objections` aggregates objections across calls with frequency counts and your best response, shown again on any call where it recurs. Migration: `20261019100000_calls_and_objections.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**
