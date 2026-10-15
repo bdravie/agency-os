@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ExternalLink, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, ExternalLink, Plus, Search } from "lucide-react";
 import { moveDeal } from "@/lib/actions";
 import { STAGE_META, stageLabel, type Stage } from "@/lib/stages";
 import { useToast } from "./Toast";
@@ -98,14 +98,16 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
                       <b>{d.title}</b>
                     </div>
                     {d.company_id && !d.title.startsWith(d.company_name ?? "\u0000") && <Link href={`/companies/${d.company_id}`} className="muted" onClick={(e) => e.stopPropagation()}>{d.company_name}</Link>}
-                    <div className="row-between">
-                      <span className="deal-value">{gbp(d.setup)}<span className="muted"> + {gbp(d.monthly)}/mo</span></span>
-                      {!CLOSED.includes(stage) && <span className={`age${quiet ? " quiet" : ""}`} suppressHydrationWarning title="Time since this deal last changed">{age <= 0 ? "today" : `${age}d`}</span>}
-                    </div>
-                    <div className="deal-actions" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" disabled={idx === 0} onClick={() => move(d.id, stages[idx - 1])} aria-label={`Move ${d.title} back to ${stageLabel(stages[idx - 1] ?? "")}`} title={idx > 0 ? `Back to ${stageLabel(stages[idx - 1])}` : ""}><ChevronLeft size={14} /></button>
-                      <button type="button" disabled={idx === stages.length - 1} onClick={() => move(d.id, stages[idx + 1])} aria-label={`Move ${d.title} on to ${stageLabel(stages[idx + 1] ?? "")}`} title={idx < stages.length - 1 ? `On to ${stageLabel(stages[idx + 1])}` : ""}><ChevronRight size={14} /></button>
-                      <a href={`/deals/${d.id}`} target="_blank" rel="noreferrer" title="Open in a new tab" aria-label="Open in a new tab"><ExternalLink size={13} /></a>
+                    <div className="deal-value">{gbp(d.setup)}<span className="muted"> + {gbp(d.monthly)}/mo</span></div>
+                    <div className="deal-foot">
+                      {!CLOSED.includes(stage)
+                        ? <span className={`age${quiet ? " quiet" : ""}`} suppressHydrationWarning title={age <= 0 ? "Updated today" : `Last changed ${age} day${age === 1 ? "" : "s"} ago`}><Clock size={12} aria-hidden /> {age <= 0 ? "Today" : `${age}d`}</span>
+                        : <span className="age">{stageLabel(stage)}</span>}
+                      <div className="deal-actions" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" disabled={idx === 0} onClick={() => move(d.id, stages[idx - 1])} aria-label={`Move ${d.title} back to ${stageLabel(stages[idx - 1] ?? "")}`} title={idx > 0 ? `Back to ${stageLabel(stages[idx - 1])}` : ""}><ChevronLeft size={14} /></button>
+                        <button type="button" disabled={idx === stages.length - 1} onClick={() => move(d.id, stages[idx + 1])} aria-label={`Move ${d.title} on to ${stageLabel(stages[idx + 1] ?? "")}`} title={idx < stages.length - 1 ? `On to ${stageLabel(stages[idx + 1])}` : ""}><ChevronRight size={14} /></button>
+                        <a href={`/deals/${d.id}`} target="_blank" rel="noreferrer" title="Open in a new tab" aria-label="Open in a new tab"><ExternalLink size={13} /></a>
+                      </div>
                     </div>
                   </article>
                 );

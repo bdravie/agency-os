@@ -253,7 +253,7 @@ a[aria-disabled="true"] { pointer-events: none; }
 .dialog { width: min(460px, calc(100vw - 32px)); margin-top: 6px; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6); }
 .drop-hint { margin: 6px 0; padding: 18px 8px; border: 1px dashed var(--line); border-radius: var(--radius-sm); color: var(--muted); text-align: center; font-size: 13px; }
 .col.over .drop-hint { border-color: var(--accent); color: var(--text-2); }
-.age { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.age { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .age.quiet { color: var(--warn); font-weight: 600; }
 .pill { cursor: pointer; font: inherit; font-size: 13.5px; min-height: 0; }
 button.pill { background: var(--surface); }
@@ -359,7 +359,8 @@ button.pill.on { background: var(--accent-soft); }
 .pick { display: flex; justify-content: space-between; gap: 12px; width: 100%; min-height: 0; padding: 9px 12px; background: transparent; color: var(--text); border-radius: 0; font-weight: 500; }
 .pick:hover { background: var(--accent-soft); }
 
-.deal-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; padding: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; opacity: 0; transition: opacity var(--ease); }
+.deal-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 28px; }
+.deal-actions { display: flex; gap: 2px; padding: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; opacity: 0; transition: opacity var(--ease); }
 .deal:hover .deal-actions, .deal:focus-within .deal-actions { opacity: 1; }
 .deal-actions button, .deal-actions a { display: grid; place-items: center; width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 6px; background: transparent; color: var(--text-2); border: 0; }
 .deal-actions button:hover, .deal-actions a:hover { background: var(--line); color: var(--text); }
