@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Check, Download, Upload } from "lucide-react";
+import { Building2, Check, Download, Search, Upload } from "lucide-react";
 import { query } from "@/lib/db";
 import { createCompany, findWebsitesAction } from "@/lib/actions";
 import { nextStep } from "@/lib/nextStep";
@@ -72,6 +72,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         description="Pick a view to see who needs what. Open a company for its website, outreach email and history."
         actions={
           <>
+            <a href="#find" className="btn"><Search size={16} aria-hidden /> Find new companies</a>
             <Link href="/companies/import" className="btn secondary"><Upload size={16} aria-hidden /> Import CSV</Link>
             <a href="/api/companies/export" className="btn secondary"><Download size={16} aria-hidden /> Export</a>
           </>
@@ -93,7 +94,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         <button className="secondary">Search</button>
       </form>
 
-      <details className="card" style={{ marginBottom: 16 }} open={latestSearch?.status === "running"}>
+      <details className="card" id="find" style={{ marginBottom: 16 }} open>
         <summary>Find new companies on Companies House <span className="badge tone-good" style={{ marginLeft: 6 }}>free</span></summary>
         <div style={{ marginTop: 12 }}><LeadSearchPanel niches={searchNiches} latest={latestSearch} /></div>
       </details>
