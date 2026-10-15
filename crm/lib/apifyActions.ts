@@ -122,7 +122,8 @@ export async function apifyPollAction(runId: number): Promise<PollState> {
     return { status: "processing", ...c, costUsd: run.cost };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (e instanceof ApifyError) return { status: run.status === "processing" ? "processing" : "running", processed: 0, total: 0, costUsd: null, error: scrub(msg) };   // a hiccup: try again on the next poll
+    // A rejected request (4xx other than rate limits) will not fix itself: stop and show why. Network trouble, 5xx and 429 are retried on the next poll.
+    if (e instanceof ApifyError && !(e.status >= 400 && e.status < 500 && e.status !== 429)) return { status: run.status === "processing" ? "processing" : "running", processed: 0, total: 0, costUsd: null, error: scrub(msg) };
     return fail(scrub(msg), null);
   }
 }
