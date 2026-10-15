@@ -298,3 +298,9 @@ button.pill.on { background: var(--accent-soft); }
 .totals-list dt { margin: 0; } .totals-list dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
 .totals-list .muted dd { font-weight: 400; }
 @media (max-width: 1100px) { .sticky { position: static; } }
+
+/* Long columns scroll inside the board instead of stretching the page */
+.scroll-cols .col { max-height: calc(100vh - 230px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.scroll-cols .col h2 { position: sticky; top: -12px; z-index: 1; margin: -12px -12px 8px; padding: 12px; background: var(--surface); border-radius: var(--radius) var(--radius) 0 0; }
+.deal b { font-weight: 600; font-size: 14.5px; line-height: 1.4; }
+@media (max-width: 800px) { .offer > label:first-of-type { grid-column: 1 / -1; } }
