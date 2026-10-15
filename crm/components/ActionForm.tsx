@@ -14,7 +14,7 @@ export default function ActionForm({
     <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 8, ...style }}>
       {children}
       <button disabled={pending}>{pending ? busyLabel : label}</button>
-      {message && <p className="error">{message}</p>}
+      {message && <p className={message.startsWith("✓") ? "muted" : "error"}>{message}</p>}
     </form>
   );
 }

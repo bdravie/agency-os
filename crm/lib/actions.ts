@@ -10,6 +10,7 @@ import { STAGES } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
+import { dailyCap, lookupWebsite } from "./places";
 
 const str = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -336,4 +337,54 @@ export async function findEmailAction(_prev: string | null, form: FormData): Pro
   await logActivity("email_found", { company_id: id, body: email });
   revalidatePath(`/companies/${id}`);
   return null;
+}
+
+/** Look up websites via Google Places for companies that have none. Hard daily cap; every lookup is logged. */
+async function placesFor(ids: number[]): Promise<{ found: number; missed: number; stopped: string | null }> {
+  let found = 0, missed = 0;
+  for (const id of ids) {
+    const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'places_lookup' AND occurred_at::date = current_date`);
+    if (Number(n) >= dailyCap()) return { found, missed, stopped: `Daily cap of ${dailyCap()} lookups reached.` };
+    const [c] = await query<{ id: number; name: string; postcode: string | null; phone: string | null }>(`SELECT id, name, postcode, phone FROM companies WHERE id = $1 AND domain IS NULL`, [id]);
+    if (!c) continue;
+    let hit = null;
+    try {
+      hit = await lookupWebsite(c);
+    } catch (err) {
+      return { found, missed, stopped: err instanceof Error ? err.message : String(err) };
+    }
+    await logActivity("places_lookup", { company_id: id, channel: "google_places", body: hit ? `${hit.domain} (matched "${hit.matchedName}")` : "no confident match" });
+    if (!hit) { missed++; continue; }
+    const blocked = await query(`SELECT 1 FROM suppression WHERE lower(domain) = $1`, [hit.domain]);
+    if (blocked.length) { missed++; continue; }
+    try {
+      await query(`UPDATE companies SET domain = $2, phone = COALESCE(phone, $3) WHERE id = $1`, [id, hit.domain, hit.phone]);
+      await logActivity("website_found", { company_id: id, channel: "google_places", body: `${hit.domain} (UNVERIFIED: matched "${hit.matchedName}", please check)` });
+      found++;
+    } catch { missed++; } // domain already belongs to another company
+  }
+  return { found, missed, stopped: null };
+}
+
+export async function findWebsitesAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const limit = Math.min(Math.max(num(form, "limit") || 10, 1), 25);
+  const ids = (await query<{ id: number }>(
+    `SELECT c.id FROM companies c
+      WHERE c.domain IS NULL AND c.is_ltd
+        AND NOT EXISTS (SELECT 1 FROM activities a WHERE a.company_id = c.id AND a.type = 'places_lookup')
+      ORDER BY c.id LIMIT $1`, [limit])).map((r) => r.id);
+  if (ids.length === 0) return "✓ Nothing to look up: every limited company already has a website or has been tried.";
+  const r = await placesFor(ids);
+  revalidatePath("/companies");
+  return `✓ Found ${r.found}, no confident match for ${r.missed}.${r.stopped ? ` Stopped: ${r.stopped}` : ""} Check each website before using it.`;
+}
+
+export async function findWebsiteOneAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "company_id");
+  const r = await placesFor([id]);
+  revalidatePath(`/companies/${id}`);
+  if (r.stopped) return r.stopped;
+  return r.found ? null : "No confident match on Google. Search manually.";
 }

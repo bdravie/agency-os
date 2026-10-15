@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
-import { createCompany } from "@/lib/actions";
+import { createCompany, findWebsitesAction } from "@/lib/actions";
+import ActionForm from "@/components/ActionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,14 @@ export default async function Companies({ searchParams }: { searchParams: Promis
           <input name="niche" placeholder="Niche (e.g. hvac)" />
           <button>Add</button>
         </form>
+      </details>
+
+      <details className="card" style={{ marginBottom: 16 }}>
+        <summary>Find websites automatically (Google Places)</summary>
+        <p className="muted">Looks up limited companies with no website, a few at a time, with a daily cap. Results are marked unverified: check each one before emailing.</p>
+        <ActionForm action={findWebsitesAction} label="Find websites" busyLabel="Looking up… (about 1 second each)" style={{ maxWidth: 360 }}>
+          <input name="limit" type="number" min="1" max="25" defaultValue="10" />
+        </ActionForm>
       </details>
 
       <div className="card">

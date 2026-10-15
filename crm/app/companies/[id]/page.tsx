@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
-import { addContact, addDeal, addTask, completeTask, findEmailAction, logContact, saveNotes, setWebsite } from "@/lib/actions";
+import { addContact, addDeal, addTask, completeTask, findEmailAction, findWebsiteOneAction, logContact, saveNotes, setWebsite } from "@/lib/actions";
 import { googleSearchUrl } from "@/lib/websites";
 import ActionForm from "@/components/ActionForm";
 
@@ -33,6 +33,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
       <div className="grid">
         <section className="card">
           <h2>Website &amp; email</h2>
+          {!company.domain && (
+            <div style={{ marginBottom: 8 }}>
+              <ActionForm action={findWebsiteOneAction} label="Find website automatically" busyLabel="Searching Google…">
+                <input type="hidden" name="company_id" value={id} />
+              </ActionForm>
+            </div>
+          )}
           {!company.domain && (
             <p><a href={googleSearchUrl(company.name, company.postcode)} target="_blank" rel="noreferrer">Search Google for this company ↗</a></p>
           )}
