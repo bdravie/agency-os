@@ -6,7 +6,7 @@ import { completeTask } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
 import { ActivityIcon, activityLabel } from "@/components/activity";
-import { Badge, EmptyState, PageHeader, Stat } from "@/components/ui";
+import { EmptyState, PageHeader, StageBadge, Stat } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };
@@ -93,7 +93,7 @@ export default async function Today() {
               <ul>{stale.map((d: any) => (
                 <li key={d.id} className="row-between">
                   <span>{d.company_id ? <Link href={`/companies/${d.company_id}`}>{d.title}</Link> : d.title}</span>
-                  <span className="row"><Badge value={d.stage} /><span className="muted">{ago(d.updated_at)}</span></span>
+                  <span className="row"><StageBadge stage={d.stage} /><span className="muted">{ago(d.updated_at)}</span></span>
                 </li>
               ))}</ul>
             )}

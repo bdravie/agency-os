@@ -18,7 +18,7 @@ export default async function Deals() {
     <>
       <PageHeader
         title="Deals"
-        description={`${open.length} open · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup and ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo in the pipeline. Use the arrows or drag a card to change its stage. Add deals from a company page.`}
+        description={`${open.length} open deals · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup + ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo. Click a card for details, or drag it to another stage.`}
       />
       <Board initial={rows} stages={STAGES} />
     </>

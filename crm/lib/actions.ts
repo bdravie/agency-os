@@ -554,3 +554,58 @@ export async function setCompanyStatus(companyId: number, status: string) {
   revalidatePath(`/companies/${companyId}`);
   revalidatePath("/companies");
 }
+
+// ---- Deals ----
+
+export async function createDealAction(companyId: number, title: string, setup: number, monthly: number): Promise<{ id?: number; error?: string }> {
+  await requireLogin();
+  const t = title.trim();
+  if (!t) return { error: "Give the deal a title." };
+  const [c] = await query<{ id: number }>(`SELECT id FROM companies WHERE id = $1`, [companyId]);
+  if (!c) return { error: "Pick a company." };
+  const rows = await query<{ id: number }>(
+    `INSERT INTO deals (company_id, title, setup_value_gbp, monthly_value_gbp, source) VALUES ($1,$2,$3,$4,'manual') RETURNING id`,
+    [companyId, t, Math.max(0, setup) || 0, Math.max(0, monthly) || 0]);
+  await logActivity("deal_created", { company_id: companyId, deal_id: rows[0].id, body: t });
+  revalidatePath("/deals");
+  revalidatePath(`/companies/${companyId}`);
+  return { id: rows[0].id };
+}
+
+export async function updateDeal(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  const title = str(form, "title");
+  if (!title) throw new Error("A deal needs a title.");
+  const close = str(form, "expected_close");
+  if (close && !/^\d{4}-\d{2}-\d{2}$/.test(close)) throw new Error("Use a valid date.");
+  await query(
+    `UPDATE deals SET title = $2, setup_value_gbp = $3, monthly_value_gbp = $4, expected_close = $5, source = $6 WHERE id = $1`,
+    [id, title, Math.max(0, num(form, "setup")), Math.max(0, num(form, "monthly")), close, str(form, "source")]);
+  revalidatePath(`/deals/${id}`);
+  revalidatePath("/deals");
+}
+
+export async function addDealTask(form: FormData) {
+  await requireLogin();
+  const dealId = num(form, "deal_id");
+  const title = str(form, "title");
+  if (!title) return;
+  const [d] = await query<{ company_id: number | null }>(`SELECT company_id FROM deals WHERE id = $1`, [dealId]);
+  if (!d) throw new Error("Deal not found.");
+  await query(`INSERT INTO tasks (title, due_at, company_id, deal_id) VALUES ($1,$2,$3,$4)`, [title, str(form, "due"), d.company_id, dealId]);
+  revalidatePath(`/deals/${dealId}`);
+  revalidatePath("/tasks");
+  revalidatePath("/");
+}
+
+export async function logDealNote(form: FormData) {
+  await requireLogin();
+  const dealId = num(form, "deal_id");
+  const body = str(form, "body");
+  if (!body) return;
+  const [d] = await query<{ company_id: number | null }>(`SELECT company_id FROM deals WHERE id = $1`, [dealId]);
+  if (!d) throw new Error("Deal not found.");
+  await logActivity("note_logged", { company_id: d.company_id, deal_id: dealId, channel: "note", body });
+  revalidatePath(`/deals/${dealId}`);
+}

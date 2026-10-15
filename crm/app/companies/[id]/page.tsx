@@ -13,7 +13,7 @@ import OutreachDraft from "@/components/OutreachDraft";
 import StatusStepper from "@/components/StatusStepper";
 import { nextStep } from "@/lib/nextStep";
 import { ActivityIcon, activityLabel } from "@/components/activity";
-import { Badge, EmptyState, PageHeader } from "@/components/ui";
+import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -139,7 +139,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             {deals.length === 0 && <p className="muted">No deals yet.</p>}
             <ul>{deals.map((d: any) => (
               <li key={d.id}>
-                <div className="row-between"><b>{d.title}</b><Badge value={d.stage} /></div>
+                <div className="row-between"><b><Link href={`/deals/${d.id}`}>{d.title}</Link></b><StageBadge stage={d.stage} /></div>
                 <div className="row-between"><span className="muted">{gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span><Link href={`/quotes/new?deal=${d.id}`}>Create quote</Link></div>
               </li>
             ))}</ul>

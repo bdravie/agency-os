@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Inbox } from "lucide-react";
+import { stageLabel } from "@/lib/stages";
 
 // Shared presentational pieces: page header, badges, stat tiles and empty states.
 
@@ -39,6 +40,12 @@ const TONES: Record<string, string> = {
 export function Badge({ value }: { value: string | null | undefined }) {
   if (!value) return null;
   return <span className={`badge tone-${TONES[value] ?? "neutral"}`}>{value}</span>;
+}
+
+/** A deal stage, shown with its plain-English title (the database value stays the same). */
+export function StageBadge({ stage }: { stage: string | null | undefined }) {
+  if (!stage) return null;
+  return <span className={`badge tone-${TONES[stage] ?? "neutral"}`}>{stageLabel(stage)}</span>;
 }
 
 export function Stat({ label, value, hint, href }: { label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string }) {
