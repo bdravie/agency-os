@@ -24,6 +24,26 @@ scripts/              # setup check, backup, restore
 
 # Part 1: CRM and selling tools
 
+## Before launch: deferred paid and credit-based items
+
+Decided 2026-10-15: leave these off until closer to launch. **Anything that spends credits or calls a Google API only ever runs when you click a button**, shows its cost on the button, and stops at a daily cap. Nothing paid runs on a schedule or in bulk by itself. The free route (search links, boxes, paste helper, free site checks) works today without any of these.
+
+- [ ] **Google Places lookup** (built: "Find with Google Places" on Find contacts and company pages, bulk "Find websites with Google" on Companies; default cap 30 a day)
+  - Create a Google Cloud project, enable **Places API (New)**, add a billing account.
+  - Set a budget alert (about £5) and a **daily quota** on Text Search (about 30), restrict the key to Places API (New).
+  - Check the current free monthly allowance for Text Search with the website field, and set the daily cap so 30 days stays inside it.
+  - Add `GOOGLE_PLACES_API_KEY` to `.env` and as a Codespaces secret, then restart the Codespace. Test on 5 companies before relying on it.
+- [ ] **Web search for social pages** (built: "Search the web for social pages", switched off until a key exists; default cap 15 a day)
+  - Sign up for the Brave Search API, check its current free tier and pricing, add `SEARCH_API_KEY` (and `SEARCH_DAILY_CAP`) to `.env` and the Codespaces secrets.
+  - Test it on 5 companies and confirm the suggestions are good enough to be worth the credits.
+- [ ] **Stripe payment links in test mode** (milestone 5 stage C, not built yet)
+  - Create a Stripe account, stay in Test mode, add the `sk_test_...` key as `STRIPE_SECRET_KEY`. Go live only after a full test-mode payment works.
+- [ ] **Paid turnover data** (optional, only if the free size estimate proves too rough): Endole or Creditsafe for A-tier companies only.
+- [ ] **Later milestones that need paid accounts:** Cal.com and Cloudflare Tunnel (milestone 6), Apify (milestone 10), Upload-Post and ManyChat (milestone 12). See `docs/SETUP.md`.
+- [ ] **Before sending real outreach:** record the Loom, add its URL to `config/offers.yaml` (so email drafts fill it in), add it to `portfolio/portfolio.md`, and check the opt-out line and your sender details.
+
+---
+
 ## Milestone 0: Setup and database
 
 **Paste into Claude Code:**
