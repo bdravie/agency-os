@@ -13,3 +13,14 @@ export const STAGE_META: Record<Stage, { label: string; hint: string; next: stri
 };
 
 export const stageLabel = (s: string) => STAGE_META[s as Stage]?.label ?? s;
+
+// Content pipeline: database values are the status text; labels and hints are what you see.
+export const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"] as const;
+export type ContentStatus = (typeof CONTENT_STATUSES)[number];
+export const CONTENT_META: Record<ContentStatus, { label: string; hint: string; next: string; colour: string }> = {
+  Idea: { label: "Ideas", hint: "Raw ideas to pick from", next: "Pick one and write its script.", colour: "var(--muted)" },
+  Scripted: { label: "Script ready", hint: "Script and caption written", next: "Film it, then move it to Filmed.", colour: "var(--accent)" },
+  Filmed: { label: "Filmed", hint: "Recorded, not posted yet", next: "Edit it, schedule it and post it.", colour: "var(--warn)" },
+  Posted: { label: "Posted", hint: "Published", next: "Watch for comments with your keyword.", colour: "var(--good)" },
+};
+export const contentLabel = (s: string) => CONTENT_META[s as ContentStatus]?.label ?? s;

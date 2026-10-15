@@ -367,3 +367,15 @@ button.pill.on { background: var(--accent-soft); }
 .deal-actions button:disabled { opacity: 0.25; }
 @media (hover: none) { .deal-actions { opacity: 1; } }
 .dialog h2 { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; text-transform: none; color: var(--text); }
+
+/* ---------- Floating lane tabs ---------- */
+.lane { display: flex; flex-direction: column; min-width: 0; }
+.lane-tab { margin: 0 4px 8px; padding: 9px 12px 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38); }
+.lane-tab-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; }
+.lane-tab .count { min-width: 22px; text-align: center; padding: 0 7px; font-size: 12px; font-weight: 600; color: var(--text-2); background: var(--bg); border-radius: 999px; }
+.lane-hint { margin: 1px 0 0 16px; font-size: 12.5px; color: var(--muted); }
+.lane-body { flex: 1; min-height: 170px; padding: 10px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); transition: border-color var(--ease), background var(--ease); }
+.lane.over .lane-body { border-color: var(--accent); background: var(--surface-2); }
+.lane-total { margin: 0 2px 10px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.scroll-cols .lane-body { max-height: calc(100vh - 320px); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.script-box { margin: 0; padding: 12px 14px; max-height: 280px; overflow-y: auto; white-space: pre-wrap; font: 13.5px/1.55 var(--font); color: var(--text-2); background: var(--bg); border: 1px solid var(--line-soft); border-radius: var(--radius-sm); }

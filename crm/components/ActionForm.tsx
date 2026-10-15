@@ -5,10 +5,10 @@ import { useToast } from "./Toast";
 
 // A form that runs a server action, shows a busy label while the AI works, and shows any error.
 export default function ActionForm({
-  action, label, busyLabel, children, style, secondary,
+  action, label, busyLabel, children, style, secondary, onDone,
 }: {
   action: (prev: string | null, form: FormData) => Promise<string | null>;
-  label: string; busyLabel: string; children?: React.ReactNode; style?: React.CSSProperties; secondary?: boolean;
+  label: string; busyLabel: string; children?: React.ReactNode; style?: React.CSSProperties; secondary?: boolean; onDone?: () => void;
 }) {
   const toast = useToast();
   const [message, formAction, pending] = useActionState(action, null);
@@ -16,11 +16,11 @@ export default function ActionForm({
   useEffect(() => {
     // pending went true -> false: confirm success (null, or a message starting with the tick)
     if (was.current && !pending) {
-      if (message === null) toast("Done");
-      else if (message.startsWith("✓")) toast(message.replace(/^✓\s*/, ""));
+      if (message === null) { toast("Done"); onDone?.(); }
+      else if (message.startsWith("✓")) { toast(message.replace(/^✓\s*/, "")); onDone?.(); }
     }
     was.current = pending;
-  }, [pending, message, toast]);
+  }, [pending, message, toast, onDone]);
   return (
     <form action={formAction} className="stack stack-tight" style={{ gap: 8, ...style }}>
       {children}

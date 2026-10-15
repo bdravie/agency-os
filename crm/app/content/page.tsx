@@ -10,12 +10,12 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Content" };
 
 export default async function Content() {
-  const items = await query<any>(`SELECT id, idea, format, status, keyword FROM content_items ORDER BY created_at DESC, id DESC`);
+  const items = await query<any>(`SELECT id, idea, format, status, keyword, scheduled_for::text AS day FROM content_items ORDER BY created_at DESC, id DESC`);
   return (
     <>
       <PageHeader
         title="Content"
-        description="Idea → script → filmed → posted. Open an idea to write its script."
+        description="Ideas become scripts, then get filmed and posted. Click a card for details, or drag it to another stage."
         actions={
           <>
             <Link href="/content/calendar" className="btn secondary"><CalendarDays size={16} aria-hidden /> Calendar</Link>

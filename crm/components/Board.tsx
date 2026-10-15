@@ -9,6 +9,7 @@ import { STAGE_META, stageLabel, type Stage } from "@/lib/stages";
 import { useToast } from "./Toast";
 import DealDrawer from "./DealDrawer";
 import LostDialog from "./LostDialog";
+import { LaneTab } from "./ui";
 import NewDealDialog from "./NewDealDialog";
 
 export type Deal = { id: number; title: string; stage: string; company_id: number | null; company_name: string | null; setup: number; monthly: number; updated: string };
@@ -71,17 +72,14 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
           return (
             <section
               key={stage} aria-label={`${meta.label}, ${col.length} deals`}
-              className={`col${over === stage ? " over" : ""}`}
+              className={`lane${over === stage ? " over" : ""}`}
               onDragOver={(e) => { e.preventDefault(); setOver(stage); }}
               onDragLeave={() => setOver(null)}
               onDrop={(e) => { e.preventDefault(); setOver(null); move(Number(e.dataTransfer.getData("text/plain")), stage); }}
             >
-              <header className="col-head">
-                <h2><span className="row" style={{ gap: 8 }}><i className="dot" style={{ background: meta.colour }} aria-hidden />{meta.label}</span><span className="count">{col.length}</span></h2>
-                <p className="col-hint">{meta.hint}</p>
-                <p className="col-total">{col.length ? `${gbp(col.reduce((s, d) => s + d.setup, 0))} setup · ${gbp(col.reduce((s, d) => s + d.monthly, 0))}/mo` : "—"}</p>
-              </header>
-
+              <LaneTab colour={meta.colour} label={meta.label} count={col.length} hint={meta.hint} />
+              <div className="lane-body">
+              <p className="lane-total">{col.length ? `${gbp(col.reduce((s, d) => s + d.setup, 0))} setup · ${gbp(col.reduce((s, d) => s + d.monthly, 0))}/mo` : "No deals"}</p>
               {col.length === 0 && <div className="drop-hint">{needle ? "No matches" : "Drop a deal here"}</div>}
               {col.map((d) => {
                 const age = daysIn(d.updated);
@@ -112,6 +110,7 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
                   </article>
                 );
               })}
+              </div>
             </section>
           );
         })}

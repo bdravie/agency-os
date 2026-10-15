@@ -48,6 +48,19 @@ export function StageBadge({ stage }: { stage: string | null | undefined }) {
   return <span className={`badge tone-${TONES[stage] ?? "neutral"}`}>{stageLabel(stage)}</span>;
 }
 
+/** The floating "tab" above a board column: title, count and a one-line meaning. */
+export function LaneTab({ colour, label, count, hint }: { colour: string; label: string; count: number; hint?: string }) {
+  return (
+    <header className="lane-tab">
+      <div className="lane-tab-row">
+        <span className="row" style={{ gap: 8 }}><i className="dot" style={{ background: colour }} aria-hidden />{label}</span>
+        <span className="count">{count}</span>
+      </div>
+      {hint && <div className="lane-hint">{hint}</div>}
+    </header>
+  );
+}
+
 export function Stat({ label, value, hint, href }: { label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string }) {
   const body = (
     <>

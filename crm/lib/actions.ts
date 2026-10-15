@@ -609,3 +609,18 @@ export async function logDealNote(form: FormData) {
   await logActivity("note_logged", { company_id: d.company_id, deal_id: dealId, channel: "note", body });
   revalidatePath(`/deals/${dealId}`);
 }
+
+const IDEA_FORMATS = ["Show the build", "Build in public", "Teach / steal this", "Niche pain"];
+
+export async function createIdeaAction(idea: string, format: string): Promise<{ id?: number; error?: string }> {
+  await requireLogin();
+  const text = idea.trim();
+  if (!text) return { error: "Write the idea first." };
+  if (text.length > 300) return { error: "Keep the idea under 300 characters." };
+  const rows = await query<{ id: number }>(
+    `INSERT INTO content_items (idea, format, status) VALUES ($1, $2, 'Idea') RETURNING id`,
+    [text, IDEA_FORMATS.includes(format) ? format : null]);
+  await logActivity("content_idea_added", { body: text });
+  revalidatePath("/content");
+  return { id: rows[0].id };
+}
