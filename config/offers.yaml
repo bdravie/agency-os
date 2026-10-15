@@ -68,3 +68,80 @@ offers:
     monthly_price_gbp: 250
     demo_path: ""
     loom_url: ""
+
+  # --- Core offer types. billing is one_off, setup or monthly.
+  # The price range and defaults below are STARTING POINTS I chose: change them to what you actually charge
+  # (here, or on the Offers page). For one_off and setup offers the price is the one-off fee; for monthly it is per month.
+  # setup_price_gbp / monthly_price_gbp hold the default price used when you add the offer to a deal or quote.
+  - name: "AI Opportunity Audit"
+    billing: one_off
+    sort_order: 10
+    niche: any
+    outcome: "A ranked list of where AI and automation will save the business the most time, with a clear plan"
+    price_min_gbp: 750
+    price_max_gbp: 2500
+    setup_price_gbp: 1500
+    monthly_price_gbp: 0
+    default_duration_days: 7
+    deliverables:
+      - "Kick-off call to map how the business runs"
+      - "Review of the main repetitive tasks and tools in use"
+      - "Short interviews with 2-3 team members"
+      - "Ranked list of automation opportunities with estimated hours saved"
+      - "Rough cost and payback for each opportunity"
+      - "Written report and a 45-minute walkthrough call"
+      - "Recommended build scope, with the audit fee credited against it"
+
+  - name: "Build"
+    billing: setup
+    sort_order: 20
+    niche: any
+    outcome: "One agreed automation built, tested and handed over"
+    price_min_gbp: 2500
+    price_max_gbp: 15000
+    setup_price_gbp: 5000
+    monthly_price_gbp: 0
+    default_duration_days: 28
+    deliverables:
+      - "Written scope and acceptance checklist signed off"
+      - "Workflow built and tested on sample data first"
+      - "Connected to the client's tools (read-only access where possible)"
+      - "Error alerts and a simple monitoring check"
+      - "Handover walkthrough (Loom) and written documentation"
+      - "30 days of fixes after go-live"
+
+  - name: "Team Enablement"
+    billing: one_off
+    sort_order: 30
+    niche: any
+    outcome: "Workshop: the team learns to use AI safely and well in their own day-to-day work"
+    price_min_gbp: 1000
+    price_max_gbp: 3500
+    setup_price_gbp: 1800
+    monthly_price_gbp: 0
+    default_duration_days: 1
+    deliverables:
+      - "Pre-workshop survey of the team's tasks and tools"
+      - "Half-day workshop for up to 10 people, in person or online"
+      - "Hands-on exercises using the team's own tasks"
+      - "AI use guidelines: what to use it for and what never to paste in"
+      - "Prompt library and quick-reference sheet for the team"
+      - "30-minute follow-up Q&A call"
+
+  - name: "Optimise Retainer"
+    billing: monthly
+    sort_order: 40
+    niche: any
+    outcome: "Monthly improvements and support for the automations already in place"
+    price_min_gbp: 500
+    price_max_gbp: 2500
+    setup_price_gbp: 0
+    monthly_price_gbp: 750
+    default_duration_days: 90        # minimum term
+    deliverables:
+      - "Monthly review of automation performance, errors and costs"
+      - "Fixes and tweaks within an agreed number of hours"
+      - "One new small improvement or workflow each month"
+      - "Monitoring and alerts checked weekly"
+      - "Monthly summary email in plain English"
+      - "Response within 1 working day"

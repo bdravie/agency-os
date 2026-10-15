@@ -2,6 +2,7 @@ import Link from "next/link";
 import ToastForm from "@/components/ToastForm";
 import { Check, FileSignature, Plus, Video } from "lucide-react";
 import { query } from "@/lib/db";
+import { loadRevenue } from "@/lib/revenue";
 import { completeTask } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, pipeline, mrr, outreach] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -26,11 +27,7 @@ export default async function Today() {
          FROM activities a LEFT JOIN companies c ON c.id = a.company_id
         WHERE a.type NOT IN ('places_lookup', 'lead_added', 'website_found') ORDER BY a.occurred_at DESC LIMIT 12`),
     query<{ last: string | null }>(`SELECT max(occurred_at) AS last FROM activities WHERE type = 'backup_completed'`),
-    query<{ setup: string; monthly: string; n: string }>(
-      `SELECT coalesce(sum(setup_value_gbp),0) AS setup, coalesce(sum(monthly_value_gbp),0) AS monthly, count(*) AS n
-         FROM deals WHERE stage NOT IN ('Won','Lost')`),
-    query<{ mrr: string; clients: string }>(
-      `SELECT coalesce(sum(monthly_fee_gbp),0) AS mrr, count(DISTINCT company_id) AS clients FROM client_services WHERE status = 'Active'`),
+    loadRevenue(),
     query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'email_logged' AND occurred_at > now() - interval '7 days'`),
   ]);
 
@@ -56,9 +53,10 @@ export default async function Today() {
       />
 
       <section className="stats" aria-label="Key numbers">
+        <Stat label="Monthly recurring revenue" value={gbp(revenue.mrr)} hint={`${revenue.activeClients} active client${revenue.activeClients === 1 ? "" : "s"}`} href="/clients" />
+        <Stat label="One-off revenue this month" value={gbp(revenue.oneOffMonth)} hint={`${gbp(revenue.oneOffTotal)} all time · audits, builds, workshops`} href="/funnel" />
+        <Stat label="Open pipeline" value={gbp(revenue.pipelineOneOff)} hint={`one-off, plus ${gbp(revenue.pipelineMonthly)}/mo recurring · ${revenue.openDeals} deal${revenue.openDeals === 1 ? "" : "s"}`} href="/deals" />
         <Stat label="Tasks due" value={tasks.length} hint={overdue ? `${overdue} overdue` : "Nothing overdue"} href="/tasks" />
-        <Stat label="Open pipeline" value={gbp(pipeline[0].setup)} hint={`${gbp(pipeline[0].monthly)}/mo across ${pipeline[0].n} deal${pipeline[0].n === "1" ? "" : "s"}`} href="/deals" />
-        <Stat label="Monthly recurring revenue" value={gbp(mrr[0].mrr)} hint={`${mrr[0].clients} active client${mrr[0].clients === "1" ? "" : "s"}`} href="/clients" />
         <Stat label="Outreach this week" value={outreach[0].n} hint="emails you've logged as sent" />
       </section>
 

@@ -7,6 +7,7 @@ import { addDealTask, completeTask, logDealNote } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago } from "@/lib/format";
 import { STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/lib/stages";
+import { billingShort, lineNet, totals, type Billing } from "@/lib/dealOffers";
 import { ActivityIcon, activityLabel } from "./activity";
 import DealStageBar from "./DealStageBar";
 import ToastForm from "./ToastForm";
@@ -18,6 +19,7 @@ type Data = {
   quotes: { id: number; status: string; setup: number; monthly: number; created_at: string }[];
   activity: { id: number; type: string; body: string | null; occurred_at: string }[];
   contact: { name: string; role: string | null; email: string | null; phone: string | null } | null;
+  offers: { id: number; name: string; billing: Billing; price: number; credit: number; status: string; checklist: { text: string; done: boolean }[] }[];
 };
 
 // Quick view: the essentials of a deal without leaving the board. "Open full page" goes to /deals/[id] in a new tab.
@@ -77,6 +79,21 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
               <div><div className="field-label">Monthly</div><div className="kv-value">{gbp(d.monthly)}</div></div>
               <div><div className="field-label">Expected close</div><div className="kv-value small">{d.expected_close ?? "Not set"}</div></div>
               <div><div className="field-label">Channel</div><div className="kv-value small">{channelLabel(d.channel)}</div></div>
+            </section>
+
+            <section>
+              <div className="row-between"><div className="field-label">Offers &amp; fees</div><Link href={`/deals/${dealId}#offers`} className="muted">{data.offers.length ? "Manage" : "Add offers"}</Link></div>
+              {data.offers.length === 0 ? <p className="muted">No offers on this deal yet.</p> : (
+                <>
+                  <ul>{data.offers.map((o) => (
+                    <li key={o.id} className="row-between">
+                      <span>{o.name} <span className="badge tone-neutral">{billingShort(o.billing)}</span></span>
+                      <span className="muted">{gbp(lineNet(o))}{o.billing === "monthly" ? "/mo" : ""}{o.credit > 0 ? ` (after ${gbp(o.credit)} credit)` : ""} · {o.checklist.filter((c) => c.done).length}/{o.checklist.length}</span>
+                    </li>
+                  ))}</ul>
+                  {(() => { const t = totals(data.offers); return <p className="muted" style={{ margin: "8px 0 0" }}>One-off <b>{gbp(t.oneOff)}</b> · Monthly <b>{gbp(t.monthly)}</b></p>; })()}
+                </>
+              )}
             </section>
 
             {data.contact && (

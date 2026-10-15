@@ -146,6 +146,27 @@ export async function importCompanies(_prev: ImportResult | null, form: FormData
   return { created, merged, skipped };
 }
 
+
+/** Marking a deal Won makes the company a client, and (for any monthly fee) creates its client record once, so MRR stays honest. */
+async function ensureClient(dealId: number) {
+  const [d] = await query<{ company_id: number | null; title: string; offer_id: number | null; monthly: string }>(
+    `SELECT company_id, title, offer_id, monthly_value_gbp AS monthly FROM deals WHERE id = $1`, [dealId]);
+  if (!d?.company_id) return;
+  await query(`UPDATE companies SET status = 'Client' WHERE id = $1 AND status <> 'Client'`, [d.company_id]);
+  if ((await query(`SELECT 1 FROM client_services WHERE deal_id = $1`, [dealId])).length) return; // already created (for example from an accepted quote)
+  const lines = await query<{ offer_id: number; price: string; name: string }>(
+    `SELECT l.offer_id, l.price_gbp AS price, o.name FROM deal_offers l JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 AND l.billing = 'monthly'`, [dealId]);
+  const items = lines.length ? lines.map((l) => ({ offer_id: l.offer_id, monthly: Number(l.price), name: l.name }))
+    : Number(d.monthly) > 0 ? [{ offer_id: d.offer_id, monthly: Number(d.monthly), name: d.title }] : [];
+  for (const i of items) {
+    await query(`INSERT INTO client_services (company_id, offer_id, setup_fee_gbp, monthly_fee_gbp, start_date, status, next_review_date, deal_id) VALUES ($1,$2,0,$3,current_date,'Active',current_date + 90,$4)`,
+      [d.company_id, i.offer_id, i.monthly, dealId]);
+    await query(`INSERT INTO tasks (title, due_at, company_id, deal_id) VALUES ($1, (current_date + 83)::timestamptz, $2, $3)`, [`Review ${i.name} with the client`, d.company_id, dealId]);
+  }
+  await logActivity("client_created", { company_id: d.company_id, deal_id: dealId, body: items.length ? `${items.length} recurring service(s) started` : "Won (one-off)" });
+  revalidatePath("/clients");
+}
+
 export async function moveDeal(dealId: number, stage: string, lostReason?: string, lostNote?: string) {
   await requireLogin();
   if (!(STAGES as readonly string[]).includes(stage)) throw new Error("Unknown stage");
@@ -161,6 +182,7 @@ export async function moveDeal(dealId: number, stage: string, lostReason?: strin
     [dealId, stage, isLost ? lostReason : null, note],
   );
   if (!rows[0] || rows[0].old === stage) return;
+  if (stage === "Won") await ensureClient(dealId);
   await logActivity("stage_changed", {
     company_id: rows[0].company_id, deal_id: dealId,
     body: `${rows[0].title}: ${rows[0].old} → ${stage}${isLost ? ` (${lostLabel(lostReason)}${note ? `: ${note}` : ""})` : ""}`,
@@ -425,27 +447,7 @@ export async function markOutreachSent(companyId: number, kind: "first" | "follo
 
 // ---- Offers and quotes ----
 
-export async function saveOffer(form: FormData) {
-  await requireLogin();
-  await query(
-    `UPDATE offers SET name = COALESCE($2, name), niche = $3, outcome = $4, setup_price_gbp = $5, monthly_price_gbp = $6,
-            loom_url = $7, demo_path = $8, active = $9 WHERE id = $1`,
-    [num(form, "id"), str(form, "name"), str(form, "niche"), str(form, "outcome"), num(form, "setup"), num(form, "monthly"),
-     str(form, "loom_url"), str(form, "demo_path"), form.get("active") === "on"],
-  );
-  revalidatePath("/offers");
-}
 
-export async function addOffer(form: FormData) {
-  await requireLogin();
-  const name = str(form, "name");
-  if (!name) return;
-  await query(
-    `INSERT INTO offers (name, niche, outcome, setup_price_gbp, monthly_price_gbp) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (name) DO NOTHING`,
-    [name, str(form, "niche"), str(form, "outcome"), num(form, "setup"), num(form, "monthly")],
-  );
-  revalidatePath("/offers");
-}
 
 export async function draftScope(dealId: number, offerIds: number[]): Promise<{ scope?: string; error?: string }> {
   await requireLogin();
@@ -523,8 +525,8 @@ export async function acceptQuote(form: FormData) {
     for (const i of items) {
       const setupFee = setupTotal > 0 ? Math.round((i.setup_gbp - (discount * i.setup_gbp) / setupTotal) * 100) / 100 : 0;
       await c.query(
-        `INSERT INTO client_services (company_id, offer_id, setup_fee_gbp, monthly_fee_gbp, start_date, status, next_review_date)
-         VALUES ($1,$2,$3,$4,current_date,'Active', current_date + 90)`, [d.company_id, i.offer_id, setupFee, i.monthly_gbp]);
+        `INSERT INTO client_services (company_id, offer_id, setup_fee_gbp, monthly_fee_gbp, start_date, status, next_review_date, deal_id)
+         VALUES ($1,$2,$3,$4,current_date,'Active', current_date + 90, $5)`, [d.company_id, i.offer_id, setupFee, i.monthly_gbp, q.deal_id]);
       await c.query(
         `INSERT INTO tasks (title, due_at, company_id, deal_id) VALUES ($1, (current_date + 83)::timestamptz, $2, $3)`,
         [`Review ${i.name} with ${co.name}`, d.company_id, q.deal_id]);
@@ -598,9 +600,13 @@ export async function updateDeal(form: FormData) {
   if (!title) throw new Error("A deal needs a title.");
   const close = str(form, "expected_close");
   if (close && !/^\d{4}-\d{2}-\d{2}$/.test(close)) throw new Error("Use a valid date.");
+  // With offer lines, the values come from the lines (see recomputeDeal); typed values only apply to deals without any.
+  const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM deal_offers WHERE deal_id = $1`, [id]);
+  const keep = Number(n) > 0;
   await query(
-    `UPDATE deals SET title = $2, setup_value_gbp = $3, monthly_value_gbp = $4, expected_close = $5, source = $6, channel = $7 WHERE id = $1`,
-    [id, title, Math.max(0, num(form, "setup")), Math.max(0, num(form, "monthly")), close, str(form, "source"), asChannel(str(form, "channel"))]);
+    `UPDATE deals SET title = $2, setup_value_gbp = CASE WHEN $8::boolean THEN setup_value_gbp ELSE $3 END, monthly_value_gbp = CASE WHEN $8::boolean THEN monthly_value_gbp ELSE $4 END,
+            expected_close = $5, source = $6, channel = $7 WHERE id = $1`,
+    [id, title, Math.max(0, num(form, "setup")), Math.max(0, num(form, "monthly")), close, str(form, "source"), asChannel(str(form, "channel")), keep]);
   revalidatePath(`/deals/${id}`);
   revalidatePath("/deals");
 }

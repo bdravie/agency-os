@@ -7,6 +7,7 @@ import { gbp } from "@/lib/quote";
 import { ago, dateOnly, when } from "@/lib/format";
 import { CHANNELS, STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/lib/stages";
 import DealStageControl from "@/components/DealStageControl";
+import DealOffersCard from "@/components/DealOffersCard";
 import ToastForm from "@/components/ToastForm";
 import { ActivityIcon, activityLabel } from "@/components/activity";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
@@ -26,6 +27,8 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     `SELECT d.*, d.stage::text AS stage_text, d.expected_close::text AS close_text, c.name AS company_name, c.domain, c.generic_email, c.status AS company_status, c.postcode
        FROM deals d LEFT JOIN companies c ON c.id = d.company_id WHERE d.id = $1`, [id]);
   if (!deal) notFound();
+  const [{ n: lineCount }] = await query<{ n: string }>(`SELECT count(*) AS n FROM deal_offers WHERE deal_id = $1`, [id]);
+  const hasLines = Number(lineCount) > 0;
   const [tasks, quotes, activity, contact, history] = await Promise.all([
     query<any>(`SELECT id, title, due_at FROM tasks WHERE deal_id = $1 AND done_at IS NULL ORDER BY due_at NULLS LAST`, [id]),
     query<any>(`SELECT id, status, total_setup_gbp, total_monthly_gbp, created_at FROM quotes WHERE deal_id = $1 ORDER BY created_at DESC`, [id]),
@@ -61,18 +64,21 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
 
       <div className="split">
         <div className="stack">
+          <DealOffersCard dealId={id} />
+
           <section className="card">
             <h2>Details</h2>
             <ToastForm action={updateDeal} success="Deal saved" className="stack" style={{ gap: 12 }}>
               <input type="hidden" name="id" value={id} />
               <div><label className="field-label" htmlFor="f-title">Title</label><input id="f-title" name="title" defaultValue={deal.title} required style={{ width: "100%" }} /></div>
               <div className="row">
-                <div><label className="field-label" htmlFor="f-setup">Setup £</label><input id="f-setup" name="setup" type="number" min="0" step="1" defaultValue={Number(deal.setup_value_gbp)} style={{ width: 130 }} /></div>
-                <div><label className="field-label" htmlFor="f-monthly">Monthly £</label><input id="f-monthly" name="monthly" type="number" min="0" step="1" defaultValue={Number(deal.monthly_value_gbp)} style={{ width: 130 }} /></div>
+                <div><label className="field-label" htmlFor="f-setup">One-off £</label><input id="f-setup" name="setup" type="number" min="0" step="1" defaultValue={Number(deal.setup_value_gbp)} style={{ width: 130 }} readOnly={hasLines} /></div>
+                <div><label className="field-label" htmlFor="f-monthly">Monthly £</label><input id="f-monthly" name="monthly" type="number" min="0" step="1" defaultValue={Number(deal.monthly_value_gbp)} style={{ width: 130 }} readOnly={hasLines} /></div>
                 <div><label className="field-label" htmlFor="f-close">Expected close</label><input id="f-close" name="expected_close" type="date" defaultValue={deal.close_text ?? ""} /></div>
                 <div><label className="field-label" htmlFor="f-channel">Channel</label><select id="f-channel" name="channel" defaultValue={deal.channel ?? ""}><option value="">Not set</option>{CHANNELS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}</select></div>
                 <div style={{ flex: 1, minWidth: 140 }}><label className="field-label" htmlFor="f-source">Source note</label><input id="f-source" name="source" defaultValue={deal.source ?? ""} placeholder="e.g. cold email" style={{ width: "100%" }} /></div>
               </div>
+              {hasLines && <p className="muted" style={{ margin: 0 }}>One-off and monthly values are calculated from the offers below.</p>}
               <button style={{ alignSelf: "flex-start" }}>Save changes</button>
             </ToastForm>
             <p className="muted" style={{ marginTop: 10 }}>Created {dateOnly(deal.created_at)} · last change {ago(deal.updated_at)}</p>

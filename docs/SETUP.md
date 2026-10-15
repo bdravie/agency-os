@@ -83,6 +83,7 @@ You should see `OK API` and `OK Database`.
 | See pending changes | `node tools/git/sync.mjs --status` |
 | New migration | `npm run db:new -- add_something` then `npm run db:migrate` |
 | Migration status | `npm run db:status` |
+| Seed or refresh the core offers from `config/offers.yaml` | `uv run python -m agency.seed_offers` (insert-only: never overwrites what you edited in the CRM; `--dry-run` to validate) |
 | Run the CRM's logic tests | `cd crm && npm test` (funnel maths; add tests here when something breaks) |
 | Companies House search (healthy companies only) | `uv run python -m agency.companies_house --niche marketing_agencies --location London --limit 50 --dry-run` (drop `--dry-run` to save; `--min-fit 35` keeps only B and above; `--include-unhealthy` keeps filing problems) |
 | Find contact routes (free searches, boxes ready) | CRM > **Find contacts**. Each company has search links, boxes, a paste helper and free checks; paid buttons are separate and labelled. |
@@ -112,3 +113,6 @@ Add a line here whenever something breaks and you find the cause.
 | Marking a deal Lost fails with "A lost deal needs a reason" | The database now requires one of the standard reasons (price, timing, no_need, went_diy, competitor, no_response). Old CRM code doesn't send one: `git pull`, `cd crm && npm install`, restart. The Lost dialog in the new code asks for it. |
 | Funnel numbers look thin | Stage history is only recorded from 2026-10-16. Older deals count as having reached just their current stage and their moves can't be timed. Numbers fill in as you move deals. |
 | Changing a Postgres enum or adding triggers | Follow the safe order used for the stage-history migration: back up (`uv run python -m agency.backup --dir data/backups`), restore into a fresh scratch database, run the migration there and check checksums and behaviour, only then run it on the live database and re-check. Adding an enum value needs `-- migrate:up transaction:false`. |
+| How are MRR and one-off revenue worked out? | **MRR** is the monthly fees of Active client records (Clients page). **One-off revenue** is the one-off and setup fees of Won deals, net of audit credits, counted from the date the deal became Won. Marking a deal Won makes the company a Client and creates its client record for any monthly fee (once, remembered by `client_services.deal_id`), so MRR stays in step with Won deals. Recurring and one-off money are never added together. |
+| An audit credited against a build | On the deal, add both offers, then on the Build line pick "Credit from" the audit (blank amount = the full audit fee). The deal's one-off value counts the audit once and the build net of the credit. Removing the audit line clears the credit. The quote builder opens with the deal's offers ticked and the credit as a discount. |
+| A deal's one-off or monthly value won't edit | Once a deal has offer lines, its values are calculated from them: change the line prices instead. |

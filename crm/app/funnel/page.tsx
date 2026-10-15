@@ -46,7 +46,7 @@ export default async function Funnel({ searchParams }: { searchParams: Promise<S
         <Stat label={basis === "created" ? "Deals created" : "Deals with a stage move"} value={d.deals} hint={`${d.open} still open`} />
         <Stat label="Close rate" value={pct(d.closeRate)} hint={d.won + d.lost ? `${d.won} won · ${d.lost} lost` : "No closed deals yet"} />
         <Stat label="Average days to win" value={days(d.avgDaysToWin)} hint="from creation to Won" />
-        <Stat label="Won value" value={gbp(d.wonSetup)} hint={`+ ${gbp(d.wonMonthly)}/mo`} />
+        <Stat label="Won: one-off value" value={gbp(d.wonSetup)} hint={`plus ${gbp(d.wonMonthly)}/mo recurring`} />
       </section>
 
       {empty ? (

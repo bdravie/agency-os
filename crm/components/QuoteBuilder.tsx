@@ -7,11 +7,11 @@ import { gbp, totals } from "@/lib/quote";
 
 type Offer = { id: number; name: string; outcome: string | null; setup: number; monthly: number };
 
-export default function QuoteBuilder({ dealId, offers, initialIds }: { dealId: number; offers: Offer[]; initialIds: number[] }) {
+export default function QuoteBuilder({ dealId, offers, initialIds, initialPrices, initialDiscount }: { dealId: number; offers: Offer[]; initialIds: number[]; initialPrices?: Record<number, { setup: number; monthly: number }>; initialDiscount?: number }) {
   const [picked, setPicked] = useState<Set<number>>(new Set(initialIds));
   const [prices, setPrices] = useState<Record<number, { setup: number; monthly: number }>>(
-    Object.fromEntries(offers.map((o) => [o.id, { setup: o.setup, monthly: o.monthly }])));
-  const [discount, setDiscount] = useState(0);
+    Object.fromEntries(offers.map((o) => [o.id, initialPrices?.[o.id] ?? { setup: o.setup, monthly: o.monthly }])));
+  const [discount, setDiscount] = useState(initialDiscount ?? 0);
   const [scope, setScope] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [drafting, startDraft] = useTransition();
@@ -70,7 +70,7 @@ export default function QuoteBuilder({ dealId, offers, initialIds }: { dealId: n
               <li key={o.id} className="row-between"><span>{o.name}</span><span className="muted">{gbp(prices[o.id].setup)} + {gbp(prices[o.id].monthly)}/mo</span></li>
             ))}</ul>
           )}
-          <label className="row-between" style={{ margin: "12px 0" }}><span className="muted">Setup discount £</span>
+          <label className="row-between" style={{ margin: "12px 0" }}><span className="muted">Setup discount £{(initialDiscount ?? 0) > 0 ? " (includes the audit credit)" : ""}</span>
             <input name="discount" type="number" min="0" step="1" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} style={{ width: 100 }} />
           </label>
           <dl className="totals-list">
