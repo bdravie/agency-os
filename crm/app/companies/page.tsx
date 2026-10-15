@@ -93,8 +93,8 @@ export default async function Companies({ searchParams }: { searchParams: Promis
           </form>
         </details>
         <details className="card">
-          <summary>Find websites automatically</summary>
-          <p className="muted" style={{ marginTop: 8 }}>Uses Google Places for limited companies with no website, a few at a time with a daily cap. Check each result before using it.</p>
+          <summary>Find websites with Google <span className="badge tone-warn" style={{ marginLeft: 6 }}>uses credits</span></summary>
+          <p className="muted" style={{ marginTop: 8 }}>Runs only when you click. Each lookup uses one Google Places request (capped at 30 a day). The free alternative is Find contacts, which has search links and boxes ready.</p>
           <ActionForm action={findWebsitesAction} label="Find websites" busyLabel="Looking up… (about 1 second each)" style={{ maxWidth: 260 }}>
             <input name="limit" type="number" min="1" max="25" defaultValue="10" aria-label="How many" />
           </ActionForm>
@@ -114,7 +114,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
                   <tr key={c.id}>
                     <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link><div className="muted">{c.niche}</div></td>
                     <td>{(() => { const t = fitTier(c.fit_score, c.filing_ok); return <span className={`badge tone-${t.tone}`} title={t.title}>{t.label}</span>; })()}</td>
-                    <td className="muted" title={c.est_revenue_basis ?? "No size signal in the filed accounts"}>{c.filing_ok === false ? "–" : c.est_revenue_gbp ? `≈ ${shortMoney(c.est_revenue_gbp)}` : "Unknown"}</td>
+                    <td className="muted" title={(c.est_revenue_basis ?? "No size signal in the filed accounts").replace(/GBP /g, "£")}>{c.filing_ok === false ? "–" : c.est_revenue_gbp ? `≈ ${shortMoney(c.est_revenue_gbp)}` : "Unknown"}</td>
                     <td><Badge value={c.status} /></td>
                     <td><span className={n.warn ? "error" : n.short === "Send first email" || n.short === "Send follow-up" ? "" : "muted"} style={n.short.startsWith("Send") ? { color: "var(--accent)", fontWeight: 550 } : undefined}>{n.short}</span></td>
                     <td>{c.domain ? <a href={`https://${c.domain}`} target="_blank" rel="noreferrer" className="muted">{c.domain}</a> : <span className="muted">–</span>}</td>

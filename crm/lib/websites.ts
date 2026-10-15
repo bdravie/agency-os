@@ -20,7 +20,7 @@ export function genericEmails(html: string, domain: string): string[] {
 }
 
 /** Minimal robots.txt check for our user agent or *. If robots.txt cannot be read, do not fetch. */
-async function robotsAllows(domain: string, path: string): Promise<boolean> {
+export async function robotsAllows(domain: string, path: string): Promise<boolean> {
   let text: string;
   try {
     const res = await fetch(`https://${domain}/robots.txt`, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(8000) });

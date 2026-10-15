@@ -84,6 +84,7 @@ You should see `OK API` and `OK Database`.
 | New migration | `npm run db:new -- add_something` then `npm run db:migrate` |
 | Migration status | `npm run db:status` |
 | Companies House search (healthy companies only) | `uv run python -m agency.companies_house --niche marketing_agencies --location London --limit 50 --dry-run` (drop `--dry-run` to save; `--min-fit 35` keeps only B and above; `--include-unhealthy` keeps filing problems) |
+| Find contact routes (free searches, boxes ready) | CRM > **Find contacts**. Each company has search links, boxes, a paste helper and free checks; paid buttons are separate and labelled. |
 | Check filing health and size of saved companies | `uv run python -m agency.ch_health` (new or stale ones; `--all` re-checks everything). Run monthly: companies fall behind on filings over time. |
 
 ## 6. Troubleshooting (lessons learned)
@@ -104,3 +105,6 @@ Add a line here whenever something breaks and you find the cause.
 | Codespace hours running out | Stop it when you finish (blue bottom-left bar > Stop Current Codespace). Don't delete it. |
 | Lots of leads show "Filing problems" | Expected: about 40% of a raw Companies House list are under a strike-off proposal, overdue or dormant. The search now drops them before saving; `ch_health` flags old rows. Quality gates (minimum estimated revenue, age) live in `config/niches.yaml`. |
 | Estimated revenue looks rough | Micro-entities do not file turnover. The estimate is employees x GBP 50-100k unless turnover is filed, and the CRM says which. Treat it as a ranking aid. |
+| "Guess the website" finds nothing | Normal for many agencies: their domain often differs from the registered name. A guess only counts if the page shows the company number or full name (lookalikes are rejected). Use the free search links on Find contacts, paste the result into the boxes, or click the optional paid buttons. |
+| Paid buttons are greyed out | Google lookups stop at `PLACES_DAILY_CAP` (default 30) and web searches at `SEARCH_DAILY_CAP` (default 15) per day; web search also needs `SEARCH_API_KEY` (Brave Search) in `.env`. Paid or Google-API actions only ever run when you click them; nothing runs them on a schedule. |
+| Contact details refused | By design: only company LinkedIn pages (`/company/`), business Instagram and Facebook pages, contact forms and generic inboxes (info@, hello@, contact@, enquiries@, office@, admin@, team@, sales@, support@) are stored. The database enforces it too. |

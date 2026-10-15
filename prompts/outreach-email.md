@@ -35,10 +35,14 @@ Hi {{agency}} team, a quick nudge in case this got buried: {{Loom link}}. Happy 
 
 {{your name}}, {{your business}}
 
+## Social message (for a company page's inbox or a contact form, when there's no email)
+
+Hi {{agency}} team, I'm {{your name}} at {{your business}}. I build tools that write weekly ad reports for UK agencies. {{One true, specific line about them}} Here's a 2-minute demo: {{Loom link}}. Happy to run it free on one client's numbers if it's useful. Reply "no" and I won't message again.
+
 ## Before you hit send
 
 - [ ] Limited company, active, on Companies House
-- [ ] Generic address on their own domain
+- [ ] A generic address on their own domain, or a company page / contact form (never a personal profile)
 - [ ] Not on the suppression list
 - [ ] The opening line is true and specific to them
 - [ ] Loom link works

@@ -10,6 +10,9 @@ import { STAGES } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
+import { checkSite, guessWebsite } from "./sitecheck";
+import { braveSearch, pickFromResults } from "./websearch";
+import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
 import { dailyCap, lookupWebsite } from "./places";
 import { ask } from "./llm";
 import { gbp, totals, type LineItem } from "./quote";
@@ -394,7 +397,7 @@ export async function findWebsiteOneAction(_prev: string | null, form: FormData)
 }
 
 /** The app never sends email. This only records that YOU sent it, and queues the follow-up. */
-export async function markOutreachSent(companyId: number, kind: "first" | "followup", subject: string) {
+export async function markOutreachSent(companyId: number, kind: "first" | "followup" | "social", subject: string) {
   await requireLogin();
   const [c] = await query<{ name: string; domain: string | null; generic_email: string | null; is_ltd: boolean | null; status: string }>(
     `SELECT name, domain, generic_email, is_ltd, status FROM companies WHERE id = $1`, [companyId]);
@@ -404,9 +407,10 @@ export async function markOutreachSent(companyId: number, kind: "first" | "follo
     `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = lower($1)) OR ($2::text IS NOT NULL AND lower(email) = lower($2))`,
     [c.domain, c.generic_email]);
   if (suppressed.length) throw new Error("This company is on your suppression list.");
-  await logActivity("email_logged", { company_id: companyId, channel: "email", body: `${kind === "first" ? "Outreach sent" : "Follow-up sent"}: ${subject}` });
+  if (kind === "social") await logActivity("dm_logged", { company_id: companyId, channel: "dm", body: "Social message sent (company page or contact form)" });
+  else await logActivity("email_logged", { company_id: companyId, channel: "email", body: `${kind === "first" ? "Outreach sent" : "Follow-up sent"}: ${subject}` });
   if (c.status === "New") await query(`UPDATE companies SET status = 'Contacted' WHERE id = $1`, [companyId]);
-  if (kind === "first") {
+  if (kind === "first" || kind === "social") {
     await query(`INSERT INTO tasks (title, due_at, company_id) VALUES ($1, now() + interval '4 days', $2)`, [`Send the one follow-up to ${c.name}`, companyId]);
   }
   revalidatePath(`/companies/${companyId}`);
@@ -623,4 +627,111 @@ export async function createIdeaAction(idea: string, format: string): Promise<{ 
   await logActivity("content_idea_added", { body: text });
   revalidatePath("/content");
   return { id: rows[0].id };
+}
+
+// ---- Contact routes (company-level only) ----
+
+export async function saveContactDetails(form: FormData) {
+  await requireLogin();
+  const id = num(form, "company_id");
+  const [old] = await query<any>(`SELECT domain, generic_email, phone, linkedin_url, instagram_url, facebook_url, contact_url FROM companies WHERE id = $1`, [id]);
+  if (!old) throw new Error("Company not found.");
+  const site = normaliseWebsite(str(form, "domain")), email = normaliseEmail(str(form, "generic_email"));
+  const li = normaliseSocial("linkedin", str(form, "linkedin_url")), ig = normaliseSocial("instagram", str(form, "instagram_url"));
+  const fb = normaliseSocial("facebook", str(form, "facebook_url")), cu = normaliseSocial("contact", str(form, "contact_url"));
+  const problem = [site, email, li, ig, fb, cu].map((r) => r.error).find(Boolean);
+  if (problem) throw new Error(problem);
+  if (site.value && !safeDomain(site.value)) throw new Error("That website isn't allowed.");
+  const blocked = await query(
+    `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = $1) OR ($2::text IS NOT NULL AND lower(email) = $2)`, [site.value, email.value]);
+  if (blocked.length) throw new Error("That website or email is on your suppression list. Don't contact it.");
+  const phone = str(form, "phone")?.slice(0, 40) ?? null;
+  const verifiedIn = str(form, "domain_verified");
+  const verified = site.value ? (site.value === old.domain ? undefined : ["company number", "name"].includes(verifiedIn ?? "") ? verifiedIn : "manual") : null;
+  try {
+    await query(
+      `UPDATE companies SET domain = $2, generic_email = $3, phone = $4, linkedin_url = $5, instagram_url = $6, facebook_url = $7, contact_url = $8,
+              domain_verified = CASE WHEN $9::boolean THEN $10 ELSE domain_verified END WHERE id = $1`,
+      [id, site.value, email.value, phone, li.value, ig.value, fb.value, cu.value, verified !== undefined, verified ?? null]);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("companies_domain_uniq")) throw new Error("Another company already has that website. It may be a duplicate.");
+    throw new Error(msg);
+  }
+  const changed = [["website", old.domain, site.value], ["email", old.generic_email, email.value], ["phone", old.phone, phone], ["LinkedIn", old.linkedin_url, li.value],
+    ["Instagram", old.instagram_url, ig.value], ["Facebook", old.facebook_url, fb.value], ["contact page", old.contact_url, cu.value]].filter(([, a, b]) => a !== b).map(([n]) => n);
+  if (changed.length) await logActivity("contact_details_updated", { company_id: id, body: `Updated: ${changed.join(", ")}` });
+  revalidatePath(`/companies/${id}`);
+  revalidatePath("/research");
+  revalidatePath("/companies");
+}
+
+export type SiteResult = {
+  error?: string; domain?: string; verified?: string; emails?: string[]; linkedin?: string | null; instagram?: string | null; facebook?: string | null;
+  contact_url?: string | null; signals?: Record<string, boolean>; pages?: number;
+};
+
+/** Free: guess the website from the company name and prove it is theirs. Suggests only; you click Save. */
+export async function guessWebsiteAction(companyId: number): Promise<SiteResult> {
+  await requireLogin();
+  const [c] = await query<{ name: string; company_number: string | null }>(`SELECT name, company_number FROM companies WHERE id = $1`, [companyId]);
+  if (!c) return { error: "Company not found." };
+  const hit = await guessWebsite(c);
+  if (!hit) return { error: "No matching website found at the usual addresses. Try the Google links, then paste it in." };
+  if ((await query(`SELECT 1 FROM suppression WHERE lower(domain) = $1`, [hit.domain])).length) return { error: "That website is on your suppression list." };
+  return { domain: hit.domain, verified: hit.verified };
+}
+
+/** Free: read the company's own website for generic emails, company social pages and whether it runs ads. Suggests only. */
+export async function checkSiteAction(companyId: number, domainInput: string): Promise<SiteResult> {
+  await requireLogin();
+  const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
+  if (!c) return { error: "Company not found." };
+  const site = normaliseWebsite(domainInput || c.domain);
+  if (!site.value) return { error: site.error ?? "Enter the website first." };
+  const f = await checkSite(site.value);
+  if (!f) return { error: "Couldn't read that site (it may block automated checks or be down). Check it by hand." };
+  if (site.value === c.domain) {
+    await query(`UPDATE companies SET site_signals = $2::jsonb, site_checked_at = now() WHERE id = $1`, [companyId, JSON.stringify(f.signals)]);
+    revalidatePath(`/companies/${companyId}`);
+  }
+  await logActivity("site_checked", { company_id: companyId, channel: "website", body: `${site.value}: ${f.emails.length} generic email(s), ${f.signals.runs_ads ? "runs ads" : "no ad tags seen"}` });
+  return { domain: site.value, ...f };
+}
+
+/** Google Places lookup. Uses Google credits, so it only runs when you click, stops at the daily cap, and only suggests. */
+export async function suggestPlacesAction(companyId: number): Promise<{ error?: string; domain?: string; phone?: string | null; matched?: string }> {
+  await requireLogin();
+  const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'places_lookup' AND occurred_at::date = current_date`);
+  if (Number(n) >= dailyCap()) return { error: `Daily cap of ${dailyCap()} Google lookups reached. Try again tomorrow, or use the free search links.` };
+  const [c] = await query<{ name: string; postcode: string | null }>(`SELECT name, postcode FROM companies WHERE id = $1`, [companyId]);
+  if (!c) return { error: "Company not found." };
+  try {
+    const hit = await lookupWebsite(c);
+    await logActivity("places_lookup", { company_id: companyId, channel: "google_places", body: hit ? `${hit.domain} (suggested, matched "${hit.matchedName}")` : "no confident match" });
+    if (!hit) return { error: "Google had no confident match. Try the free search links." };
+    return { domain: hit.domain, phone: hit.phone, matched: hit.matchedName };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** Web search for social pages and the website. Uses search credits, so it only runs when you click, within a daily cap. Suggests only. */
+export async function searchWebAction(companyId: number): Promise<{ error?: string; linkedin?: string | null; instagram?: string | null; facebook?: string | null; websites?: string[] }> {
+  await requireLogin();
+  if (!process.env.SEARCH_API_KEY) return { error: "Web search isn't switched on. Add SEARCH_API_KEY (Brave Search) to your .env first." };
+  const cap = Number(process.env.SEARCH_DAILY_CAP ?? 15) || 15;
+  const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'search_lookup' AND occurred_at::date = current_date`);
+  if (Number(n) >= cap) return { error: `Daily cap of ${cap} searches reached. Use the free search links, or try again tomorrow.` };
+  const [c] = await query<{ name: string; postcode: string | null }>(`SELECT name, postcode FROM companies WHERE id = $1`, [companyId]);
+  if (!c) return { error: "Company not found." };
+  try {
+    const hits = await braveSearch(`"${c.name}" ${c.postcode?.split(" ")[0] ?? ""} UK`.trim());
+    await logActivity("search_lookup", { company_id: companyId, channel: "web_search", body: `${hits.length} results` });
+    const picked = pickFromResults(hits, c.name);
+    if (!picked.linkedin && !picked.instagram && !picked.facebook && picked.websites.length === 0) return { error: "Nothing confident in the results. Try the free search links." };
+    return picked;
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }

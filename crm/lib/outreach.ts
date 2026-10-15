@@ -26,7 +26,7 @@ async function loomUrl(): Promise<string | null> {
   } catch { return null; }
 }
 
-export async function outreachDrafts(companyName: string): Promise<{ first: Draft; followUp: Draft }> {
+export async function outreachDrafts(companyName: string): Promise<{ first: Draft; followUp: Draft; social: Draft }> {
   const md = await readFile(path.join(ROOT, "prompts/outreach-email.md"), "utf8");
   const loom = await loomUrl();
   const fill = (s: string) => {
@@ -37,5 +37,6 @@ export async function outreachDrafts(companyName: string): Promise<{ first: Draf
     return out;
   };
   const first = section(md, "First email"), followUp = section(md, "Follow-up (once, 3-4 days later, same thread)");
-  return { first: { subject: fill(first.subject), body: fill(first.body) }, followUp: { subject: fill(followUp.subject), body: fill(followUp.body) } };
+  const social = section(md, "Social message (for a company page's inbox or a contact form, when there's no email)");
+  return { first: { subject: fill(first.subject), body: fill(first.body) }, followUp: { subject: fill(followUp.subject), body: fill(followUp.body) }, social: { subject: "", body: fill(social.body) } };
 }

@@ -11,6 +11,8 @@ import { ago, dateOnly, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
 import StatusStepper from "@/components/StatusStepper";
+import ContactDetailsForm from "@/components/ContactDetailsForm";
+import { creditUsage } from "@/lib/usage";
 import { nextStep } from "@/lib/nextStep";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
 import { ActivityIcon, activityLabel } from "@/components/activity";
@@ -30,6 +32,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
     query<any>(`SELECT * FROM activities WHERE company_id = $1 AND type <> 'places_lookup' ORDER BY occurred_at DESC LIMIT 50`, [id]),
   ]);
   const drafts = await outreachDrafts(company.name);
+  const usage = await creditUsage();
   const [suppressed] = await query<any>(
     `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = lower($1)) OR ($2::text IS NOT NULL AND lower(email) = lower($2))`,
     [company.domain, company.generic_email]);
@@ -67,6 +70,19 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               {next.href && <a href={next.href}>{next.href.startsWith("/") ? "Open" : "Take me there"} →</a>}
             </div>
           </div>
+          <details className="card" id="website" open={!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url)}>
+            <summary>Contact details{(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) ? <span className="muted" style={{ fontWeight: 400 }}> · {[company.domain && "website", company.generic_email && "email", company.linkedin_url && "LinkedIn", company.instagram_url && "Instagram", company.facebook_url && "Facebook", company.contact_url && "contact page"].filter(Boolean).join(", ")}</span> : <span className="muted" style={{ fontWeight: 400 }}> · no way to reach them yet</span>}</summary>
+            <div style={{ marginTop: 14 }}>
+              <ContactDetailsForm
+                key={[company.domain, company.generic_email, company.phone, company.linkedin_url, company.instagram_url, company.facebook_url, company.contact_url].join("|")}
+                company={{ id, name: company.name, postcode: company.postcode, company_number: company.company_number, domain: company.domain, generic_email: company.generic_email, phone: company.phone,
+                  linkedin_url: company.linkedin_url, instagram_url: company.instagram_url, facebook_url: company.facebook_url, contact_url: company.contact_url,
+                  domain_verified: company.domain_verified, site_signals: company.site_signals }}
+                usage={usage}
+              />
+            </div>
+          </details>
+
           <section className="card">
             <h2>Log activity</h2>
             <ToastForm action={logContact} success="Activity logged" reset className="row">
@@ -77,10 +93,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </ToastForm>
           </section>
 
-          <details className="card" id="outreach" open={!!company.generic_email && !blocker}>
-            <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has a generic email</span>}</summary>
+          <details className="card" id="outreach" open={!!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) && !blocker}>
+            <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
             <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} first={drafts.first} followUp={drafts.followUp} blocker={blocker} />
+              <OutreachDraft companyId={id} to={company.generic_email} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
+                routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
             </div>
           </details>
 
@@ -102,30 +119,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="stack">
-          <section className="card" id="website">
-            <h2>Website &amp; email</h2>
-            {!company.domain && (
-              <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
-                <ActionForm action={findWebsiteOneAction} label="Find website automatically" busyLabel="Searching Google…">
-                  <input type="hidden" name="company_id" value={id} />
-                </ActionForm>
-                <a href={googleSearchUrl(company.name, company.postcode)} target="_blank" rel="noreferrer" className="muted">Or search Google yourself ↗</a>
-              </div>
-            )}
-            <ActionForm action={setWebsite} label="Save" busyLabel="Saving…" secondary>
-              <input type="hidden" name="company_id" value={id} />
-              <input name="domain" defaultValue={company.domain ?? ""} placeholder="Website, e.g. acme.co.uk" aria-label="Website" />
-              <input name="generic_email" defaultValue={company.generic_email ?? ""} placeholder="Generic email (info@, hello@…)" aria-label="Generic email" />
-            </ActionForm>
-            {company.domain && !company.generic_email && (
-              <div style={{ marginTop: 10 }}>
-                <ActionForm action={findEmailAction} label="Find generic email" busyLabel="Checking the site…" secondary>
-                  <input type="hidden" name="company_id" value={id} />
-                </ActionForm>
-              </div>
-            )}
-          </section>
-
           <section className="card" id="filings">
             <h2>Companies House check</h2>
             {!company.ch_checked_at ? (
@@ -146,9 +139,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                   <div><dt>Employees</dt><dd>{company.employees ?? "Not stated"}</dd></div>
                   <div><dt>Turnover</dt><dd>{company.turnover_gbp !== null ? shortMoney(Number(company.turnover_gbp)) : "Not filed"}</dd></div>
                   <div><dt>Net assets</dt><dd>{company.net_assets_gbp !== null ? shortMoney(Number(company.net_assets_gbp)) : "Not stated"}</dd></div>
-                  <div><dt>Est. revenue</dt><dd>{company.est_revenue_gbp ? `≈ ${shortMoney(Number(company.est_revenue_gbp))}` : "Unknown"}{company.est_revenue_basis && <span className="muted"> · {company.est_revenue_basis}</span>}</dd></div>
+                  <div><dt>Est. revenue</dt><dd>{company.est_revenue_gbp ? `≈ ${shortMoney(Number(company.est_revenue_gbp))}` : "Unknown"}{company.est_revenue_basis && <span className="muted"> · {company.est_revenue_basis.replace(/GBP /g, "£")}</span>}</dd></div>
                 </dl>
-                {company.fit_notes && <p className="muted" style={{ margin: 0 }}>{company.fit_notes}</p>}
+                {company.fit_notes && <p className="muted" style={{ margin: 0 }}>{company.fit_notes.replace(/GBP /g, "£")}</p>}
                 <p className="muted" style={{ margin: 0 }}>Revenue is an estimate: most small companies don&apos;t file turnover. Treat it as a ranking aid.</p>
               </div>
             )}
