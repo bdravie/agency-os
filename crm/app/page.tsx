@@ -19,7 +19,7 @@ export default async function Today() {
         WHERE t.done_at IS NULL AND t.due_at < now()::date + 1 ORDER BY t.due_at LIMIT 20`),
     query<any>(
       `SELECT d.id, d.title, d.stage::text AS stage, d.updated_at, d.company_id FROM deals d
-        WHERE d.stage IN ('Contacted','Replied','Call booked','Proposal sent') AND d.updated_at < now() - interval '3 days'
+        WHERE d.stage IN ('Contacted','Replied','Call booked','Audit sold','Proposal sent') AND d.updated_at < now() - interval '3 days'
         ORDER BY d.updated_at LIMIT 8`),
     query<any>(
       `SELECT a.id, a.type, a.body, a.occurred_at, a.company_id, c.name AS company_name

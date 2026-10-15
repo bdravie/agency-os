@@ -10,7 +10,7 @@ export default function DealStageBar({ stage, onPick, disabled }: { stage: strin
     <div className="stagebar" role="group" aria-label="Deal stage">
       {STAGES.map((s, i) => {
         const m = STAGE_META[s];
-        const done = idx >= 0 && idx < 5 && i < idx;
+        const done = idx >= 0 && idx <= STAGES.indexOf("Proposal sent") && i < idx;
         return (
           <button key={s} type="button" disabled={disabled} onClick={() => onPick(s)} title={m.hint}
             aria-pressed={s === stage} className={`stage-chip${s === stage ? " on" : ""}${done ? " done" : ""}${s === "Won" ? " won" : ""}${s === "Lost" ? " lost" : ""}`}>

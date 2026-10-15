@@ -8,7 +8,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!Number.isInteger(id)) return Response.json({ error: "Not found" }, { status: 404 });
   const [deal] = await query<any>(
     `SELECT d.id, d.title, d.stage::text AS stage, d.setup_value_gbp::float AS setup, d.monthly_value_gbp::float AS monthly,
-            d.source, d.expected_close::text AS expected_close, d.lost_reason, d.created_at, d.updated_at, d.company_id, d.contact_id,
+            d.source, d.expected_close::text AS expected_close, d.lost_reason, d.lost_note, d.channel, d.created_at, d.updated_at, d.company_id, d.contact_id,
             c.name AS company_name, c.domain, c.generic_email, c.status AS company_status
        FROM deals d LEFT JOIN companies c ON c.id = d.company_id WHERE d.id = $1`, [id]);
   if (!deal) return Response.json({ error: "Not found" }, { status: 404 });

@@ -25,7 +25,7 @@ TRADE = {"hvac": ["Heating", "Air Conditioning", "Boilers"], "roofing": ["Roofin
 ROLES = ["Owner", "Office manager", "Director"]
 FIRST = ["Alex", "Sam", "Jo", "Priya", "Tom", "Aisha", "Dan", "Maya"]
 LAST = ["Example", "Sample", "Demo", "Testerson", "Placeholder"]
-STAGES = ["New", "Contacted", "Replied", "Call booked", "Proposal sent", "Won", "Lost"]
+STAGES = ["New", "Contacted", "Replied", "Call booked", "Audit sold", "Proposal sent", "Won", "Lost"]
 
 
 def companies(n: int, seed: int = 7) -> list[dict]:
@@ -84,9 +84,11 @@ def seed(dry_run: bool) -> None:
             ).fetchone()
             stage = STAGES[i % len(STAGES)]
             deal = conn.execute(
-                """INSERT INTO deals (company_id, contact_id, title, stage, setup_value_gbp, monthly_value_gbp, source)
-                   VALUES (%s,%s,%s,%s,%s,%s,'demo') RETURNING id""",
-                (cid, contact["id"], f"{r['name']}: weekly digest", stage, rng.choice([500, 600, 750, 900]), rng.choice([150, 200, 250])),
+                """INSERT INTO deals (company_id, contact_id, title, stage, setup_value_gbp, monthly_value_gbp, source, channel, lost_reason, lost_note)
+                   VALUES (%s,%s,%s,%s,%s,%s,'demo',%s,%s,%s) RETURNING id""",
+                (cid, contact["id"], f"{r['name']}: weekly digest", stage, rng.choice([500, 600, 750, 900]), rng.choice([150, 200, 250]),
+                 rng.choice(["email", "social_dm", "upwork", "referral"]),
+                 "timing" if stage == "Lost" else None, "Demo data: bad timing" if stage == "Lost" else None),
             ).fetchone()
             db.log_activity(conn, "company_added", company_id=cid, body=r["name"])
             db.log_activity(conn, "email_logged", company_id=cid, contact_id=contact["id"], channel="email",

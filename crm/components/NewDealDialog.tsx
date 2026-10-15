@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Building2, X } from "lucide-react";
 import { createDealAction } from "@/lib/actions";
+import { CHANNELS } from "@/lib/stages";
 import { useToast } from "./Toast";
 
 type Company = { id: number; name: string; domain: string | null; status: string };
@@ -16,6 +17,7 @@ export default function NewDealDialog({ onClose, onCreated }: { onClose: () => v
   const [title, setTitle] = useState("");
   const [setup, setSetup] = useState("");
   const [monthly, setMonthly] = useState("");
+  const [channel, setChannel] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -39,7 +41,7 @@ export default function NewDealDialog({ onClose, onCreated }: { onClose: () => v
         e.preventDefault();
         if (!company) { setError("Choose a company first."); return; }
         start(async () => {
-          const r = await createDealAction(company.id, title, Number(setup) || 0, Number(monthly) || 0);
+          const r = await createDealAction(company.id, title, Number(setup) || 0, Number(monthly) || 0, channel || undefined);
           if (r.error || !r.id) { setError(r.error ?? "Could not create the deal."); return; }
           toast("Deal created");
           onCreated(r.id);
@@ -70,6 +72,11 @@ export default function NewDealDialog({ onClose, onCreated }: { onClose: () => v
         <div className="row">
           <div><label className="field-label" htmlFor="nd-setup">Setup £</label><input id="nd-setup" type="number" min="0" step="1" value={setup} onChange={(e) => setSetup(e.target.value)} style={{ width: 130 }} /></div>
           <div><label className="field-label" htmlFor="nd-monthly">Monthly £</label><input id="nd-monthly" type="number" min="0" step="1" value={monthly} onChange={(e) => setMonthly(e.target.value)} style={{ width: 130 }} /></div>
+        </div>
+        <div>
+          <div className="field-label">How did this lead start? (optional)</div>
+          <div className="pills">{CHANNELS.map((c) => <button key={c.code} type="button" className={`pill${channel === c.code ? " on" : ""}`} onClick={() => setChannel(channel === c.code ? "" : c.code)}>{c.label}</button>)}</div>
+          <p className="muted" style={{ margin: "6px 0 0" }}>Left blank, it's guessed from your first logged email or message to the company. It feeds the Funnel page.</p>
         </div>
         <p className="muted">You can change the values later, or let a quote fill them in.</p>
         {error && <p className="error" role="alert">{error}</p>}

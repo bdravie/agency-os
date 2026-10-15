@@ -6,14 +6,14 @@ import { Check, ExternalLink, Plus, X } from "lucide-react";
 import { addDealTask, completeTask, logDealNote } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago } from "@/lib/format";
-import { STAGE_META, stageLabel, type Stage } from "@/lib/stages";
+import { STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/lib/stages";
 import { ActivityIcon, activityLabel } from "./activity";
 import DealStageBar from "./DealStageBar";
 import ToastForm from "./ToastForm";
 import { Badge } from "./ui";
 
 type Data = {
-  deal: { id: number; title: string; stage: string; setup: number; monthly: number; source: string | null; expected_close: string | null; lost_reason: string | null; created_at: string; updated_at: string; company_id: number | null; company_name: string | null; domain: string | null; generic_email: string | null; company_status: string | null };
+  deal: { id: number; title: string; stage: string; setup: number; monthly: number; source: string | null; expected_close: string | null; lost_reason: string | null; lost_note: string | null; channel: string | null; created_at: string; updated_at: string; company_id: number | null; company_name: string | null; domain: string | null; generic_email: string | null; company_status: string | null };
   tasks: { id: number; title: string; due_at: string | null }[];
   quotes: { id: number; status: string; setup: number; monthly: number; created_at: string }[];
   activity: { id: number; type: string; body: string | null; occurred_at: string }[];
@@ -69,14 +69,14 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
               <div className="next" style={{ marginTop: 12 }}>
                 <div><div className="next-label">{meta.label}: {meta.hint}</div><b style={{ fontWeight: 550 }}>{meta.next}</b></div>
               </div>
-              {current === "Lost" && d.lost_reason && <p className="muted" style={{ marginTop: 8 }}>Reason: {d.lost_reason}</p>}
+              {current === "Lost" && <p className="muted" style={{ marginTop: 8 }}>Lost: {lostLabel(d.lost_reason)}{d.lost_note ? ` · ${d.lost_note}` : ""}</p>}
             </section>
 
             <section className="kv">
               <div><div className="field-label">Setup</div><div className="kv-value">{gbp(d.setup)}</div></div>
               <div><div className="field-label">Monthly</div><div className="kv-value">{gbp(d.monthly)}</div></div>
               <div><div className="field-label">Expected close</div><div className="kv-value small">{d.expected_close ?? "Not set"}</div></div>
-              <div><div className="field-label">Last change</div><div className="kv-value small">{ago(d.updated_at)}</div></div>
+              <div><div className="field-label">Channel</div><div className="kv-value small">{channelLabel(d.channel)}</div></div>
             </section>
 
             {data.contact && (

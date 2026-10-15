@@ -5,7 +5,7 @@ import { query } from "@/lib/db";
 import { addDealTask, completeTask, logDealNote, updateDeal } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago, dateOnly, when } from "@/lib/format";
-import { STAGE_META, stageLabel, type Stage } from "@/lib/stages";
+import { CHANNELS, STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/lib/stages";
 import DealStageControl from "@/components/DealStageControl";
 import ToastForm from "@/components/ToastForm";
 import { ActivityIcon, activityLabel } from "@/components/activity";
@@ -26,11 +26,12 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     `SELECT d.*, d.stage::text AS stage_text, d.expected_close::text AS close_text, c.name AS company_name, c.domain, c.generic_email, c.status AS company_status, c.postcode
        FROM deals d LEFT JOIN companies c ON c.id = d.company_id WHERE d.id = $1`, [id]);
   if (!deal) notFound();
-  const [tasks, quotes, activity, contact] = await Promise.all([
+  const [tasks, quotes, activity, contact, history] = await Promise.all([
     query<any>(`SELECT id, title, due_at FROM tasks WHERE deal_id = $1 AND done_at IS NULL ORDER BY due_at NULLS LAST`, [id]),
     query<any>(`SELECT id, status, total_setup_gbp, total_monthly_gbp, created_at FROM quotes WHERE deal_id = $1 ORDER BY created_at DESC`, [id]),
     query<any>(`SELECT id, type, body, occurred_at FROM activities WHERE deal_id = $1 OR (company_id = $2 AND $2 IS NOT NULL) ORDER BY occurred_at DESC LIMIT 40`, [id, deal.company_id]),
     deal.contact_id ? query<any>(`SELECT name, role, email, phone, consent_basis FROM contacts WHERE id = $1`, [deal.contact_id]) : Promise.resolve([]),
+    query<any>(`SELECT from_stage::text AS from_stage, to_stage::text AS to_stage, changed_at, source FROM stage_history WHERE deal_id = $1 ORDER BY changed_at, id`, [id]),
   ]);
   const meta = STAGE_META[deal.stage_text as Stage];
 
@@ -55,7 +56,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
         <div className="next" style={{ marginTop: 12 }}>
           <div><div className="next-label">Next step for this stage</div><b style={{ fontWeight: 550 }}>{meta?.next}</b></div>
         </div>
-        {deal.stage_text === "Lost" && deal.lost_reason && <p className="muted" style={{ marginTop: 8 }}>Reason: {deal.lost_reason}</p>}
+        {deal.stage_text === "Lost" && <p className="muted" style={{ marginTop: 8 }}>Lost: {lostLabel(deal.lost_reason)}{deal.lost_note ? ` · ${deal.lost_note}` : ""}</p>}
       </section>
 
       <div className="split">
@@ -69,11 +70,23 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
                 <div><label className="field-label" htmlFor="f-setup">Setup £</label><input id="f-setup" name="setup" type="number" min="0" step="1" defaultValue={Number(deal.setup_value_gbp)} style={{ width: 130 }} /></div>
                 <div><label className="field-label" htmlFor="f-monthly">Monthly £</label><input id="f-monthly" name="monthly" type="number" min="0" step="1" defaultValue={Number(deal.monthly_value_gbp)} style={{ width: 130 }} /></div>
                 <div><label className="field-label" htmlFor="f-close">Expected close</label><input id="f-close" name="expected_close" type="date" defaultValue={deal.close_text ?? ""} /></div>
-                <div style={{ flex: 1, minWidth: 140 }}><label className="field-label" htmlFor="f-source">Source</label><input id="f-source" name="source" defaultValue={deal.source ?? ""} placeholder="e.g. cold email" style={{ width: "100%" }} /></div>
+                <div><label className="field-label" htmlFor="f-channel">Channel</label><select id="f-channel" name="channel" defaultValue={deal.channel ?? ""}><option value="">Not set</option>{CHANNELS.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}</select></div>
+                <div style={{ flex: 1, minWidth: 140 }}><label className="field-label" htmlFor="f-source">Source note</label><input id="f-source" name="source" defaultValue={deal.source ?? ""} placeholder="e.g. cold email" style={{ width: "100%" }} /></div>
               </div>
               <button style={{ alignSelf: "flex-start" }}>Save changes</button>
             </ToastForm>
             <p className="muted" style={{ marginTop: 10 }}>Created {dateOnly(deal.created_at)} · last change {ago(deal.updated_at)}</p>
+          </section>
+
+          <section className="card">
+            <h2>Stage history</h2>
+            <ul>{history.map((h: any, i: number) => (
+              <li key={i} className="row-between">
+                <span>{h.from_stage ? <>{stageLabel(h.from_stage)} → <b>{stageLabel(h.to_stage)}</b></> : <>{h.source === "backfill" ? "Recorded at" : "Created as"} <b>{stageLabel(h.to_stage)}</b></>}</span>
+                <span className="muted" title={when(h.changed_at)}>{h.source === "backfill" ? "start date unknown" : when(h.changed_at)}</span>
+              </li>
+            ))}</ul>
+            {history.some((h: any) => h.source === "backfill") && <p className="muted" style={{ marginTop: 8 }}>This deal existed before stage history was switched on, so earlier moves aren&apos;t known. Every move from now on is timed.</p>}
           </section>
 
           <section className="card">

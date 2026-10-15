@@ -32,7 +32,7 @@ const TONES: Record<string, string> = {
   Contacted: "blue", Sent: "blue", Scripted: "blue",
   Replied: "violet", Interview: "violet",
   "Call booked": "warn", Filmed: "warn",
-  "Proposal sent": "cyan",
+  "Audit sold": "orange", "Proposal sent": "cyan",
   Won: "good", Client: "good", Active: "good", Accepted: "good", Posted: "good",
   Lost: "bad", Declined: "bad", Ended: "bad", "Not a fit": "bad",
 };

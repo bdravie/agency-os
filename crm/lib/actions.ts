@@ -6,7 +6,7 @@ import { query, tx } from "./db";
 import { logActivity } from "./activity";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
-import { STAGES } from "./stages";
+import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
@@ -68,8 +68,8 @@ export async function addDeal(form: FormData) {
   const title = str(form, "title");
   if (!title) return;
   const rows = await query<{ id: number }>(
-    `INSERT INTO deals (company_id, title, setup_value_gbp, monthly_value_gbp, source) VALUES ($1,$2,$3,$4,'manual') RETURNING id`,
-    [company_id, title, num(form, "setup"), num(form, "monthly")],
+    `INSERT INTO deals (company_id, title, setup_value_gbp, monthly_value_gbp, source, channel) VALUES ($1,$2,$3,$4,'manual',$5) RETURNING id`,
+    [company_id, title, num(form, "setup"), num(form, "monthly"), asChannel(str(form, "channel")) ?? (await inferChannel(company_id))],
   );
   await logActivity("deal_created", { company_id, deal_id: rows[0].id, body: title });
   revalidatePath(`/companies/${company_id}`);
@@ -146,21 +146,27 @@ export async function importCompanies(_prev: ImportResult | null, form: FormData
   return { created, merged, skipped };
 }
 
-export async function moveDeal(dealId: number, stage: string, lostReason?: string) {
+export async function moveDeal(dealId: number, stage: string, lostReason?: string, lostNote?: string) {
   await requireLogin();
   if (!(STAGES as readonly string[]).includes(stage)) throw new Error("Unknown stage");
+  const isLost = stage === "Lost";
+  if (isLost && !LOST_REASONS.some((r) => r.code === lostReason)) throw new Error("Pick a reason for losing this deal.");
+  const note = isLost ? (lostNote ?? "").trim().slice(0, 500) || null : null;
   const rows = await query<{ company_id: number | null; title: string; old: string }>(
-    `UPDATE deals d SET stage = $2::text::deal_stage, lost_reason = CASE WHEN $2::text = 'Lost' THEN $3::text ELSE NULL END
+    `UPDATE deals d SET stage = $2::text::deal_stage,
+            lost_reason = CASE WHEN $2::text = 'Lost' THEN $3::text ELSE NULL END,
+            lost_note   = CASE WHEN $2::text = 'Lost' THEN $4::text ELSE NULL END
        FROM (SELECT id, stage::text AS old FROM deals WHERE id = $1) prev
       WHERE d.id = prev.id RETURNING d.company_id, d.title, prev.old`,
-    [dealId, stage, lostReason ?? null],
+    [dealId, stage, isLost ? lostReason : null, note],
   );
   if (!rows[0] || rows[0].old === stage) return;
   await logActivity("stage_changed", {
     company_id: rows[0].company_id, deal_id: dealId,
-    body: `${rows[0].title}: ${rows[0].old} → ${stage}${stage === "Lost" && lostReason ? ` (${lostReason})` : ""}`,
+    body: `${rows[0].title}: ${rows[0].old} → ${stage}${isLost ? ` (${lostLabel(lostReason)}${note ? `: ${note}` : ""})` : ""}`,
   });
   revalidatePath("/deals");
+  revalidatePath("/funnel");
   revalidatePath("/");
 }
 
@@ -561,15 +567,24 @@ export async function setCompanyStatus(companyId: number, status: string) {
 
 // ---- Deals ----
 
-export async function createDealAction(companyId: number, title: string, setup: number, monthly: number): Promise<{ id?: number; error?: string }> {
+/** If you don't say how a deal started, guess from the company's first logged outreach (email or social message). */
+async function inferChannel(companyId: number | null): Promise<string | null> {
+  if (!companyId) return null;
+  const [a] = await query<{ type: string }>(
+    `SELECT type FROM activities WHERE company_id = $1 AND type IN ('email_logged', 'dm_logged') ORDER BY occurred_at LIMIT 1`, [companyId]);
+  return a ? (a.type === "email_logged" ? "email" : "social_dm") : null;
+}
+const asChannel = (v: string | null | undefined) => (CHANNELS.some((c) => c.code === v) ? (v as string) : null);
+
+export async function createDealAction(companyId: number, title: string, setup: number, monthly: number, channel?: string): Promise<{ id?: number; error?: string }> {
   await requireLogin();
   const t = title.trim();
   if (!t) return { error: "Give the deal a title." };
   const [c] = await query<{ id: number }>(`SELECT id FROM companies WHERE id = $1`, [companyId]);
   if (!c) return { error: "Pick a company." };
   const rows = await query<{ id: number }>(
-    `INSERT INTO deals (company_id, title, setup_value_gbp, monthly_value_gbp, source) VALUES ($1,$2,$3,$4,'manual') RETURNING id`,
-    [companyId, t, Math.max(0, setup) || 0, Math.max(0, monthly) || 0]);
+    `INSERT INTO deals (company_id, title, setup_value_gbp, monthly_value_gbp, source, channel) VALUES ($1,$2,$3,$4,'manual',$5) RETURNING id`,
+    [companyId, t, Math.max(0, setup) || 0, Math.max(0, monthly) || 0, asChannel(channel) ?? (await inferChannel(companyId))]);
   await logActivity("deal_created", { company_id: companyId, deal_id: rows[0].id, body: t });
   revalidatePath("/deals");
   revalidatePath(`/companies/${companyId}`);
@@ -584,8 +599,8 @@ export async function updateDeal(form: FormData) {
   const close = str(form, "expected_close");
   if (close && !/^\d{4}-\d{2}-\d{2}$/.test(close)) throw new Error("Use a valid date.");
   await query(
-    `UPDATE deals SET title = $2, setup_value_gbp = $3, monthly_value_gbp = $4, expected_close = $5, source = $6 WHERE id = $1`,
-    [id, title, Math.max(0, num(form, "setup")), Math.max(0, num(form, "monthly")), close, str(form, "source")]);
+    `UPDATE deals SET title = $2, setup_value_gbp = $3, monthly_value_gbp = $4, expected_close = $5, source = $6, channel = $7 WHERE id = $1`,
+    [id, title, Math.max(0, num(form, "setup")), Math.max(0, num(form, "monthly")), close, str(form, "source"), asChannel(str(form, "channel"))]);
   revalidatePath(`/deals/${id}`);
   revalidatePath("/deals");
 }

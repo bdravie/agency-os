@@ -16,11 +16,11 @@ export default function DealStageControl({ dealId, title, stage }: { dealId: num
   const [asking, setAsking] = useState(false);
   const [pending, start] = useTransition();
 
-  function go(next: string, reason?: string) {
+  function go(next: string, reason?: string, note?: string) {
     const before = current;
     setCurrent(next);
     start(async () => {
-      try { await moveDeal(dealId, next, reason || undefined); toast(`Moved to ${stageLabel(next)}`); router.refresh(); }
+      try { await moveDeal(dealId, next, reason || undefined, note); toast(`Moved to ${stageLabel(next)}`); router.refresh(); }
       catch (err) { setCurrent(before); toast(`Could not move the deal: ${err instanceof Error ? err.message : err}`, "bad"); }
     });
   }
@@ -28,7 +28,7 @@ export default function DealStageControl({ dealId, title, stage }: { dealId: num
   return (
     <>
       <DealStageBar stage={current} disabled={pending} onPick={(s) => { if (s === current) return; if (s === "Lost") setAsking(true); else go(s); }} />
-      {asking && <LostDialog title={title} onCancel={() => setAsking(false)} onConfirm={(r) => { setAsking(false); go("Lost", r); }} />}
+      {asking && <LostDialog title={title} onCancel={() => setAsking(false)} onConfirm={(r, n) => { setAsking(false); go("Lost", r, n); }} />}
     </>
   );
 }

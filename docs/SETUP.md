@@ -83,6 +83,7 @@ You should see `OK API` and `OK Database`.
 | See pending changes | `node tools/git/sync.mjs --status` |
 | New migration | `npm run db:new -- add_something` then `npm run db:migrate` |
 | Migration status | `npm run db:status` |
+| Run the CRM's logic tests | `cd crm && npm test` (funnel maths; add tests here when something breaks) |
 | Companies House search (healthy companies only) | `uv run python -m agency.companies_house --niche marketing_agencies --location London --limit 50 --dry-run` (drop `--dry-run` to save; `--min-fit 35` keeps only B and above; `--include-unhealthy` keeps filing problems) |
 | Find contact routes (free searches, boxes ready) | CRM > **Find contacts**. Each company has search links, boxes, a paste helper and free checks; paid buttons are separate and labelled. |
 | Check filing health and size of saved companies | `uv run python -m agency.ch_health` (new or stale ones; `--all` re-checks everything). Run monthly: companies fall behind on filings over time. |
@@ -108,3 +109,6 @@ Add a line here whenever something breaks and you find the cause.
 | "Guess the website" finds nothing | Normal for many agencies: their domain often differs from the registered name. A guess only counts if the page shows the company number or full name (lookalikes are rejected). Use the free search links on Find contacts, paste the result into the boxes, or click the optional paid buttons. |
 | Paid buttons are greyed out | Google lookups stop at `PLACES_DAILY_CAP` (default 30) and web searches at `SEARCH_DAILY_CAP` (default 15) per day; web search also needs `SEARCH_API_KEY` (Brave Search) in `.env`. Paid or Google-API actions only ever run when you click them; nothing runs them on a schedule. |
 | Contact details refused | By design: only company LinkedIn pages (`/company/`), business Instagram and Facebook pages, contact forms and generic inboxes (info@, hello@, contact@, enquiries@, office@, admin@, team@, sales@, support@) are stored. The database enforces it too. |
+| Marking a deal Lost fails with "A lost deal needs a reason" | The database now requires one of the standard reasons (price, timing, no_need, went_diy, competitor, no_response). Old CRM code doesn't send one: `git pull`, `cd crm && npm install`, restart. The Lost dialog in the new code asks for it. |
+| Funnel numbers look thin | Stage history is only recorded from 2026-10-16. Older deals count as having reached just their current stage and their moves can't be timed. Numbers fill in as you move deals. |
+| Changing a Postgres enum or adding triggers | Follow the safe order used for the stage-history migration: back up (`uv run python -m agency.backup --dir data/backups`), restore into a fresh scratch database, run the migration there and check checksums and behaviour, only then run it on the live database and re-check. Adding an enum value needs `-- migrate:up transaction:false`. |

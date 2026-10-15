@@ -39,14 +39,14 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
   const needle = filter.trim().toLowerCase();
   const matches = useMemo(() => (d: Deal) => !needle || `${d.title} ${d.company_name ?? ""}`.toLowerCase().includes(needle), [needle]);
 
-  function move(id: number, stage: string, reason?: string) {
+  function move(id: number, stage: string, reason?: string, note?: string) {
     const deal = deals.find((d) => d.id === id);
     if (!deal || deal.stage === stage) return;
     if (stage === "Lost" && reason === undefined) { setLost(deal); return; } // ask why first
     const before = deals;
     setDeals(deals.map((d) => (d.id === id ? { ...d, stage, updated: new Date().toISOString() } : d))); // optimistic
     start(async () => {
-      try { await moveDeal(id, stage, reason || undefined); toast(`${deal.company_name ?? deal.title.split(":")[0]} → ${stageLabel(stage)}`); }
+      try { await moveDeal(id, stage, reason || undefined, note); toast(`${deal.company_name ?? deal.title.split(":")[0]} → ${stageLabel(stage)}`); }
       catch (err) { setDeals(before); toast(`Could not move the deal: ${err instanceof Error ? err.message : err}`, "bad"); }
     });
   }
@@ -64,7 +64,7 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
         </div>
       </div>
 
-      <div className="board" style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(200px, 1fr))` }}>
+      <div className="board" style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(${visible.length >= 6 ? 168 : 200}px, 1fr))` }}>
         {visible.map((stage) => {
           const meta = STAGE_META[stage as Stage];
           const col = deals.filter((d) => d.stage === stage && matches(d));
@@ -118,7 +118,7 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
 
       {openId !== null && <DealDrawer dealId={openId} stage={deals.find((d) => d.id === openId)?.stage} onMove={move} onClose={() => setOpenId(null)} />}
       {creating && <NewDealDialog onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); router.refresh(); setOpenId(id); }} />}
-      {lost && <LostDialog title={lost.title} onCancel={() => setLost(null)} onConfirm={(reason) => { const d = lost; setLost(null); move(d.id, "Lost", reason); }} />}
+      {lost && <LostDialog title={lost.title} onCancel={() => setLost(null)} onConfirm={(reason, note) => { const d = lost; setLost(null); move(d.id, "Lost", reason, note); }} />}
     </>
   );
 }
