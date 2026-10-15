@@ -10,6 +10,8 @@ import { gbp } from "@/lib/quote";
 import { ago, dateOnly, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
+import ComplianceCard from "@/components/ComplianceCard";
+import { loadGate } from "@/lib/complianceGate";
 import StatusStepper from "@/components/StatusStepper";
 import ContactDetailsForm from "@/components/ContactDetailsForm";
 import AuditsCard from "@/components/AuditsCard";
@@ -35,13 +37,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   ]);
   const drafts = await outreachDrafts(company.name);
   const usage = await creditUsage();
-  const [suppressed] = await query<any>(
-    `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = lower($1)) OR ($2::text IS NOT NULL AND lower(email) = lower($2))`,
-    [company.domain, company.generic_email]);
-  const blocker = company.is_ltd === false ? "Outreach is for limited companies only." : suppressed ? "This company is on your suppression list." : null;
+  const gate = await loadGate(id);
+  if (!gate) notFound();
+  const blocker = gate.sendable ? null : gate.reasons.join(" ");
 
   const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
-  const next = nextStep({ ...company, suppressed: !!suppressed, followup_due: followUp?.due_at ?? null });
+  const next = nextStep({ ...company, gate: { sendable: gate.sendable, unchecked: company.compliance_status === "unchecked", reasons: gate.reasons }, followup_due: followUp?.due_at ?? null });
 
   return (
     <>
@@ -52,7 +53,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           <span className="row" style={{ gap: 10 }}>
             <Badge value={company.status} />
             {company.niche && <span>{company.niche}</span>}
-            {company.is_ltd === false && <Badge value="Not a limited company" />}
+            {!gate.sendable && <Badge value={company.opted_out ? "Opted out" : company.compliance_status === "unchecked" ? "Not verified" : "Blocked"} />}
             {company.domain && <a href={`https://${company.domain}`} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}><Globe size={14} aria-hidden />{company.domain}</a>}
             {company.generic_email && <span className="row" style={{ gap: 4 }}><Mail size={14} aria-hidden />{company.generic_email}</span>}
             {company.phone && <span className="row" style={{ gap: 4 }}><Phone size={14} aria-hidden />{company.phone}</span>}
@@ -72,6 +73,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               {next.href && <a href={next.href}>{next.href.startsWith("/") ? "Open" : "Take me there"} →</a>}
             </div>
           </div>
+          <ComplianceCard company={company} gate={gate} />
           <details className="card" id="website" open={!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url)}>
             <summary>Contact details{(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) ? <span className="muted" style={{ fontWeight: 400 }}> · {[company.domain && "website", company.generic_email && "email", company.linkedin_url && "LinkedIn", company.instagram_url && "Instagram", company.facebook_url && "Facebook", company.contact_url && "contact page"].filter(Boolean).join(", ")}</span> : <span className="muted" style={{ fontWeight: 400 }}> · no way to reach them yet</span>}</summary>
             <div style={{ marginTop: 14 }}>

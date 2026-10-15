@@ -21,7 +21,7 @@ from datetime import date, datetime
 
 import httpx
 
-from agency import config
+from agency import compliance, config
 from agency.core import db
 from agency.core.niches import niches
 
@@ -41,6 +41,8 @@ def health_from_profile(p: dict) -> dict:
     h = {
         "incorporated_on": p.get("date_of_creation"),
         "ch_status_detail": p.get("company_status_detail"),
+        "company_type": p.get("type"),
+        "company_status": p.get("company_status"),
         "confirmation_overdue": bool(cs.get("overdue")) if cs else None,
         "confirmation_next_due": cs.get("next_due"),
         "accounts_overdue": bool(ac.get("overdue")) if ac else None,
@@ -207,7 +209,7 @@ def assess(client: httpx.Client, number: str, cfg: dict, sleep=time.sleep) -> di
     return facts
 
 
-COLUMNS = ["incorporated_on", "ch_status_detail", "confirmation_overdue", "confirmation_next_due", "accounts_overdue", "accounts_next_due",
+COLUMNS = ["incorporated_on", "ch_status_detail", "company_type", "company_status", "confirmation_overdue", "confirmation_next_due", "accounts_overdue", "accounts_next_due",
            "accounts_type", "last_accounts_date", "has_insolvency_history", "filing_ok", "employees", "turnover_gbp", "net_assets_gbp",
            "cash_gbp", "est_revenue_gbp", "est_revenue_basis", "fit_score", "fit_notes"]
 
@@ -215,6 +217,8 @@ COLUMNS = ["incorporated_on", "ch_status_detail", "confirmation_overdue", "confi
 def store(conn, number: str, facts: dict) -> None:
     sets = ", ".join(f"{c} = %s" for c in COLUMNS)
     conn.execute(f"UPDATE companies SET {sets}, ch_checked_at = now() WHERE company_number = %s", [facts.get(c) for c in COLUMNS] + [number])
+    if facts.get("company_type") and facts.get("company_status"):  # a company that has since been struck off becomes blocked automatically
+        compliance.apply_profile(conn, number, facts["company_type"], facts["company_status"], facts.get("ch_status_detail"))
 
 
 def settings() -> dict:

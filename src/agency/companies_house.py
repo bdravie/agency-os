@@ -20,7 +20,7 @@ from urllib.parse import urljoin
 
 import httpx
 
-from agency import ch_health, config
+from agency import ch_health, compliance, config
 from agency.core import db
 from agency.core.niches import niches
 
@@ -69,6 +69,7 @@ def parse_item(item: dict) -> dict:
         "name": (item.get("company_name") or "").title() if (item.get("company_name") or "").isupper() else item.get("company_name"),
         "company_number": item.get("company_number"), "address": street or None,
         "postcode": addr.get("postal_code"), "sic_codes": item.get("sic_codes") or [],
+        "company_type": item.get("company_type"), "company_status": item.get("company_status"),
     }
 
 
@@ -87,6 +88,9 @@ def save(companies: list[dict], niche: str, facts: dict[str, dict] | None = None
             ).fetchone()
             if row:
                 new += 1
+                if c.get("company_type") and c.get("company_status"):  # the search only returns active ltd/llp/plc; record that as the verified result
+                    compliance.apply_profile(conn, c["company_number"], c["company_type"], c["company_status"])
+                    conn.execute("UPDATE companies SET contact_source = COALESCE(contact_source, 'Companies House register (company details only)') WHERE id = %s", (row["id"],))
                 if facts and c["company_number"] in facts:
                     ch_health.store(conn, c["company_number"], facts[c["company_number"]])
                 db.log_activity(conn, "lead_added", company_id=row["id"], channel="companies_house", body=c["name"])
@@ -119,11 +123,12 @@ def enrich(limit: int = 50) -> tuple[int, int]:
     found = checked = 0
     with db.connect() as conn, httpx.Client(timeout=15, follow_redirects=True, headers={"User-Agent": "AgencyOSBot"}) as web:
         rows = conn.execute(
-            "SELECT id, domain FROM companies WHERE domain IS NOT NULL AND generic_email IS NULL AND is_ltd ORDER BY id LIMIT %s", (limit,)
+            """SELECT c.id, c.domain, c.company_number, c.phone FROM companies c JOIN lead_gate g ON g.company_id = c.id
+                WHERE c.domain IS NOT NULL AND c.generic_email IS NULL AND g.sendable ORDER BY c.id LIMIT %s""", (limit,)
         ).fetchall()
         for r in rows:
             checked += 1
-            if conn.execute("SELECT 1 FROM suppression WHERE lower(domain) = lower(%s)", (r["domain"],)).fetchone():
+            if compliance.is_suppressed(conn, domain=r["domain"], company_number=r["company_number"], phone=r["phone"]):
                 continue
             emails: list[str] = []
             for path in ("/", "/contact", "/contact-us"):
@@ -136,9 +141,9 @@ def enrich(limit: int = 50) -> tuple[int, int]:
                 time.sleep(1)
                 if emails:
                     break
-            emails = [e for e in emails if not conn.execute("SELECT 1 FROM suppression WHERE lower(email) = %s", (e,)).fetchone()]
+            emails = [e for e in emails if not compliance.is_suppressed(conn, email=e)]
             if emails:
-                conn.execute("UPDATE companies SET generic_email = %s WHERE id = %s", (emails[0], r["id"]))
+                conn.execute("UPDATE companies SET generic_email = %s, contact_source = 'Company website (homepage or contact page)' WHERE id = %s", (emails[0], r["id"]))
                 found += 1
     return checked, found
 

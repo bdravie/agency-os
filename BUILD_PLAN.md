@@ -176,6 +176,12 @@ Client training (`/enablement`): sessions held with attendees and a 1-3 skill le
 
 ---
 
+## Extra: Lead compliance and the Companies House search button (built)
+
+Leads carry company type, status, compliance status, consent basis, contact source and opt-out (with date). A free Companies House lookup (by number or exact name) verifies them, and the `lead_gate` view plus a send-guard trigger block drafting, listing and logging sends for anything that is not a verified active ltd/llp/plc, has opted out, or is suppressed. The suppression list now holds phone numbers and company numbers and has its own page. Companies → "Find new companies on Companies House" runs the existing search in the background (preview first). Migration: `20261022100000_lead_compliance.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { query, tx } from "./db";
 import { logActivity } from "./activity";
+import { assertSendable } from "./complianceGate";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
@@ -427,14 +428,9 @@ export async function findWebsiteOneAction(_prev: string | null, form: FormData)
 /** The app never sends email. This only records that YOU sent it, and queues the follow-up. */
 export async function markOutreachSent(companyId: number, kind: "first" | "followup" | "social", subject: string) {
   await requireLogin();
-  const [c] = await query<{ name: string; domain: string | null; generic_email: string | null; is_ltd: boolean | null; status: string }>(
-    `SELECT name, domain, generic_email, is_ltd, status FROM companies WHERE id = $1`, [companyId]);
+  await assertSendable(companyId);   // verified active limited company, not opted out, not suppressed: checked first, every time
+  const [c] = await query<{ name: string; status: string }>(`SELECT name, status FROM companies WHERE id = $1`, [companyId]);
   if (!c) throw new Error("Company not found");
-  if (c.is_ltd === false) throw new Error("Outreach is for limited companies only.");
-  const suppressed = await query(
-    `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = lower($1)) OR ($2::text IS NOT NULL AND lower(email) = lower($2))`,
-    [c.domain, c.generic_email]);
-  if (suppressed.length) throw new Error("This company is on your suppression list.");
   if (kind === "social") await logActivity("dm_logged", { company_id: companyId, channel: "dm", body: "Social message sent (company page or contact form)" });
   else await logActivity("email_logged", { company_id: companyId, channel: "email", body: `${kind === "first" ? "Outreach sent" : "Follow-up sent"}: ${subject}` });
   if (c.status === "New") await query(`UPDATE companies SET status = 'Contacted' WHERE id = $1`, [companyId]);

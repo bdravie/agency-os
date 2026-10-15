@@ -3,16 +3,16 @@ import { when } from "./format";
 export type NextStep = { text: string; short: string; href?: string; warn?: boolean };
 
 type Input = {
-  is_ltd: boolean | null; domain: string | null; generic_email: string | null; status: string;
-  suppressed: boolean; followup_due: Date | string | null; filing_ok?: boolean | null;
+  domain: string | null; generic_email: string | null; status: string;
+  gate: { sendable: boolean; unchecked: boolean; reasons: string[] }; followup_due: Date | string | null; filing_ok?: boolean | null;
   linkedin_url?: string | null; instagram_url?: string | null; facebook_url?: string | null; contact_url?: string | null;
 };
 
 /** What to do with this company next. Used on the company page and in the Companies list. */
 export function nextStep(c: Input): NextStep {
-  if (c.is_ltd === false) return { text: "Not a limited company: outreach isn't allowed for this one.", short: "Not allowed", warn: true };
+  if (c.gate.unchecked && !c.gate.reasons.slice(1).length) return { text: "Check this company on Companies House first. Outreach stays blocked until it is verified as an active limited company or LLP.", short: "Verify first", href: "#compliance" };
+  if (!c.gate.sendable) return { text: `${c.gate.reasons.join(" ")} Do not contact.`, short: "Blocked", warn: true, href: "#compliance" };
   if (c.filing_ok === false && ["New", "Contacted"].includes(c.status)) return { text: "Companies House shows filing problems (overdue filings, strike-off notice or dormant). Better to skip.", short: "Skip: filings", warn: true };
-  if (c.suppressed) return { text: "On your suppression list: do not contact.", short: "Suppressed", warn: true };
   if (c.status === "Not a fit") return { text: "Parked as not a fit. Reopen it above if that changes.", short: "Parked" };
   if (c.status === "Client") return { text: "Client: keep an eye on the next review date.", short: "Client", href: "/clients" };
   if (c.status === "Replied") return { text: "They replied: offer a short call or the free pilot, and create a deal.", short: "Reply and offer a call", href: "#deals" };

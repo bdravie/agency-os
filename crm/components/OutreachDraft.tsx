@@ -16,6 +16,15 @@ export default function OutreachDraft({ companyId, to, first, followUp, social, 
   const [note, setNote] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const d = drafts[kind];
+  if (blocker) {
+    return (
+      <div className="stack" style={{ gap: 6 }} role="alert">
+        <b style={{ color: "var(--bad)" }}>Outreach is blocked for this lead.</b>
+        <span>{blocker}</span>
+        <span className="muted">Drafts, copy buttons and &ldquo;mark as sent&rdquo; are switched off until this is resolved. See Compliance above.</span>
+      </div>
+    );
+  }
   const isSocial = kind === "social";
   const unfilled = d.subject.match(/\{\{.*?\}\}/g) ?? d.body.match(/\{\{.*?\}\}/g);
   const set = (patch: Partial<Draft>) => setDrafts({ ...drafts, [kind]: { ...d, ...patch } });

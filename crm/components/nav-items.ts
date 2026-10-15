@@ -1,4 +1,4 @@
-import { Building2, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Phone, TrendingUp, Compass, Funnel, FileSignature, FileText, Kanban, Package, Sun, Users, Video, type LucideIcon } from "lucide-react";
+import { Building2, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Phone, ShieldBan, TrendingUp, Compass, Funnel, FileSignature, FileText, Kanban, Package, Sun, Users, Video, type LucideIcon } from "lucide-react";
 
 // One place that defines where everything lives. Grouped by what you are doing.
 export type NavItem = { href: string; label: string; icon: LucideIcon; hint: string };
@@ -28,6 +28,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   ] },
   { title: "Setup", items: [
     { href: "/offers", label: "Offers", icon: Package, hint: "Your catalogue and prices" },
+    { href: "/suppression", label: "Suppression", icon: ShieldBan, hint: "Never-contact list" },
   ] },
 ];
 export const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);

@@ -19,10 +19,10 @@ export default async function Research({ searchParams }: { searchParams: Promise
       `SELECT id, name, postcode, company_number, domain, generic_email, phone, linkedin_url, instagram_url, facebook_url, contact_url, domain_verified, site_signals,
               fit_score, filing_ok, est_revenue_gbp::float AS est, accounts_type, employees, niche
          FROM companies c
-        WHERE status = 'New' AND is_ltd IS NOT FALSE AND filing_ok IS NOT FALSE AND source IS DISTINCT FROM 'demo'
+        WHERE status = 'New' AND compliance_status <> 'not_eligible' AND filing_ok IS NOT FALSE AND source IS DISTINCT FROM 'demo'
           AND generic_email IS NULL AND linkedin_url IS NULL AND instagram_url IS NULL AND facebook_url IS NULL AND contact_url IS NULL
           AND (est_revenue_gbp >= $1 ${includeUnknown ? "OR est_revenue_gbp IS NULL" : ""})
-          AND NOT EXISTS (SELECT 1 FROM suppression s WHERE c.domain IS NOT NULL AND lower(s.domain) = lower(c.domain))
+          AND EXISTS (SELECT 1 FROM lead_gate g WHERE g.company_id = c.id AND NOT g.opted_out AND NOT g.suppressed)
         ORDER BY fit_score DESC NULLS LAST, created_at LIMIT $2`, [minEstRevenue, limit + 1]),
     query<any>(`SELECT count(*) FILTER (WHERE generic_email IS NOT NULL OR linkedin_url IS NOT NULL OR instagram_url IS NOT NULL OR facebook_url IS NOT NULL OR contact_url IS NOT NULL) AS reachable,
                        count(*) AS total FROM companies WHERE status = 'New' AND filing_ok AND est_revenue_gbp >= $1 AND source IS DISTINCT FROM 'demo'`, [minEstRevenue]),
