@@ -182,6 +182,12 @@ Leads carry company type, status, compliance status, consent basis, contact sour
 
 ---
 
+## Extra: Offer suggestion on the company page (built)
+
+Free website research (up to four pages of the company's own site, robots.txt respected, hardened against internal addresses) finds likely gaps and strengths by fixed rules; a separate click-only Claude step turns them into 1 to 3 offer ideas (automation, outcome to sell, why, what to measure, pilot, risk) plus a true opening line, each tied to findings. Migration: `20261024100000_offer_research.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

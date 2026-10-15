@@ -1,5 +1,6 @@
 import { genericEmails, robotsAllows, safeDomain } from "./websites";
 import { normaliseSocial } from "./contact";
+import { fetchPublicHtml } from "./safeFetch";
 
 // Free checks that read a company's own public website. No paid API, no Google API. Run only when you click.
 const UA = "AgencyOSBot";
@@ -17,11 +18,7 @@ export function candidateDomains(name: string): string[] {
 
 export async function fetchPage(domain: string, path = "/"): Promise<string | null> {
   if (!safeDomain(domain) || !(await robotsAllows(domain, path))) return null;
-  try {
-    const res = await fetch(`https://${domain}${path}`, { headers: { "user-agent": UA, accept: "text/html" }, signal: AbortSignal.timeout(7000), redirect: "follow" });
-    if (!res.ok || !(res.headers.get("content-type") ?? "").includes("html")) return null;
-    return (await res.text()).slice(0, 600_000);
-  } catch { return null; }
+  return (await fetchPublicHtml(`https://${domain}${path}`, { userAgent: UA, timeoutMs: 7000 })).html;
 }
 
 export type Verified = "company number" | "name";

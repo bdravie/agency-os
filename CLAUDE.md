@@ -23,6 +23,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - Call transcripts are added only for calls where everyone knew they were recorded. Emails, phone numbers and speaker names are masked before saving, the original upload is never kept, and AI analysis runs only when the owner clicks, with the model set by `CALLS_MODEL`.
 - Outcomes record business metrics only (missed calls, response times, bookings, hours), never data about a client's end customers. Client reports, case studies and testimonial emails are drafts the owner sends: a case study needs the client's approval before use, AI wording runs only when clicked (`OUTCOMES_MODEL`), and the email carries the owner's name, business name and opt-out line.
 - Enablement keeps a client's trained staff as a name and role only (never emails or phone numbers) with a 1-3 skill level. It is a training record, not a performance rating, and anyone can be removed on request. Training files are stored in the database and served as downloads only, from an allow-list of file types.
+- Offer research reads only a company's own public website (up to four pages, robots.txt respected, public https addresses only) and never social platforms or named individuals. Opted-out and suppressed companies are not researched. The AI step runs only on click (`SUGGEST_MODEL`), must cite findings, and flags any suggestion that would handle the business's customers' personal data as needing a data processing agreement first.
 
 ## Stack
 
