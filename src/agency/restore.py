@@ -34,6 +34,17 @@ def guard(live_url: str, scratch_url: str) -> None:
         sys.exit("Refusing: SCRATCH_DATABASE_URL points at the live database.")
 
 
+def set_triggers(conn: psycopg.Connection, tables: list[str], enabled: bool) -> None:
+    """Switch user triggers (not constraints) off while loading a backup, and on again after.
+
+    Triggers such as the stage-history recorder and the lost-reason rule would otherwise fire for every restored row and
+    collide with the backup's own rows. The backup already contains exactly what those triggers produced.
+    """
+    word = "ENABLE" if enabled else "DISABLE"
+    for t in tables:
+        conn.execute(sql.SQL("ALTER TABLE {} " + word + " TRIGGER USER").format(sql.Identifier(t)))
+
+
 def scratch_has_data(conn: psycopg.Connection) -> bool:
     tables = [r[0] for r in conn.execute(
         "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name <> 'schema_migrations'")]
@@ -60,6 +71,7 @@ def main() -> None:
 
     with tarfile.open(a.backup, "r:gz") as tar, psycopg.connect(scratch) as conn:
         manifest = json.load(tar.extractfile("manifest.json"))
+        set_triggers(conn, manifest["order"], enabled=False)
         for t in manifest["order"]:
             ident = sql.Identifier(t)
             with conn.cursor().copy(sql.SQL("COPY {} FROM STDIN").format(ident)) as copy:
@@ -69,6 +81,7 @@ def main() -> None:
             has_id = conn.execute("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name=%s AND column_name='id'", (t,)).fetchone()
             if has_id and conn.execute("SELECT pg_get_serial_sequence(%s, 'id')", (f"public.{t}",)).fetchone()[0]:
                 conn.execute(sql.SQL("SELECT setval(pg_get_serial_sequence(%s, 'id'), COALESCE(max(id), 1), max(id) IS NOT NULL) FROM {}").format(ident), (f"public.{t}",))
+        set_triggers(conn, manifest["order"], enabled=True)
         conn.commit()
 
         bad = 0

@@ -16,7 +16,11 @@ export default function ToastForm({ action, success, reset, onDone, confirm, chi
       ref={ref} className={className} style={style}
       action={async (fd) => {
         if (confirm && !window.confirm(confirm)) return;
-        try { await action(fd); toast(success); if (reset) ref.current?.reset(); onDone?.(); }
+        try {
+          const r = (await action(fd)) as { error?: string } | undefined;
+          if (r && typeof r === "object" && typeof r.error === "string") { toast(r.error, "bad"); return; } // actions can return { error } instead of throwing
+          toast(success); if (reset) ref.current?.reset(); onDone?.();
+        }
         catch (err) { toast(`Could not save: ${err instanceof Error ? err.message : String(err)}`, "bad"); }
       }}
     >

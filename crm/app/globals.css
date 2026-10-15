@@ -445,3 +445,21 @@ tr.dim td { color: var(--muted); }
 .check-item.on { color: var(--muted); } .check-item.on span:last-child { text-decoration: line-through; }
 .check-box { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line); background: var(--bg); color: #fff; }
 .check-item.on .check-box { background: var(--accent-strong); border-color: transparent; }
+
+/* Audit intake and ranking */
+.task-row, .task-new { position: relative; padding: 12px 36px 12px 12px; border: 1px solid var(--line-soft); border-radius: var(--radius-sm); background: rgba(255, 255, 255, 0.015); }
+.task-new { border-style: dashed; border-color: var(--line); background: transparent; padding-right: 12px; }
+.task-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px 10px; align-items: end; }
+.task-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.task-grid input, .task-grid select { width: 100%; font-weight: 400; padding: 6px 8px; font-size: 14px; }
+.task-grid .t-name { grid-column: span 4; } .task-grid .t-who { grid-column: span 4; }
+.task-grid .t-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+.t-delete { position: absolute; top: 8px; right: 6px; }
+@media (max-width: 1000px) { .task-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } .task-grid .t-name, .task-grid .t-who { grid-column: span 4; } }
+@media (max-width: 600px) { .task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .task-grid .t-name, .task-grid .t-who { grid-column: span 2; } }
+.rank-bar { display: block; height: 10px; min-width: 80px; background: rgba(255, 255, 255, 0.04); border-radius: 0 3px 3px 0; }
+.rank-bar i { display: block; height: 100%; background: var(--accent); border-radius: 0 3px 3px 0; }
+.rank-bar.held i { background: var(--muted); opacity: 0.5; }
+tr.held td { color: var(--muted); }
+.report-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.report-form textarea, .report-form input[type="text"], .report-form input[type="number"] { width: 100%; font-weight: 400; }

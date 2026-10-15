@@ -19,6 +19,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - Every outbound email template includes the sender's real name, business name and a one-line opt-out ("Reply 'no' and I won't email again").
 - The `suppression` table is checked by every list-building and outreach feature.
 - Scrapers respect robots.txt, rate limits and each tool's free caps, and print what each run cost.
+- Audits record a client's recurring tasks as roles and hours, never people's names, emails or phone numbers (the app refuses contact details). Tasks involving special-category data are scored but held out of the recommendations until a data processing agreement and DPIA are in place. AI audit reports are drafted only when the owner clicks, with the model set by `AUDIT_MODEL`.
 
 ## Stack
 

@@ -52,4 +52,6 @@ Code is on GitHub. Secrets (`.env`) are not backed up anywhere: keep a copy in a
 
 ## Scratch databases
 
-`agency_scratch` and `agency_scratch2` exist in the same Neon project and are only for testing restores and migrations. `agency_scratch2` currently holds synthetic funnel test deals (not real data). A restore needs an empty scratch database, so to test again create a new one (for example `agency_scratch3`) and point `SCRATCH_DATABASE_URL` at it, or delete and recreate one in the Neon console.
+`agency_scratch`, `agency_scratch2`, `agency_scratch3` and `agency_scratch4` exist in the same Neon project and are only for testing restores and migrations. `agency_scratch2` currently holds synthetic funnel test deals (not real data). A restore needs an empty scratch database, so to test again create a new one (for example `agency_scratch3`) and point `SCRATCH_DATABASE_URL` at it, or delete and recreate one in the Neon console.
+
+The restore switches user triggers off while it loads data (and back on afterwards), so tables with triggers, such as `deals` and its stage history, restore exactly as backed up.
