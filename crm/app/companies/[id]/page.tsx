@@ -7,11 +7,12 @@ import { addContact, addDeal, addTask, completeTask, findEmailAction, findWebsit
 import { googleSearchUrl } from "@/lib/websites";
 import { outreachDrafts } from "@/lib/outreach";
 import { gbp } from "@/lib/quote";
-import { ago, when } from "@/lib/format";
+import { ago, dateOnly, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
 import StatusStepper from "@/components/StatusStepper";
 import { nextStep } from "@/lib/nextStep";
+import { fitTier, shortMoney } from "@/lib/leadConfig";
 import { ActivityIcon, activityLabel } from "@/components/activity";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
 
@@ -121,6 +122,34 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 <ActionForm action={findEmailAction} label="Find generic email" busyLabel="Checking the site…" secondary>
                   <input type="hidden" name="company_id" value={id} />
                 </ActionForm>
+              </div>
+            )}
+          </section>
+
+          <section className="card" id="filings">
+            <h2>Companies House check</h2>
+            {!company.ch_checked_at ? (
+              <p className="muted">Not checked yet. Run <code>uv run python -m agency.ch_health</code>.</p>
+            ) : (
+              <div className="stack" style={{ gap: 10 }}>
+                <div className="row-between">
+                  <span className="row" style={{ gap: 8 }}>
+                    <span className={`badge tone-${company.filing_ok ? "good" : "bad"}`}>{company.filing_ok ? "Filings up to date" : "Filing problems"}</span>
+                    {(() => { const t = fitTier(company.fit_score, company.filing_ok); return <span className={`badge tone-${t.tone}`} title={t.title}>Fit {t.label}</span>; })()}
+                  </span>
+                  <span className="muted">checked {ago(company.ch_checked_at)}</span>
+                </div>
+                <dl className="facts">
+                  <div><dt>Confirmation statement</dt><dd className={company.confirmation_overdue ? "error" : ""}>{company.confirmation_overdue ? "Overdue" : "Up to date"}{company.confirmation_next_due && ` · next due ${dateOnly(company.confirmation_next_due)}`}</dd></div>
+                  <div><dt>Accounts</dt><dd className={company.accounts_overdue ? "error" : ""}>{company.accounts_overdue ? "Overdue" : "Up to date"}{company.accounts_type && ` · ${company.accounts_type}`}{company.accounts_next_due && ` · next due ${dateOnly(company.accounts_next_due)}`}</dd></div>
+                  {company.ch_status_detail && <div><dt>Status note</dt><dd className="error">{company.ch_status_detail}</dd></div>}
+                  <div><dt>Employees</dt><dd>{company.employees ?? "Not stated"}</dd></div>
+                  <div><dt>Turnover</dt><dd>{company.turnover_gbp !== null ? shortMoney(Number(company.turnover_gbp)) : "Not filed"}</dd></div>
+                  <div><dt>Net assets</dt><dd>{company.net_assets_gbp !== null ? shortMoney(Number(company.net_assets_gbp)) : "Not stated"}</dd></div>
+                  <div><dt>Est. revenue</dt><dd>{company.est_revenue_gbp ? `≈ ${shortMoney(Number(company.est_revenue_gbp))}` : "Unknown"}{company.est_revenue_basis && <span className="muted"> · {company.est_revenue_basis}</span>}</dd></div>
+                </dl>
+                {company.fit_notes && <p className="muted" style={{ margin: 0 }}>{company.fit_notes}</p>}
+                <p className="muted" style={{ margin: 0 }}>Revenue is an estimate: most small companies don&apos;t file turnover. Treat it as a ranking aid.</p>
               </div>
             )}
           </section>

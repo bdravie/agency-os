@@ -83,6 +83,8 @@ You should see `OK API` and `OK Database`.
 | See pending changes | `node tools/git/sync.mjs --status` |
 | New migration | `npm run db:new -- add_something` then `npm run db:migrate` |
 | Migration status | `npm run db:status` |
+| Companies House search (healthy companies only) | `uv run python -m agency.companies_house --niche marketing_agencies --location London --limit 50 --dry-run` (drop `--dry-run` to save; `--min-fit 35` keeps only B and above; `--include-unhealthy` keeps filing problems) |
+| Check filing health and size of saved companies | `uv run python -m agency.ch_health` (new or stale ones; `--all` re-checks everything). Run monthly: companies fall behind on filings over time. |
 
 ## 6. Troubleshooting (lessons learned)
 
@@ -100,3 +102,5 @@ Add a line here whenever something breaks and you find the cause.
 | New secret not visible in the Codespace | Secrets load at start: stop and restart (or rebuild) the Codespace after adding one. |
 | No `pg_dump` on this Mac | Backups use Python `COPY` (`uv run python -m agency.backup`), so no Postgres tools are needed. |
 | Codespace hours running out | Stop it when you finish (blue bottom-left bar > Stop Current Codespace). Don't delete it. |
+| Lots of leads show "Filing problems" | Expected: about 40% of a raw Companies House list are under a strike-off proposal, overdue or dormant. The search now drops them before saving; `ch_health` flags old rows. Quality gates (minimum estimated revenue, age) live in `config/niches.yaml`. |
+| Estimated revenue looks rough | Micro-entities do not file turnover. The estimate is employees x GBP 50-100k unless turnover is filed, and the CRM says which. Treat it as a ranking aid. |

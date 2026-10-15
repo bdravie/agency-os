@@ -20,7 +20,7 @@ from urllib.parse import urljoin
 
 import httpx
 
-from agency import config
+from agency import ch_health, config
 from agency.core import db
 from agency.core.niches import niches
 
@@ -72,7 +72,7 @@ def parse_item(item: dict) -> dict:
     }
 
 
-def save(companies: list[dict], niche: str) -> tuple[int, int]:
+def save(companies: list[dict], niche: str, facts: dict[str, dict] | None = None) -> tuple[int, int]:
     """Insert new companies; skip any company number already present. Returns (new, skipped)."""
     new = 0
     with db.connect() as conn:
@@ -87,6 +87,8 @@ def save(companies: list[dict], niche: str) -> tuple[int, int]:
             ).fetchone()
             if row:
                 new += 1
+                if facts and c["company_number"] in facts:
+                    ch_health.store(conn, c["company_number"], facts[c["company_number"]])
                 db.log_activity(conn, "lead_added", company_id=row["id"], channel="companies_house", body=c["name"])
         db.log_activity(conn, "companies_house_run", body=f"{new} new of {len(companies)} for {niche}")
     return new, len(companies) - new
@@ -148,6 +150,8 @@ def main() -> None:
     p.add_argument("--limit", type=int, default=50)
     p.add_argument("--min-age-years", type=int, default=2, help="Skip newly formed companies (default 2)")
     p.add_argument("--dry-run", action="store_true", help="Show results, do not save")
+    p.add_argument("--include-unhealthy", action="store_true", help="Also keep companies with overdue filings, strike-off notices or dormant accounts")
+    p.add_argument("--min-fit", type=int, default=0, help="Only keep companies with a fit score at least this high (after the health check)")
     p.add_argument("--enrich", action="store_true", help="Find generic emails for companies that have a domain")
     a = p.parse_args()
 
@@ -161,15 +165,34 @@ def main() -> None:
     if not sics:
         p.error(f"No sic_codes for niche '{a.niche}' in config/niches.yaml")
 
+    cfg = ch_health.settings()
+    facts: dict[str, dict] = {}
+    dropped = 0
     with make_client() as client:
         companies, n = search(client, sics, a.location, a.limit, a.min_age_years)
+        with db.connect() as conn:  # do not spend API calls on companies already in the CRM
+            have = {r["company_number"] for r in conn.execute("SELECT company_number FROM companies WHERE company_number IS NOT NULL")}
+        kept = []
+        for c in companies:
+            if c["company_number"] in have:
+                kept.append(c)
+                continue
+            f = ch_health.assess(client, c["company_number"], cfg)
+            n += 3
+            if f is None or (not a.include_unhealthy and not f["filing_ok"]) or f["fit_score"] < a.min_fit and f["filing_ok"]:
+                dropped += 1
+                continue
+            facts[c["company_number"]] = f
+            kept.append(c)
+        companies = kept
     if a.dry_run:
         for c in companies[:20]:
-            print(f"{c['company_number']}  {c['name']}  {c['postcode'] or ''}")
-        print(f"Dry run: {len(companies)} companies found, nothing saved. API requests: {n}. Cost: £0.")
+            f = facts.get(c["company_number"], {})
+            print(f"{c['company_number']}  {c['name']}  {c['postcode'] or ''}  fit {f.get('fit_score', '-')}")
+        print(f"Dry run: {len(companies)} kept, {dropped} dropped for filing problems or low fit, nothing saved. API requests: about {n}. Cost: £0.")
         return
-    new, skipped = save(companies, a.niche)
-    print(f"Saved {new} new companies, {skipped} already in the CRM. API requests: {n}. Cost: £0.")
+    new, skipped = save(companies, a.niche, facts)
+    print(f"Saved {new} new companies, {skipped} already in the CRM, {dropped} dropped for filing problems or low fit. API requests: about {n}. Cost: £0.")
 
 
 if __name__ == "__main__":

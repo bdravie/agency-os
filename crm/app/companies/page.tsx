@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Building2, Check, Download, Upload } from "lucide-react";
 import { query } from "@/lib/db";
 import { createCompany, findWebsitesAction } from "@/lib/actions";
-import { ago } from "@/lib/format";
 import { nextStep } from "@/lib/nextStep";
+import { fitTier, leadSettings, shortMoney } from "@/lib/leadConfig";
 import ActionForm from "@/components/ActionForm";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 
@@ -13,20 +13,24 @@ export const metadata = { title: "Companies" };
 type SP = { q?: string; niche?: string; view?: string; limit?: string };
 
 // The same filters as the counts below, so a pill and its number always agree.
-const VIEWS: { key: string; label: string; where: string }[] = [
+const views = (min: number): { key: string; label: string; where: string }[] => [
   { key: "", label: "All", where: "TRUE" },
-  { key: "ready", label: "Ready to email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NOT NULL AND is_ltd IS NOT FALSE AND NOT suppressed" },
-  { key: "nosite", label: "Needs website", where: "status = 'New' AND domain IS NULL AND is_ltd IS NOT FALSE" },
-  { key: "noemail", label: "Needs email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NULL AND is_ltd IS NOT FALSE" },
+  { key: "qualified", label: "Qualified", where: `filing_ok AND est_revenue_gbp >= ${Number(min)}` },
+  { key: "ready", label: "Ready to email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NOT NULL AND is_ltd IS NOT FALSE AND NOT suppressed AND filing_ok IS NOT FALSE" },
+  { key: "nosite", label: "Needs website", where: "status = 'New' AND domain IS NULL AND is_ltd IS NOT FALSE AND filing_ok IS NOT FALSE" },
+  { key: "noemail", label: "Needs email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NULL AND is_ltd IS NOT FALSE AND filing_ok IS NOT FALSE" },
   { key: "followup", label: "Follow-ups due", where: "status = 'Contacted' AND followup_due IS NOT NULL AND followup_due < now() + interval '1 day'" },
   { key: "contacted", label: "Contacted", where: "status = 'Contacted'" },
   { key: "replied", label: "Replied", where: "status = 'Replied'" },
   { key: "client", label: "Clients", where: "status = 'Client'" },
+  { key: "unknown", label: "Size unknown", where: "filing_ok AND est_revenue_gbp IS NULL" },
+  { key: "problems", label: "Filing problems", where: "filing_ok = false" },
 ];
 
 const BASE = `
   WITH c AS (
     SELECT co.id, co.name, co.domain, co.generic_email, co.niche, co.status, co.is_ltd, co.created_at,
+           co.filing_ok, co.fit_score, co.est_revenue_gbp::float AS est_revenue_gbp, co.est_revenue_basis, co.employees, co.accounts_type,
            EXISTS (SELECT 1 FROM suppression s WHERE (co.domain IS NOT NULL AND lower(s.domain) = lower(co.domain))
                       OR (co.generic_email IS NOT NULL AND lower(s.email) = lower(co.generic_email))) AS suppressed,
            (SELECT min(t.due_at) FROM tasks t WHERE t.company_id = co.id AND t.done_at IS NULL AND t.title ILIKE '%follow-up%') AS followup_due
@@ -36,12 +40,14 @@ const BASE = `
 export default async function Companies({ searchParams }: { searchParams: Promise<SP> }) {
   const { q = "", niche = "", view = "", limit: limitParam } = await searchParams;
   const limit = Math.min(Math.max(Number(limitParam) || 25, 25), 200);
+  const { minEstRevenue } = await leadSettings();
+  const VIEWS = views(minEstRevenue);
   const active = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const [rows, niches, counts] = await Promise.all([
     query<any>(
       `${BASE} SELECT * FROM c
         WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)
-        ORDER BY (followup_due IS NULL), followup_due, created_at DESC LIMIT $3`, [q, niche, limit + 1]),
+        ORDER BY (followup_due IS NULL), followup_due, fit_score DESC NULLS LAST, created_at DESC LIMIT $3`, [q, niche, limit + 1]),
     query<{ niche: string }>(`SELECT DISTINCT niche FROM companies WHERE niche IS NOT NULL ORDER BY 1`),
     query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c`),
   ]);
@@ -100,18 +106,19 @@ export default async function Companies({ searchParams }: { searchParams: Promis
           <EmptyState title="Nothing in this view" icon={<Building2 size={22} />}>Try another view, or clear the search.</EmptyState>
         ) : (
           <table>
-            <thead><tr><th>Company</th><th>Status</th><th>Next step</th><th>Website</th><th>Email</th><th>Added</th></tr></thead>
+            <thead><tr><th>Company</th><th>Fit</th><th>Est. revenue</th><th>Status</th><th>Next step</th><th>Website</th><th>Email</th></tr></thead>
             <tbody>
               {shown.map((c: any) => {
                 const n = nextStep(c);
                 return (
                   <tr key={c.id}>
                     <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link><div className="muted">{c.niche}</div></td>
+                    <td>{(() => { const t = fitTier(c.fit_score, c.filing_ok); return <span className={`badge tone-${t.tone}`} title={t.title}>{t.label}</span>; })()}</td>
+                    <td className="muted" title={c.est_revenue_basis ?? "No size signal in the filed accounts"}>{c.filing_ok === false ? "–" : c.est_revenue_gbp ? `≈ ${shortMoney(c.est_revenue_gbp)}` : "Unknown"}</td>
                     <td><Badge value={c.status} /></td>
                     <td><span className={n.warn ? "error" : n.short === "Send first email" || n.short === "Send follow-up" ? "" : "muted"} style={n.short.startsWith("Send") ? { color: "var(--accent)", fontWeight: 550 } : undefined}>{n.short}</span></td>
                     <td>{c.domain ? <a href={`https://${c.domain}`} target="_blank" rel="noreferrer" className="muted">{c.domain}</a> : <span className="muted">–</span>}</td>
                     <td>{c.generic_email ? <span className="row" style={{ gap: 4, color: "var(--good)" }}><Check size={14} aria-hidden /> <span className="muted">{c.generic_email}</span></span> : <span className="muted">–</span>}</td>
-                    <td className="muted">{ago(c.created_at)}</td>
                   </tr>
                 );
               })}

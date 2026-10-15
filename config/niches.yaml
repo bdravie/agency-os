@@ -2,6 +2,10 @@
 # Check SIC codes on Companies House and show dates/exhibitor links each season.
 
 defaults:
+  # Lead quality gates (used by the Companies House health check and the CRM 'Qualified' view)
+  min_est_revenue_gbp: 50000      # skip companies estimated below this; unknown size is shown separately
+  est_revenue_per_employee_gbp: [50000, 100000]   # rough range used only when turnover is not filed
+  min_company_age_years: 2
   home_postcode: "CHANGE ME"     # your postcode, used for "around me" searches
   radius_km: 15
   towns:                          # areas to score with best-area ranking
