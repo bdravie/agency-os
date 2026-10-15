@@ -49,7 +49,7 @@ export default function QuoteBuilder({ dealId, offers, initialIds }: { dealId: n
         {error && <p className="error">{error}</p>}
         <input name="timeline" placeholder="Timeline, e.g. Built and live within 10 working days of the upfront payment" style={{ marginTop: 12, width: "100%" }} />
       </section>
-      <button disabled={picked.size === 0}>Create quote</button>
+      <button disabled={picked.size === 0} style={{ alignSelf: "flex-start" }}>Create quote</button>
     </form>
   );
 }

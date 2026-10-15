@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { acceptQuote, setQuoteStatus } from "@/lib/actions";
 import { TERMS, gbp, totals, type LineItem } from "@/lib/quote";
 import PrintButton from "@/components/PrintButton";
+import { Badge, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -20,28 +21,37 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <div className="noprint" style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <Link href="/quotes">← Quotes</Link>
-        <span className="muted">Status: <b>{q.status}</b></span>
-        <PrintButton />
-        <a href={`/quotes/${id}/pdf`}><button type="button">Download PDF</button></a>
-        {q.status === "Accepted" ? (
-          <span>Accepted {q.accepted_at && new Date(q.accepted_at).toLocaleDateString("en-GB", { dateStyle: "medium" })} · <Link href="/clients">See Clients</Link></span>
-        ) : (
-          <>
-            <form action={setQuoteStatus} style={{ display: "flex", gap: 6 }}>
-              <input type="hidden" name="id" value={id} />
-              <select name="status" defaultValue={q.status}>
-                <option>Draft</option><option>Sent</option><option>Declined</option>
-              </select>
-              <button>Update status</button>
-            </form>
-            <form action={acceptQuote}>
-              <input type="hidden" name="id" value={id} />
-              <button title="Moves the deal to Won and creates the client">Mark as accepted</button>
-            </form>
-          </>
-        )}
+      <div className="noprint">
+        <PageHeader
+          back={{ href: "/quotes", label: "Quotes" }}
+          title={`Quote #${q.id}`}
+          description={<span className="row" style={{ gap: 10 }}><Badge value={q.status} /><span>{q.company}</span></span>}
+          actions={
+            <>
+              <PrintButton />
+              <a href={`/quotes/${id}/pdf`} className="btn secondary">Download PDF</a>
+            </>
+          }
+        />
+        <div className="card row-between" style={{ marginBottom: 20 }}>
+          {q.status === "Accepted" ? (
+            <span>Accepted {q.accepted_at && new Date(q.accepted_at).toLocaleDateString("en-GB", { dateStyle: "medium" })} · <Link href="/clients">See Clients</Link></span>
+          ) : (
+            <>
+              <form action={setQuoteStatus} className="row">
+                <input type="hidden" name="id" value={id} />
+                <select name="status" defaultValue={q.status} aria-label="Status">
+                  <option>Draft</option><option>Sent</option><option>Declined</option>
+                </select>
+                <button className="secondary">Update status</button>
+              </form>
+              <form action={acceptQuote}>
+                <input type="hidden" name="id" value={id} />
+                <button title="Moves the deal to Won and creates the client">Mark as accepted</button>
+              </form>
+            </>
+          )}
+        </div>
       </div>
 
       <article className="card quote">

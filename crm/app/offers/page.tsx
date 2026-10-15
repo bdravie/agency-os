@@ -1,41 +1,44 @@
 import { query } from "@/lib/db";
 import { addOffer, saveOffer } from "@/lib/actions";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Offers" };
 
 export default async function Offers() {
   const offers = await query<any>(`SELECT * FROM offers ORDER BY active DESC, niche NULLS LAST, name`);
   return (
     <>
-      <h1>Offers</h1>
-      <p className="muted">Your catalogue. Prices here are the starting point for quotes; adjust per quote. Inactive offers are hidden from the quote builder.</p>
-      {offers.map((o: any) => (
-        <form key={o.id} action={saveOffer} className="card" style={{ marginBottom: 12, display: "grid", gap: 8, gridTemplateColumns: "2fr 1fr 1fr 1fr" }}>
-          <input type="hidden" name="id" value={o.id} />
-          <input name="name" defaultValue={o.name} />
-          <input name="niche" defaultValue={o.niche ?? ""} placeholder="Niche" />
-          <input name="setup" type="number" min="0" step="1" defaultValue={Number(o.setup_price_gbp)} title="Setup £" />
-          <input name="monthly" type="number" min="0" step="1" defaultValue={Number(o.monthly_price_gbp)} title="Monthly £" />
-          <input name="outcome" defaultValue={o.outcome ?? ""} placeholder="Outcome in one sentence" style={{ gridColumn: "1 / 3" }} />
-          <input name="loom_url" defaultValue={o.loom_url ?? ""} placeholder="Loom link" />
-          <input name="demo_path" defaultValue={o.demo_path ?? ""} placeholder="Demo folder" />
-          <label className="muted"><input type="checkbox" name="active" defaultChecked={o.active} /> Active</label>
-          <span />
-          <span />
-          <button>Save</button>
-        </form>
-      ))}
-      <details className="card">
-        <summary>Add an offer</summary>
-        <form action={addOffer} style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-          <input name="name" placeholder="Name" required />
-          <input name="niche" placeholder="Niche" />
-          <input name="outcome" placeholder="Outcome" style={{ flex: 1 }} />
-          <input name="setup" type="number" min="0" placeholder="Setup £" />
-          <input name="monthly" type="number" min="0" placeholder="Monthly £" />
-          <button>Add</button>
-        </form>
-      </details>
+      <PageHeader title="Offers" description="Your catalogue. These prices are the starting point for each quote (adjust per quote). Inactive offers are hidden from the quote builder." />
+      <div className="stack">
+        {offers.map((o: any) => (
+          <form key={o.id} action={saveOffer} className="card offer">
+            <input type="hidden" name="id" value={o.id} />
+            <label>Name<input name="name" defaultValue={o.name} /></label>
+            <label>Niche<input name="niche" defaultValue={o.niche ?? ""} /></label>
+            <label>Setup £<input name="setup" type="number" min="0" step="1" defaultValue={Number(o.setup_price_gbp)} /></label>
+            <label>Monthly £<input name="monthly" type="number" min="0" step="1" defaultValue={Number(o.monthly_price_gbp)} /></label>
+            <label className="span2">Outcome in one sentence<input name="outcome" defaultValue={o.outcome ?? ""} /></label>
+            <label>Loom link<input name="loom_url" defaultValue={o.loom_url ?? ""} placeholder="https://www.loom.com/share/…" /></label>
+            <label>Demo folder<input name="demo_path" defaultValue={o.demo_path ?? ""} /></label>
+            <div className="row-between span4">
+              <label className="row" style={{ flexDirection: "row" }}><input type="checkbox" name="active" defaultChecked={o.active} /> Active (shown in quotes)</label>
+              <button className="secondary">Save</button>
+            </div>
+          </form>
+        ))}
+        <details className="card">
+          <summary>Add an offer</summary>
+          <form action={addOffer} className="row" style={{ marginTop: 12 }}>
+            <input name="name" placeholder="Name" required aria-label="Name" />
+            <input name="niche" placeholder="Niche" aria-label="Niche" />
+            <input name="outcome" placeholder="Outcome" aria-label="Outcome" style={{ flex: 1, minWidth: 200 }} />
+            <input name="setup" type="number" min="0" placeholder="Setup £" aria-label="Setup" style={{ width: 110 }} />
+            <input name="monthly" type="number" min="0" placeholder="Monthly £" aria-label="Monthly" style={{ width: 110 }} />
+            <button>Add</button>
+          </form>
+        </details>
+      </div>
     </>
   );
 }

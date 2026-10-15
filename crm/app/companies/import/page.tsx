@@ -1,26 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { importCompanies, type ImportResult } from "@/lib/actions";
+import { PageHeader } from "@/components/ui";
 
 export default function ImportPage() {
   const [result, action, pending] = useActionState<ImportResult | null, FormData>(importCompanies, null);
   return (
     <>
-      <h1>Import companies</h1>
-      <form action={action} className="card" style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 520 }}>
+      <PageHeader back={{ href: "/companies", label: "Companies" }} title="Import companies" description="Upload a CSV with a header row. Duplicates (same website) are merged and suppressed websites are skipped." />
+      <form action={action} className="card stack" style={{ gap: 12, maxWidth: 560 }}>
         <p className="muted">
-          CSV with a header row. Columns read: name (required), domain or website, phone, address, postcode, niche, company_number, source.
-          Company-level data only: any contact names or personal emails in the file are ignored. Duplicates (same domain) are merged
-          and suppressed domains are skipped.
+          Columns read: <b>name</b> (required), website or domain, phone, address, postcode, niche, company_number, source.
+          Company-level data only: any contact names or personal emails in the file are ignored.
         </p>
-        <input type="file" name="file" accept=".csv,text/csv" required />
-        <button disabled={pending}>{pending ? "Importing…" : "Import"}</button>
-        {result && (
-          <p>{result.message ?? `Done: ${result.created} created, ${result.merged} merged, ${result.skipped} skipped.`}</p>
-        )}
-        <Link href="/companies">Back to companies</Link>
+        <input type="file" name="file" accept=".csv,text/csv" aria-label="CSV file" required />
+        <button disabled={pending} style={{ alignSelf: "flex-start" }}>{pending ? "Importing…" : "Import"}</button>
+        {result && <p role="status">{result.message ?? `Done: ${result.created} created, ${result.merged} merged, ${result.skipped} skipped.`}</p>}
       </form>
     </>
   );

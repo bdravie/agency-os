@@ -26,7 +26,7 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
         const col = items.filter((i) => i.status === status);
         return (
           <section key={status} className="col">
-            <h2>{status} <span>{col.length}</span></h2>
+            <h2><span style={{ background: "none", padding: 0 }}>{status}</span> <span>{col.length}</span></h2>
             {col.map((i) => (
               <article key={i.id} className="deal" style={{ cursor: "default" }}>
                 <Link href={`/content/${i.id}`}><b>{i.idea}</b></Link>

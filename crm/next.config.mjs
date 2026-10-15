@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 // The single .env lives in the repo root. In Codespaces the values come from secrets instead.
 try {
   process.loadEnvFile(new URL("../.env", import.meta.url));
@@ -10,6 +13,8 @@ const inCodespace = process.env.CODESPACES === "true";
 /** @type {import('next').NextConfig} */
 export default {
   poweredByHeader: false,
+  devIndicators: false,
+  outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
   experimental: {
     serverActions: {
       allowedOrigins: inCodespace ? ["*.app.github.dev"] : [],

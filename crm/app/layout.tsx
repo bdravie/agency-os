@@ -1,17 +1,22 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
-import Nav from "@/components/Nav";
+import AppShell from "@/components/AppShell";
 import { demoMode } from "@/lib/db";
+import { COOKIE, verifyToken } from "@/lib/session";
+import { logout } from "./login/actions";
 
-export const metadata: Metadata = { title: "Agency OS" };
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const metadata: Metadata = { title: { default: "Agency OS", template: "%s · Agency OS" } };
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const signedIn = await verifyToken((await cookies()).get(COOKIE)?.value);
   return (
-    <html lang="en-GB">
+    <html lang="en-GB" className={inter.variable}>
       <body>
-        {demoMode() && <div className="demo">DEMO MODE: fake data only</div>}
-        <Nav />
-        <div className="page">{children}</div>
+        {signedIn ? <AppShell demo={demoMode()} signOut={logout}>{children}</AppShell> : children}
       </body>
     </html>
   );

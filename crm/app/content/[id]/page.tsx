@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
 import { saveContent, scheduleContent, writeScriptAction } from "@/lib/actions";
 import ActionForm from "@/components/ActionForm";
 import CopyButton from "@/components/CopyButton";
+import { Badge, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -14,33 +14,39 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
   if (!c) notFound();
   return (
     <>
-      <p><Link href="/content">← Content</Link></p>
-      <h1>{c.idea}</h1>
-      <p className="muted">{c.status}{c.format && ` · ${c.format}`}</p>
-      <div className="grid">
-        <section className="card">
-          <h2>AI script</h2>
-          <p className="muted">Writes 5 hooks, a 30–45 second script, on-screen text and a caption. Overwrites the fields on the right.</p>
-          <ActionForm action={writeScriptAction} label={c.script ? "Rewrite script" : "Write script"} busyLabel="Writing… (about 15 seconds)">
-            <input type="hidden" name="id" value={id} />
-          </ActionForm>
-          <h2 style={{ marginTop: 16 }}>Schedule</h2>
-          <form action={scheduleContent} style={{ display: "flex", gap: 8 }}>
-            <input type="hidden" name="id" value={id} />
-            <input type="date" name="date" defaultValue={c.day ?? ""} />
-            <button>{c.day ? "Reschedule" : "Schedule"}</button>
-          </form>
-        </section>
-        <form action={saveContent} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <PageHeader
+        back={{ href: "/content", label: "Content" }}
+        title={c.idea}
+        description={<span className="row" style={{ gap: 10 }}><Badge value={c.status} />{c.format && <span>{c.format}</span>}{c.day && <span>Scheduled {c.day}</span>}</span>}
+      />
+      <div className="split">
+        <form action={saveContent} className="card stack" style={{ gap: 10 }}>
           <input type="hidden" name="id" value={id} />
-          <h2>Edit</h2>
-          <input name="idea" defaultValue={c.idea} />
-          <input name="hook" defaultValue={c.hook ?? ""} placeholder="Chosen hook" />
-          <textarea id="script" name="script" rows={14} defaultValue={c.script ?? ""} placeholder="Script" />
-          <textarea id="caption" name="caption" rows={3} defaultValue={c.caption ?? ""} placeholder="Caption" />
-          <input name="keyword" defaultValue={c.keyword ?? ""} placeholder="Comment keyword" />
-          <div style={{ display: "flex", gap: 8 }}><button>Save</button><CopyButton targetId="script" /></div>
+          <h2>Script and caption</h2>
+          <input name="idea" defaultValue={c.idea} aria-label="Idea" />
+          <input name="hook" defaultValue={c.hook ?? ""} placeholder="Chosen hook" aria-label="Hook" />
+          <textarea id="script" name="script" rows={16} defaultValue={c.script ?? ""} placeholder="Script" aria-label="Script" />
+          <textarea id="caption" name="caption" rows={3} defaultValue={c.caption ?? ""} placeholder="Caption" aria-label="Caption" />
+          <input name="keyword" defaultValue={c.keyword ?? ""} placeholder="Comment keyword" aria-label="Keyword" />
+          <div className="row"><button>Save</button><CopyButton targetId="script" /></div>
         </form>
+        <div className="stack">
+          <section className="card">
+            <h2>Write it with AI</h2>
+            <p className="muted">Writes 5 hooks, a 30–45 second script, on-screen text and a caption. It overwrites the fields on the left.</p>
+            <ActionForm action={writeScriptAction} label={c.script ? "Rewrite script" : "Write script"} busyLabel="Writing… (about 15 seconds)">
+              <input type="hidden" name="id" value={id} />
+            </ActionForm>
+          </section>
+          <section className="card">
+            <h2>Schedule</h2>
+            <form action={scheduleContent} className="row">
+              <input type="hidden" name="id" value={id} />
+              <input type="date" name="date" defaultValue={c.day ?? ""} aria-label="Date" />
+              <button className="secondary">{c.day ? "Reschedule" : "Schedule"}</button>
+            </form>
+          </section>
+        </div>
       </div>
     </>
   );

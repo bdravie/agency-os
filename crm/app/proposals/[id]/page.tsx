@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 import { query } from "@/lib/db";
 import { saveProposal } from "@/lib/actions";
 import CopyButton from "@/components/CopyButton";
+import { Badge, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -13,19 +14,21 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
   if (!p) notFound();
   return (
     <>
-      <p><Link href="/proposals">← Proposals</Link></p>
-      <h1>{p.job_title || `Proposal #${p.id}`}</h1>
-      <p className="muted">Fit score {p.fit_score}/10{p.job_url && <> · <a href={p.job_url} target="_blank" rel="noreferrer">Job post</a></>}</p>
+      <PageHeader
+        back={{ href: "/proposals", label: "Proposals" }}
+        title={p.job_title || `Proposal #${p.id}`}
+        description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{p.job_url && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Job post <ExternalLink size={13} aria-hidden /></a>}</span>}
+      />
       <div className="grid">
-        <form action={saveProposal} className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <form action={saveProposal} className="card stack" style={{ gap: 10 }}>
           <input type="hidden" name="id" value={id} />
-          <h2>Draft (edit freely)</h2>
-          <textarea id="draft" name="draft" rows={14} defaultValue={p.draft ?? ""} />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <select name="status" defaultValue={p.status}>
+          <h2>Your draft (edit freely)</h2>
+          <textarea id="draft" name="draft" rows={16} defaultValue={p.draft ?? ""} aria-label="Draft" />
+          <div className="row">
+            <select name="status" defaultValue={p.status} aria-label="Status">
               {["Draft", "Sent", "Interview", "Won", "Lost"].map((s) => <option key={s}>{s}</option>)}
             </select>
-            <input name="connects_used" type="number" min="0" placeholder="Connects used" defaultValue={p.connects_used ?? ""} />
+            <input name="connects_used" type="number" min="0" placeholder="Connects used" aria-label="Connects used" defaultValue={p.connects_used ?? ""} style={{ width: 150 }} />
             <button>Save</button>
             <CopyButton targetId="draft" />
           </div>

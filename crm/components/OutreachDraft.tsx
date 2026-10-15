@@ -21,18 +21,18 @@ export default function OutreachDraft({ companyId, to, first, followUp, blocker 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", gap: 12 }}>
-        <button type="button" className={kind === "first" ? "" : "link"} onClick={() => setKind("first")}>First email</button>
-        <button type="button" className={kind === "followup" ? "" : "link"} onClick={() => setKind("followup")}>Follow-up (3–4 days later)</button>
+      <div className="seg" role="tablist" aria-label="Email">
+        <button type="button" role="tab" aria-selected={kind === "first"} onClick={() => setKind("first")}>First email</button>
+        <button type="button" role="tab" aria-selected={kind === "followup"} onClick={() => setKind("followup")}>Follow-up (3–4 days later)</button>
       </div>
       <p className="muted">To: {to ?? "no generic email saved yet"} · Nothing is sent from here: copy it or open it in your mail app, then mark it sent.</p>
       <input value={d.subject} onChange={(e) => set({ subject: e.target.value })} />
       <textarea rows={12} value={d.body} onChange={(e) => set({ body: e.target.value })} />
       <p className="muted">{d.subject.length} characters in the subject · {d.body.split(/\s+/).filter(Boolean).length} words in the body{unfilled && " · placeholders still to fill in"}</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" onClick={() => copy(d.subject, "Subject")}>Copy subject</button>
-        <button type="button" onClick={() => copy(d.body, "Body")}>Copy body</button>
-        <a href={mailto}><button type="button" disabled={!to}>Open in mail app</button></a>
+        <button type="button" className="secondary" onClick={() => copy(d.subject, "Subject")}>Copy subject</button>
+        <button type="button" className="secondary" onClick={() => copy(d.body, "Body")}>Copy body</button>
+        <a href={mailto} aria-disabled={!to}><button type="button" className="secondary" disabled={!to}>Open in mail app</button></a>
         <button type="button" disabled={pending || !!why} title={why ?? ""}
           onClick={() => start(async () => {
             try { await markOutreachSent(companyId, kind, d.subject); setNote("Logged as sent"); }

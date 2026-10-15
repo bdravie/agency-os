@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { scheduleContent } from "@/lib/actions";
+import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -18,23 +20,27 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
     query<any>(`SELECT id, idea, status FROM content_items WHERE scheduled_for IS NULL AND status IN ('Idea','Scripted','Filmed') ORDER BY (status = 'Scripted') DESC, id DESC LIMIT 30`),
   ]);
 
+  const range = `${days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Content calendar</h1>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link href="/content">Board</Link>
-          <Link href={`/content/calendar?week=${offset - 1}`}>← Previous</Link>
-          <Link href="/content/calendar">This week</Link>
-          <Link href={`/content/calendar?week=${offset + 1}`}>Next →</Link>
-        </div>
-      </div>
+      <PageHeader
+        back={{ href: "/content", label: "Content" }}
+        title="Content calendar"
+        description={range}
+        actions={
+          <>
+            <Link href={`/content/calendar?week=${offset - 1}`} className="btn secondary" aria-label="Previous week"><ChevronLeft size={16} aria-hidden /></Link>
+            <Link href="/content/calendar" className="btn secondary">This week</Link>
+            <Link href={`/content/calendar?week=${offset + 1}`} className="btn secondary" aria-label="Next week"><ChevronRight size={16} aria-hidden /></Link>
+          </>
+        }
+      />
       <div className="board" style={{ gridTemplateColumns: "repeat(7, minmax(140px, 1fr))" }}>
         {days.map((d) => (
-          <section key={iso(d)} className="col" style={iso(d) === iso(new Date()) ? { borderColor: "var(--accent)" } : undefined}>
+          <section key={iso(d)} className="col" style={iso(d) === iso(new Date()) ? { borderColor: "var(--accent)" } : undefined} aria-label={d.toDateString()}>
             <h2>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</h2>
             {scheduled.filter((s: any) => s.day === iso(d)).map((s: any) => (
-              <article key={s.id} className="deal" style={{ cursor: "default" }}>
+              <article key={s.id} className="deal cal-card" style={{ cursor: "default" }}>
                 <Link href={`/content/${s.id}`}>{s.idea}</Link>
                 <span className="muted">{s.status}</span>
               </article>
@@ -43,7 +49,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
         ))}
       </div>
 
-      <h2 style={{ marginTop: 24 }}>Not scheduled yet</h2>
+      <h2 style={{ marginTop: 28 }}>Not scheduled yet</h2>
       <div className="card">
         <ul>
           {unscheduled.map((u: any) => (
@@ -51,8 +57,8 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
               <span><Link href={`/content/${u.id}`}>{u.idea}</Link> <span className="muted">{u.status}</span></span>
               <form action={scheduleContent} style={{ display: "flex", gap: 6 }}>
                 <input type="hidden" name="id" value={u.id} />
-                <input type="date" name="date" defaultValue={iso(days[0])} required />
-                <button>Schedule</button>
+                <input type="date" name="date" defaultValue={days.some((d) => iso(d) === iso(new Date())) ? iso(new Date()) : iso(days[0])} aria-label="Date" required />
+                <button className="secondary">Schedule</button>
               </form>
             </li>
           ))}

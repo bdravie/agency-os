@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { Users } from "lucide-react";
 import { query } from "@/lib/db";
 import { saveService } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
+import { dateOnly } from "@/lib/format";
+import { EmptyState, PageHeader, Stat } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Clients" };
 
-const day = (d: Date | string | null) => (d ? new Date(d).toLocaleDateString("en-GB", { dateStyle: "medium" }) : "");
 const iso = (d: Date | string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
 export default async function Clients() {
@@ -21,26 +24,28 @@ export default async function Clients() {
 
   return (
     <>
-      <h1>Clients</h1>
-      <div className="grid" style={{ marginBottom: 16 }}>
-        <section className="card"><h2>Monthly recurring revenue</h2><div style={{ fontSize: 32, fontWeight: 700 }}>{gbp(mrr)}</div><p className="muted">Active services only · {gbp(mrr * 12)} a year</p></section>
-        <section className="card"><h2>Active clients</h2><div style={{ fontSize: 32, fontWeight: 700 }}>{clients}</div><p className="muted">{active.length} active service{active.length === 1 ? "" : "s"}</p></section>
+      <PageHeader title="Clients" description="Who you work for, what they pay, and when to review." />
+      <section className="stats">
+        <Stat label="Monthly recurring revenue" value={gbp(mrr)} hint={`${gbp(mrr * 12)} a year · active services only`} />
+        <Stat label="Active clients" value={clients} hint={`${active.length} active service${active.length === 1 ? "" : "s"}`} />
+      </section>
+      {byCompany.size === 0 && <div className="card"><EmptyState title="No clients yet" icon={<Users size={22} />}>When a quote is marked accepted, the client appears here with its review tasks.</EmptyState></div>}
+      <div className="stack">
+        {[...byCompany.entries()].map(([companyId, services]) => (
+          <section key={companyId} className="card">
+            <h2><Link href={`/companies/${companyId}`}>{services[0].company}</Link></h2>
+            {services.map((s: any) => (
+              <form key={s.id} action={saveService} className="row" style={{ padding: "8px 0", borderTop: "1px solid var(--line-soft)" }}>
+                <input type="hidden" name="id" value={s.id} />
+                <span style={{ flex: 1, minWidth: 220 }}><b>{s.service}</b><br /><span className="muted">{gbp(s.monthly_fee_gbp)}/mo · setup {gbp(s.setup_fee_gbp)} · started {dateOnly(s.start_date)}</span></span>
+                <select name="status" defaultValue={s.status} aria-label="Status"><option>Active</option><option>Paused</option><option>Ended</option></select>
+                <label className="muted">Next review <input type="date" name="next_review_date" defaultValue={iso(s.next_review_date)} /></label>
+                <button className="secondary">Save</button>
+              </form>
+            ))}
+          </section>
+        ))}
       </div>
-      {byCompany.size === 0 && <p className="muted">No clients yet. When a quote is marked accepted, the client appears here.</p>}
-      {[...byCompany.entries()].map(([companyId, services]) => (
-        <section key={companyId} className="card" style={{ marginBottom: 12 }}>
-          <h2><Link href={`/companies/${companyId}`}>{services[0].company}</Link></h2>
-          {services.map((s: any) => (
-            <form key={s.id} action={saveService} style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
-              <input type="hidden" name="id" value={s.id} />
-              <span style={{ flex: 1, minWidth: 200 }}><b>{s.service}</b><br /><span className="muted">{gbp(s.monthly_fee_gbp)}/mo · setup {gbp(s.setup_fee_gbp)} · started {day(s.start_date)}</span></span>
-              <select name="status" defaultValue={s.status}><option>Active</option><option>Paused</option><option>Ended</option></select>
-              <label className="muted">Next review <input type="date" name="next_review_date" defaultValue={iso(s.next_review_date)} /></label>
-              <button>Save</button>
-            </form>
-          ))}
-        </section>
-      ))}
     </>
   );
 }
