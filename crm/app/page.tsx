@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const when = (d: Date | string) => new Date(d).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 
 export default async function Today() {
-  const [tasks, stale, recent] = await Promise.all([
+  const [tasks, stale, recent, backup] = await Promise.all([
     query<{ id: number; title: string; due_at: string; company_name: string | null }>(
       `SELECT t.id, t.title, t.due_at, c.name AS company_name
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -21,11 +21,20 @@ export default async function Today() {
       `SELECT a.id, a.type, a.channel, a.body, a.occurred_at, c.name AS company_name
          FROM activities a LEFT JOIN companies c ON c.id = a.company_id
         ORDER BY a.occurred_at DESC LIMIT 15`),
+    query<{ last: string | null }>(`SELECT max(occurred_at) AS last FROM activities WHERE type = 'backup_completed'`),
   ]);
+  const last = backup[0]?.last ? new Date(backup[0].last) : null;
+  const hours = last ? (Date.now() - last.getTime()) / 3_600_000 : null;
+  const stale_backup = hours === null || hours > 36;
 
   return (
     <>
       <h1>Today</h1>
+      <p className={stale_backup ? "error" : "muted"}>
+        {last
+          ? `Last backup: ${when(last)}${stale_backup ? ` (${Math.floor(hours!)} hours ago, over 36: check the backup job)` : ""}`
+          : "No backup recorded yet. Run: uv run python -m agency.backup"}
+      </p>
       <div className="grid">
         <section className="card">
           <h2>Tasks due</h2>
