@@ -64,3 +64,23 @@ test("only an exact, unambiguous name match is picked automatically", () => {
   assert.equal(pickExact("Acme Ltd", [cand("Acme Limited", "dissolved", "1"), cand("Acme Ltd", "active", "2")])?.number, "2"); // active wins
   assert.equal(pickExact("Acme Ltd", [cand("Acme Limited", "dissolved", "1")])?.number, "1");                               // only a dissolved one: found, then classified not eligible
 });
+
+import { nicheKey, parseSicCodes, parseTerms } from "../lib/niche.ts";
+
+test("niche names become safe keys", () => {
+  assert.equal(nicheKey("Dental Practices (UK)"), "dental_practices_uk");
+  assert.equal(nicheKey("Plumbers & Heating"), "plumbers_and_heating");
+  assert.equal(nicheKey("  "), null);
+  assert.equal(nicheKey("123 roofers"), null);               // must start with a letter
+  assert.ok(nicheKey("a".repeat(80) + " b").length <= 40);
+});
+
+test("SIC codes are read from messy text and bad ones reported", () => {
+  assert.deepEqual(parseSicCodes("43220, 43210 and 43290 43220"), { codes: ["43220", "43210", "43290"], bad: [] });
+  assert.deepEqual(parseSicCodes("4322, 43220x, 99999"), { codes: ["99999"], bad: ["4322", "43220x"] });
+  assert.deepEqual(parseSicCodes(""), { codes: [], bad: [] });
+});
+
+test("search terms are tidied", () => {
+  assert.deepEqual(parseTerms("Roofer, flat roofing\nroofer\n x \nRoof Repairs"), ["roofer", "flat roofing", "roof repairs"]);
+});

@@ -45,3 +45,11 @@ def test_settings_are_trimmed(monkeypatch):
     assert config.require("DATABASE_URL").endswith("sslmode=require")
     monkeypatch.setenv("SOME_KEY", "  \n")
     assert config.get("SOME_KEY", "fallback") == "fallback"
+
+
+def test_niches_added_in_the_crm_are_merged_and_the_yaml_wins(monkeypatch):
+    from agency.core import niches as n
+    monkeypatch.setattr(n, "custom_niches", lambda: {"dental": {"sic_codes": ["86230"]}, "hvac": {"sic_codes": ["00000"]}})
+    merged = n.all_niches()
+    assert merged["dental"]["sic_codes"] == ["86230"]
+    assert merged["hvac"]["sic_codes"] == ["43220"]   # config/niches.yaml takes precedence over a CRM niche with the same key

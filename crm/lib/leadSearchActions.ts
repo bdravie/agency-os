@@ -1,6 +1,7 @@
 "use server";
 
 import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
@@ -29,7 +30,7 @@ const scrub = (text: string) => ["DATABASE_URL", "COMPANIES_HOUSE_API_KEY", "ANT
 export async function startLeadSearch(_prev: SearchState, form: FormData): Promise<SearchState> {
   await requireLogin();
   const kind = form.get("kind") === "enrich" ? "enrich" : "search";
-  const dryRun = form.get("dry_run") === "on";
+  const dryRun = false;
   const limit = Math.min(100, Math.max(10, Math.round(Number(form.get("limit")) || 50)));
   let niche: string | null = null, location: string | null = null;
   if (kind === "search") {
@@ -44,8 +45,9 @@ export async function startLeadSearch(_prev: SearchState, form: FormData): Promi
   if (busy) return { error: "A search is already running. Wait for it to finish." };
 
   const [row] = await query<{ id: number }>(`INSERT INTO lead_searches (kind, niche, location, row_limit, dry_run) VALUES ($1,$2,$3,$4,$5) RETURNING id`, [kind, niche, location, limit, dryRun]);
+  // A search never saves anything itself: it keeps what it found (--stage) so you choose which companies to add.
   const args = kind === "enrich" ? ["agency.companies_house", "--enrich", "--limit", String(Math.min(limit, 50))]
-    : ["agency.companies_house", "--niche", niche!, "--limit", String(limit), ...(location ? ["--location", location] : []), ...(dryRun ? ["--dry-run"] : [])];
+    : ["agency.companies_house", "--niche", niche!, "--limit", String(limit), ...(location ? ["--location", location] : []), "--stage", String(row.id)];
   const { cmd, args: full } = pythonCommand(args);
   execFile(cmd, full, { cwd: ROOT, env: process.env, timeout: MAX_RUN_MINUTES * 60_000, maxBuffer: 5_000_000 }, (err, stdout, stderr) => {
     const output = scrub(`${stdout}${err ? `\n${stderr || err.message}` : ""}`.trim());
@@ -59,4 +61,31 @@ export async function leadSearchStatus(id: number): Promise<SearchStatus> {
   const [r] = await query<any>(id ? `SELECT * FROM lead_searches WHERE id = $1` : `SELECT * FROM lead_searches ORDER BY id DESC LIMIT 1`, id ? [id] : []);
   if (!r) return null;
   return { id: Number(r.id), kind: r.kind, status: r.status, output: r.output ?? "", startedAt: new Date(r.started_at).toISOString(), dryRun: r.dry_run, niche: r.niche, location: r.location };
+}
+
+export type SearchResult = { number: string; name: string; postcode: string | null; address: string | null; fit: number | null; notes: string | null; est: number | null; skip: string | null; added: boolean };
+
+/** What a search found, best fit first. */
+export async function leadSearchResults(searchId: number): Promise<SearchResult[]> {
+  await requireLogin();
+  const rows = await query<any>(`SELECT company_number, name, postcode, address, fit_score, fit_notes, est_revenue_gbp::float AS est, skip_reason, added_at FROM lead_search_results WHERE search_id = $1
+                                  ORDER BY (skip_reason IS NOT NULL OR added_at IS NOT NULL), fit_score DESC NULLS LAST, name LIMIT 200`, [searchId]);
+  return rows.map((r) => ({ number: r.company_number, name: r.name, postcode: r.postcode, address: r.address, fit: r.fit_score, notes: r.fit_notes, est: r.est, skip: r.skip_reason, added: !!r.added_at }));
+}
+
+/** Adds the companies you ticked to the CRM (using facts already fetched, so no further API calls). */
+export async function addSearchResultsAction(searchId: number, numbers: string[]): Promise<{ ok?: string; error?: string }> {
+  await requireLogin();
+  const chosen = [...new Set(numbers.filter((n) => /^[A-Z0-9]{8}$/.test(n)))].slice(0, 200);
+  if (chosen.length === 0) return { error: "Tick at least one company." };
+  const [found] = await query(`SELECT 1 FROM lead_search_results WHERE search_id = $1 AND company_number = ANY($2) LIMIT 1`, [searchId, chosen]);
+  if (!found) return { error: "Those companies aren't in this search." };
+  const { cmd, args } = pythonCommand(["agency.companies_house", "--add", String(searchId), "--numbers", chosen.join(",")]);
+  try {
+    const { stdout } = await promisify(execFile)(cmd, args, { cwd: ROOT, env: process.env, timeout: 120_000, maxBuffer: 2_000_000 });
+    revalidatePath("/companies");
+    return { ok: scrub(String(stdout)).trim() };
+  } catch (err: any) {
+    return { error: scrub(String(err?.stderr || err?.message || err)).split("\n").filter(Boolean).slice(-3).join(" ") };
+  }
 }

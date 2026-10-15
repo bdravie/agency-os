@@ -95,7 +95,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
       </form>
 
       <details className="card" id="find" style={{ marginBottom: 16 }} open>
-        <summary>Find new companies on Companies House <span className="badge tone-good" style={{ marginLeft: 6 }}>free</span></summary>
+        <summary>Find and add companies from Companies House <span className="badge tone-good" style={{ marginLeft: 6 }}>free</span></summary>
         <div style={{ marginTop: 12 }}><LeadSearchPanel niches={searchNiches} latest={latestSearch} /></div>
       </details>
 

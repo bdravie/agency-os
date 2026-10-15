@@ -12,17 +12,20 @@ Free API; limit is 600 requests per 5 minutes, which this respects. Each run pri
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import time
 from datetime import date, timedelta
 from urllib import robotparser
 from urllib.parse import urljoin
 
+from psycopg.types.json import Jsonb
+
 import httpx
 
 from agency import ch_health, compliance, config
 from agency.core import db
-from agency.core.niches import niches
+from agency.core.niches import all_niches
 
 API = "https://api.company-information.service.gov.uk"
 PAGE = 100
@@ -148,6 +151,48 @@ def enrich(limit: int = 50) -> tuple[int, int]:
     return checked, found
 
 
+def stage(search_id: int, companies: list[dict], facts: dict[str, dict], niche: str) -> tuple[int, int]:
+    """Keep what a search found so you can choose which companies to add. Nothing is written to companies. Returns (rows, skipped)."""
+    skipped = 0
+    with db.connect() as conn:
+        have = {r["company_number"] for r in conn.execute("SELECT company_number FROM companies WHERE company_number IS NOT NULL")}
+        for c in companies:
+            f = facts.get(c["company_number"]) or {}
+            reason = ("Already in the CRM" if c["company_number"] in have
+                      else "On your suppression list" if compliance.is_suppressed(conn, company_number=c["company_number"]) else None)
+            skipped += bool(reason)
+            conn.execute(
+                """INSERT INTO lead_search_results (search_id, company_number, name, address, postcode, sic_codes, company_type, company_status,
+                                                    fit_score, fit_notes, est_revenue_gbp, facts, skip_reason)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (search_id, company_number) DO NOTHING""",
+                (search_id, c["company_number"], c["name"], c["address"], c["postcode"], c["sic_codes"], c.get("company_type"), c.get("company_status"),
+                 f.get("fit_score"), f.get("fit_notes"), f.get("est_revenue_gbp"), Jsonb(f, dumps=lambda o: json.dumps(o, default=str)) if f else None, reason))
+    return len(companies), skipped
+
+
+def add_staged(search_id: int, numbers: list[str]) -> tuple[int, int]:
+    """Add the chosen companies from a search to the CRM, using the facts already fetched (no new API calls). Returns (added, skipped)."""
+    with db.connect() as conn:
+        s = conn.execute("SELECT niche FROM lead_searches WHERE id = %s", (search_id,)).fetchone()
+        rows = conn.execute("SELECT * FROM lead_search_results WHERE search_id = %s AND company_number = ANY(%s) AND added_at IS NULL", (search_id, numbers)).fetchall()
+    if not s:
+        raise SystemExit(f"No search {search_id}.")
+    companies, facts, blocked = [], {}, 0
+    with db.connect() as conn:
+        for r in rows:
+            if r["skip_reason"] or compliance.is_suppressed(conn, company_number=r["company_number"]):
+                blocked += 1
+                continue
+            companies.append({"name": r["name"], "company_number": r["company_number"], "address": r["address"], "postcode": r["postcode"],
+                              "sic_codes": r["sic_codes"], "company_type": r["company_type"], "company_status": r["company_status"]})
+            if r["facts"]:
+                facts[r["company_number"]] = r["facts"]
+    new, existed = save(companies, s["niche"], facts)
+    with db.connect() as conn:
+        conn.execute("UPDATE lead_search_results SET added_at = now() WHERE search_id = %s AND company_number = ANY(%s) AND skip_reason IS NULL", (search_id, [c["company_number"] for c in companies]))
+    return new, existed + blocked
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Companies House lead list (active ltd/llp/plc only).")
     p.add_argument("--niche", help="Key from config/niches.yaml, e.g. marketing_agencies")
@@ -158,17 +203,24 @@ def main() -> None:
     p.add_argument("--include-unhealthy", action="store_true", help="Also keep companies with overdue filings, strike-off notices or dormant accounts")
     p.add_argument("--min-fit", type=int, default=0, help="Only keep companies with a fit score at least this high (after the health check)")
     p.add_argument("--enrich", action="store_true", help="Find generic emails for companies that have a domain")
+    p.add_argument("--stage", type=int, metavar="SEARCH_ID", help="Keep the results for the CRM to show (used by the Find companies panel); saves nothing to companies")
+    p.add_argument("--add", type=int, metavar="SEARCH_ID", help="Add chosen companies from a staged search")
+    p.add_argument("--numbers", help="Comma-separated company numbers to add (with --add)")
     a = p.parse_args()
 
     if a.enrich:
         checked, found = enrich(a.limit)
         print(f"Enrich: checked {checked} companies, found {found} generic emails. Cost: £0.")
         return
+    if a.add:
+        new, skipped = add_staged(a.add, [n for n in (a.numbers or "").split(",") if n.strip()])
+        print(f"Added {new} to the CRM, {skipped} skipped (already there or suppressed). Cost: £0.")
+        return
     if not a.niche:
         p.error("--niche is required")
-    sics = (niches().get("niches", {}).get(a.niche) or {}).get("sic_codes")
+    sics = (all_niches().get(a.niche) or {}).get("sic_codes")
     if not sics:
-        p.error(f"No sic_codes for niche '{a.niche}' in config/niches.yaml")
+        p.error(f"No sic_codes for niche '{a.niche}' in config/niches.yaml or the niches added in the CRM")
 
     cfg = ch_health.settings()
     facts: dict[str, dict] = {}
@@ -190,6 +242,10 @@ def main() -> None:
             facts[c["company_number"]] = f
             kept.append(c)
         companies = kept
+    if a.stage:
+        rows, skipped = stage(a.stage, companies, facts, a.niche)
+        print(f"Found {rows} companies ({skipped} already in the CRM or suppressed), {dropped} dropped for filing problems or low fit. Nothing added yet. API requests: about {n}. Cost: £0.")
+        return
     if a.dry_run:
         for c in companies[:20]:
             f = facts.get(c["company_number"], {})
