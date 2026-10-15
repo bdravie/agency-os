@@ -83,3 +83,20 @@ You should see `OK API` and `OK Database`.
 | See pending changes | `node tools/git/sync.mjs --status` |
 | New migration | `npm run db:new -- add_something` then `npm run db:migrate` |
 | Migration status | `npm run db:status` |
+
+## 6. Troubleshooting (lessons learned)
+
+Add a line here whenever something breaks and you find the cause.
+
+| Symptom | Cause and fix |
+|---|---|
+| CRM page is blank or shows "Module not found" after an update | A new package was added. In the Codespace: `git pull`, then `cd crm && npm install`, `rm -rf .next`, restart `npm run dev`. Run `npm install` in `crm/`, not the project root. |
+| Clicking sidebar links downloads files instead of opening pages | Safari. Use Chrome. |
+| `git pull` says untracked files "would be overwritten" | Generated build files (`crm/package-lock.json`, `next-env.d.ts`, `tsconfig.tsbuildinfo`). Delete the named files, then pull again. They are now git-ignored except the lockfile. |
+| "Invalid Server Actions request" in a Codespace | The Codespaces proxy changes the origin. Already handled by `allowedOrigins` in `crm/next.config.mjs`; keep that setting. |
+| Companies House returns 401 "Invalid Authorization" with a well-formed key | The key belongs to a **Test** application. Create a **Live** application and a REST key (Test keys only work on the sandbox API). |
+| AI reply is cut off or fails to parse | Reasoning tokens count towards `max_tokens`. Use 3000 or more for structured replies, parse defensively, and only cache replies that parsed. |
+| Anthropic error: `tool_choice type "tool" is not supported` | Sonnet 5.5 can't force a tool. Offer a single tool and tell the model in the prompt to call it (see `crm/lib/llm.ts`). |
+| New secret not visible in the Codespace | Secrets load at start: stop and restart (or rebuild) the Codespace after adding one. |
+| No `pg_dump` on this Mac | Backups use Python `COPY` (`uv run python -m agency.backup`), so no Postgres tools are needed. |
+| Codespace hours running out | Stop it when you finish (blue bottom-left bar > Stop Current Codespace). Don't delete it. |
