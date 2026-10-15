@@ -15,6 +15,9 @@ export const auditModel = () => resolve(process.env.AUDIT_MODEL?.trim() || "sonn
 /** The model for call analysis: set CALLS_MODEL in .env (an alias or a full model id). Defaults to Sonnet. */
 export const callsModel = () => resolve(process.env.CALLS_MODEL?.trim() || "sonnet");
 
+/** The model for client results reports and case studies: set OUTCOMES_MODEL in .env (an alias or a full model id). Defaults to Sonnet. */
+export const outcomesModel = () => resolve(process.env.OUTCOMES_MODEL?.trim() || "sonnet");
+
 export async function ask(prompt: string, model: ModelChoice = "sonnet", maxTokens = 1500): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
   g._anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

@@ -164,6 +164,12 @@ Upload a .vtt/.txt transcript or paste notes against a deal (`/calls/new`). Priv
 
 ---
 
+## Extra: Outcomes (built)
+
+Per-client before-and-after tracking (`/outcomes`). Kickoff baselines, monthly manual or CSV readings, a flat/slipping/no-data flag (Today and Outcomes, with a check-in task), a one-page monthly PDF report (wins and next improvement drafted by AI on click or typed by hand), and, once 60 days of data show a real improvement, a draft case study and testimonial request email. Migration: `20261020100000_outcomes.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

@@ -1,4 +1,4 @@
-import { Building2, CheckSquare, ClipboardCheck, MessageSquareWarning, Phone, Compass, Funnel, FileSignature, FileText, Kanban, Package, Sun, Users, Video, type LucideIcon } from "lucide-react";
+import { Building2, CheckSquare, ClipboardCheck, MessageSquareWarning, Phone, TrendingUp, Compass, Funnel, FileSignature, FileText, Kanban, Package, Sun, Users, Video, type LucideIcon } from "lucide-react";
 
 // One place that defines where everything lives. Grouped by what you are doing.
 export type NavItem = { href: string; label: string; icon: LucideIcon; hint: string };
@@ -18,6 +18,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     { href: "/objections", label: "Objections", icon: MessageSquareWarning, hint: "Objection library and best responses" },
     { href: "/audits", label: "Audits", icon: ClipboardCheck, hint: "Task audits and reports" },
     { href: "/quotes", label: "Quotes", icon: FileText, hint: "Prices sent to clients" },
+    { href: "/outcomes", label: "Outcomes", icon: TrendingUp, hint: "Before-and-after results per client" },
     { href: "/clients", label: "Clients", icon: Users, hint: "Revenue and reviews" },
   ] },
   { title: "Marketing", items: [

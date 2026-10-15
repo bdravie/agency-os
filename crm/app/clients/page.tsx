@@ -20,6 +20,7 @@ export default async function Clients() {
   const active = rows.filter((r: any) => r.status === "Active");
   const mrr = active.reduce((sum: number, r: any) => sum + Number(r.monthly_fee_gbp), 0);
   const clients = new Set(active.map((r: any) => r.company_id)).size;
+  const tracked = new Map((await query<{ id: number; company_id: number }>(`SELECT DISTINCT ON (company_id) id, company_id FROM outcomes ORDER BY company_id, id DESC`)).map((r) => [r.company_id, r.id]));
   const byCompany = new Map<number, any[]>();
   for (const r of rows) byCompany.set(r.company_id, [...(byCompany.get(r.company_id) ?? []), r]);
 
@@ -34,7 +35,10 @@ export default async function Clients() {
       <div className="stack">
         {[...byCompany.entries()].map(([companyId, services]) => (
           <section key={companyId} className="card">
-            <h2><Link href={`/companies/${companyId}`}>{services[0].company}</Link></h2>
+            <div className="row-between">
+              <h2 style={{ margin: 0 }}><Link href={`/companies/${companyId}`}>{services[0].company}</Link></h2>
+              {tracked.has(companyId) ? <Link href={`/outcomes/${tracked.get(companyId)}`} className="muted">Results</Link> : <Link href={`/outcomes/new?company=${companyId}`} className="muted">Start tracking results</Link>}
+            </div>
             {services.map((s: any) => (
               <ToastForm key={s.id} action={saveService} success="Client updated" className="row" style={{ padding: "8px 0", borderTop: "1px solid var(--line-soft)" }}>
                 <input type="hidden" name="id" value={s.id} />

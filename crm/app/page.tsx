@@ -3,6 +3,7 @@ import ToastForm from "@/components/ToastForm";
 import { Check, FileSignature, Plus, Video } from "lucide-react";
 import { query } from "@/lib/db";
 import { loadRevenue } from "@/lib/revenue";
+import { loadOutcomes, needsAttention } from "@/lib/outcomeData";
 import { completeTask } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, revenue, outreach] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -29,7 +30,9 @@ export default async function Today() {
     query<{ last: string | null }>(`SELECT max(occurred_at) AS last FROM activities WHERE type = 'backup_completed'`),
     loadRevenue(),
     query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'email_logged' AND occurred_at > now() - interval '7 days'`),
+    loadOutcomes(),
   ]);
+  const atRisk = outcomes.filter(needsAttention);
 
   const last = backup[0]?.last ? new Date(backup[0].last) : null;
   const hours = last ? (Date.now() - last.getTime()) / 3_600_000 : null;
@@ -57,6 +60,7 @@ export default async function Today() {
         <Stat label="One-off revenue this month" value={gbp(revenue.oneOffMonth)} hint={`${gbp(revenue.oneOffTotal)} all time · audits, builds, workshops`} href="/funnel" />
         <Stat label="Open pipeline" value={gbp(revenue.pipelineOneOff)} hint={`one-off, plus ${gbp(revenue.pipelineMonthly)}/mo recurring · ${revenue.openDeals} deal${revenue.openDeals === 1 ? "" : "s"}`} href="/deals" />
         <Stat label="Tasks due" value={tasks.length} hint={overdue ? `${overdue} overdue` : "Nothing overdue"} href="/tasks" />
+        <Stat label="Clients to check on" value={atRisk.length} hint={atRisk.length ? atRisk.slice(0, 2).map((l) => l.outcome.company_name).join(", ") + (atRisk.length > 2 ? "…" : "") : outcomes.length ? "Results are on track" : "Track results on the Outcomes page"} href="/outcomes" />
         <Stat label="Outreach this week" value={outreach[0].n} hint="emails you've logged as sent" />
       </section>
 
