@@ -48,7 +48,7 @@ export default async function Today() {
         description={new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
         actions={
           <>
-            <Link href="/companies?status=New" className="btn secondary"><Plus size={16} aria-hidden /> Find a lead</Link>
+            <Link href="/companies?view=nosite" className="btn secondary"><Plus size={16} aria-hidden /> Find a lead</Link>
             <Link href="/proposals/new" className="btn secondary"><FileSignature size={16} aria-hidden /> New proposal</Link>
             <Link href="/content" className="btn secondary"><Video size={16} aria-hidden /> Content ideas</Link>
           </>

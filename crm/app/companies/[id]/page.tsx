@@ -11,6 +11,7 @@ import { ago, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
 import StatusStepper from "@/components/StatusStepper";
+import { nextStep } from "@/lib/nextStep";
 import { ActivityIcon, activityLabel } from "@/components/activity";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 
@@ -34,16 +35,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const blocker = company.is_ltd === false ? "Outreach is for limited companies only." : suppressed ? "This company is on your suppression list." : null;
 
   const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
-  const next: { text: string; href?: string; warn?: boolean } =
-    company.is_ltd === false ? { text: "Not a limited company: outreach isn't allowed for this one.", warn: true }
-    : suppressed ? { text: "On your suppression list: do not contact.", warn: true }
-    : !company.domain ? { text: "Find their website, so you can check they're a real agency.", href: "#website" }
-    : !company.generic_email ? { text: "Find a generic email address (info@, hello@) on their site.", href: "#website" }
-    : company.status === "New" ? { text: "Write one true, specific opening line, then send the first email.", href: "#outreach" }
-    : company.status === "Contacted" ? { text: followUp?.due_at ? `Send the one follow-up, due ${when(followUp.due_at)}.` : "Send the one follow-up if you haven't heard back.", href: "#outreach" }
-    : company.status === "Replied" ? { text: "They replied: offer a short call or the free pilot, and create a deal.", href: "#deals" }
-    : company.status === "Client" ? { text: "Client: keep an eye on the next review date.", href: "/clients" }
-    : { text: "Parked as not a fit. Reopen it above if that changes." };
+  const next = nextStep({ ...company, suppressed: !!suppressed, followup_due: followUp?.due_at ?? null });
 
   return (
     <>

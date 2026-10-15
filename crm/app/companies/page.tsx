@@ -3,33 +3,57 @@ import { Building2, Check, Download, Upload } from "lucide-react";
 import { query } from "@/lib/db";
 import { createCompany, findWebsitesAction } from "@/lib/actions";
 import { ago } from "@/lib/format";
+import { nextStep } from "@/lib/nextStep";
 import ActionForm from "@/components/ActionForm";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Companies" };
 
-type SP = { q?: string; niche?: string; status?: string };
+type SP = { q?: string; niche?: string; view?: string; limit?: string };
+
+// The same filters as the counts below, so a pill and its number always agree.
+const VIEWS: { key: string; label: string; where: string }[] = [
+  { key: "", label: "All", where: "TRUE" },
+  { key: "ready", label: "Ready to email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NOT NULL AND is_ltd IS NOT FALSE AND NOT suppressed" },
+  { key: "nosite", label: "Needs website", where: "status = 'New' AND domain IS NULL AND is_ltd IS NOT FALSE" },
+  { key: "noemail", label: "Needs email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NULL AND is_ltd IS NOT FALSE" },
+  { key: "followup", label: "Follow-ups due", where: "status = 'Contacted' AND followup_due IS NOT NULL AND followup_due < now() + interval '1 day'" },
+  { key: "contacted", label: "Contacted", where: "status = 'Contacted'" },
+  { key: "replied", label: "Replied", where: "status = 'Replied'" },
+  { key: "client", label: "Clients", where: "status = 'Client'" },
+];
+
+const BASE = `
+  WITH c AS (
+    SELECT co.id, co.name, co.domain, co.generic_email, co.niche, co.status, co.is_ltd, co.created_at,
+           EXISTS (SELECT 1 FROM suppression s WHERE (co.domain IS NOT NULL AND lower(s.domain) = lower(co.domain))
+                      OR (co.generic_email IS NOT NULL AND lower(s.email) = lower(co.generic_email))) AS suppressed,
+           (SELECT min(t.due_at) FROM tasks t WHERE t.company_id = co.id AND t.done_at IS NULL AND t.title ILIKE '%follow-up%') AS followup_due
+      FROM companies co
+  )`;
 
 export default async function Companies({ searchParams }: { searchParams: Promise<SP> }) {
-  const { q = "", niche = "", status = "" } = await searchParams;
-  const [rows, niches, statuses, total] = await Promise.all([
+  const { q = "", niche = "", view = "", limit: limitParam } = await searchParams;
+  const limit = Math.min(Math.max(Number(limitParam) || 25, 25), 200);
+  const active = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
+  const [rows, niches, counts] = await Promise.all([
     query<any>(
-      `SELECT id, name, domain, generic_email, niche, status, created_at FROM companies
-        WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%')
-          AND ($2 = '' OR niche = $2) AND ($3 = '' OR status = $3)
-        ORDER BY updated_at DESC LIMIT 200`, [q, niche, status]),
+      `${BASE} SELECT * FROM c
+        WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)
+        ORDER BY (followup_due IS NULL), followup_due, created_at DESC LIMIT $3`, [q, niche, limit + 1]),
     query<{ niche: string }>(`SELECT DISTINCT niche FROM companies WHERE niche IS NOT NULL ORDER BY 1`),
-    query<{ status: string; n: string }>(`SELECT status, count(*) AS n FROM companies GROUP BY 1 ORDER BY 2 DESC`),
-    query<{ n: string }>(`SELECT count(*) AS n FROM companies`),
+    query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c`),
   ]);
-  const href = (s: string) => `/companies?${new URLSearchParams({ ...(q && { q }), ...(niche && { niche }), ...(s && { status: s }) })}`;
+  const more = rows.length > limit;
+  const shown = rows.slice(0, limit);
+  const href = (v: string) => `/companies?${new URLSearchParams({ ...(q && { q }), ...(niche && { niche }), ...(v && { view: v }) })}`;
 
   return (
     <>
       <PageHeader
         title="Companies"
-        description={`${total[0].n} in your CRM. Open one to see its website, outreach email and history.`}
+        description="Pick a view to see who needs what. Open a company for its website, outreach email and history."
         actions={
           <>
             <Link href="/companies/import" className="btn secondary"><Upload size={16} aria-hidden /> Import CSV</Link>
@@ -38,17 +62,16 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         }
       />
 
-      <div className="pills" style={{ marginBottom: 12 }} aria-label="Filter by status">
-        <Link href={href("")} className={`pill${status === "" ? " on" : ""}`}>All</Link>
-        {statuses.map((s) => (
-          <Link key={s.status} href={href(s.status)} className={`pill${status === s.status ? " on" : ""}`}>{s.status} <span className="muted">{s.n}</span></Link>
+      <div className="pills" style={{ marginBottom: 12 }} role="group" aria-label="Views">
+        {VIEWS.map((v, i) => (
+          <Link key={v.key} href={href(v.key)} className={`pill${v.key === active.key ? " on" : ""}`}>{v.label} <span className="muted">{counts[0][`v${i}`]}</span></Link>
         ))}
       </div>
 
       <form className="filters">
-        <input name="q" defaultValue={q} placeholder="Search name or website" aria-label="Search companies" autoFocus />
+        <input name="q" defaultValue={q} placeholder="Search name or website" aria-label="Search companies" />
         <select name="niche" defaultValue={niche} aria-label="Niche"><option value="">All niches</option>{niches.map((n) => <option key={n.niche}>{n.niche}</option>)}</select>
-        {status && <input type="hidden" name="status" value={status} />}
+        {view && <input type="hidden" name="view" value={view} />}
         <button className="secondary">Search</button>
       </form>
 
@@ -73,24 +96,32 @@ export default async function Companies({ searchParams }: { searchParams: Promis
       </div>
 
       <div className="card table-wrap">
-        {rows.length === 0 ? (
-          <EmptyState title="No companies match" icon={<Building2 size={22} />}>Try clearing the filters, or add or import some.</EmptyState>
+        {shown.length === 0 ? (
+          <EmptyState title="Nothing in this view" icon={<Building2 size={22} />}>Try another view, or clear the search.</EmptyState>
         ) : (
           <table>
-            <thead><tr><th>Company</th><th>Niche</th><th>Status</th><th>Website</th><th>Email</th><th>Added</th></tr></thead>
+            <thead><tr><th>Company</th><th>Status</th><th>Next step</th><th>Website</th><th>Email</th><th>Added</th></tr></thead>
             <tbody>
-              {rows.map((c: any) => (
-                <tr key={c.id}>
-                  <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link></td>
-                  <td className="muted">{c.niche}</td>
-                  <td><Badge value={c.status} /></td>
-                  <td>{c.domain ? <a href={`https://${c.domain}`} target="_blank" rel="noreferrer" className="muted">{c.domain}</a> : <span className="muted">–</span>}</td>
-                  <td>{c.generic_email ? <span className="row" style={{ gap: 4, color: "var(--good)" }}><Check size={14} aria-hidden /> <span className="muted">{c.generic_email}</span></span> : <span className="muted">–</span>}</td>
-                  <td className="muted">{ago(c.created_at)}</td>
-                </tr>
-              ))}
+              {shown.map((c: any) => {
+                const n = nextStep(c);
+                return (
+                  <tr key={c.id}>
+                    <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link><div className="muted">{c.niche}</div></td>
+                    <td><Badge value={c.status} /></td>
+                    <td><span className={n.warn ? "error" : n.short === "Send first email" || n.short === "Send follow-up" ? "" : "muted"} style={n.short.startsWith("Send") ? { color: "var(--accent)", fontWeight: 550 } : undefined}>{n.short}</span></td>
+                    <td>{c.domain ? <a href={`https://${c.domain}`} target="_blank" rel="noreferrer" className="muted">{c.domain}</a> : <span className="muted">–</span>}</td>
+                    <td>{c.generic_email ? <span className="row" style={{ gap: 4, color: "var(--good)" }}><Check size={14} aria-hidden /> <span className="muted">{c.generic_email}</span></span> : <span className="muted">–</span>}</td>
+                    <td className="muted">{ago(c.created_at)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        )}
+        {more && (
+          <div className="row" style={{ justifyContent: "center", padding: "14px 0 4px" }}>
+            <Link href={`${href(view)}${href(view).includes("?") && href(view).length > "/companies?".length ? "&" : ""}limit=${limit + 25}`} className="btn secondary">Show 25 more</Link>
+          </div>
         )}
       </div>
     </>
