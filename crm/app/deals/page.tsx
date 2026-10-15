@@ -10,7 +10,7 @@ export const metadata = { title: "Deals" };
 export default async function Deals() {
   const rows = await query<any>(
     `SELECT d.id, d.title, d.stage::text AS stage, d.company_id, c.name AS company_name,
-            d.setup_value_gbp::float AS setup, d.monthly_value_gbp::float AS monthly
+            d.setup_value_gbp::float AS setup, d.monthly_value_gbp::float AS monthly, d.updated_at::text AS updated
        FROM deals d LEFT JOIN companies c ON c.id = d.company_id
       ORDER BY d.updated_at DESC`);
   const open = rows.filter((r: any) => r.stage !== "Won" && r.stage !== "Lost");
@@ -18,7 +18,7 @@ export default async function Deals() {
     <>
       <PageHeader
         title="Deals"
-        description={`${open.length} open · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup and ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo in the pipeline. Use ◀ ▶ or drag a card to change its stage. Add deals from a company page.`}
+        description={`${open.length} open · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup and ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo in the pipeline. Use the arrows or drag a card to change its stage. Add deals from a company page.`}
       />
       <Board initial={rows} stages={STAGES} />
     </>

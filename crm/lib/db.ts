@@ -6,7 +6,9 @@ const g = globalThis as unknown as { _pool?: Pool };
 function pool(): Pool {
   if (!g._pool) {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
-    g._pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
+    // `sslmode=require` is already treated as verify-full by pg; say so explicitly to avoid its deprecation warning.
+    const url = process.env.DATABASE_URL.replace(/sslmode=(require|prefer|verify-ca)/, "sslmode=verify-full");
+    g._pool = new Pool({ connectionString: url, max: 5 });
   }
   return g._pool;
 }

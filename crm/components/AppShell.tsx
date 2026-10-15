@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import CommandPalette from "./CommandPalette";
+import { ToastProvider } from "./Toast";
 
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
 export default function AppShell({ children, demo, signOut }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void> }) {
@@ -25,6 +26,7 @@ export default function AppShell({ children, demo, signOut }: { children: React.
   }, [palette]);
 
   return (
+    <ToastProvider>
     <div className="app">
       <a href="#main" className="skip">Skip to content</a>
       <div className="topbar">
@@ -40,5 +42,6 @@ export default function AppShell({ children, demo, signOut }: { children: React.
       <main id="main" className="main">{children}</main>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
+    </ToastProvider>
   );
 }
