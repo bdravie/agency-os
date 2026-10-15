@@ -3,7 +3,17 @@ import { fileURLToPath } from "node:url";
 
 // The single .env lives in the repo root. In Codespaces the values come from secrets instead.
 try {
-  process.loadEnvFile(new URL("../.env", import.meta.url));
+  process.loadEnvFile(new URL("../.env", import.meta.url));   // never overrides a variable that already exists...
+} catch {}
+try {
+  // ...even an empty one (Codespaces creates empty variables for declared secrets that aren't set), so fill those in from the file.
+  const { readFileSync } = await import("node:fs");
+  for (const line of readFileSync(new URL("../.env", import.meta.url), "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (!m || line.trimStart().startsWith("#")) continue;
+    const value = m[2].replace(/^(["'])(.*)\1$/, "$2");
+    if (value && !process.env[m[1]]) process.env[m[1]] = value;
+  }
 } catch {}
 
 // GitHub Codespaces proxies the app through *.app.github.dev, so server actions must accept it.

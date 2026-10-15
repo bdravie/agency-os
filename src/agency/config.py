@@ -5,10 +5,15 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / ".env")
+# load_dotenv never overrides an existing variable, even an empty one (Codespaces creates empty variables for declared secrets
+# that are not set), so fill any empty ones from the file.
+for _k, _v in dotenv_values(ROOT / ".env").items():
+    if _v and not os.environ.get(_k):
+        os.environ[_k] = _v
 
 
 def get(name: str, default: str | None = None) -> str | None:

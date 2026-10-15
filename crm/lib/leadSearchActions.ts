@@ -38,7 +38,7 @@ export async function startLeadSearch(_prev: SearchState, form: FormData): Promi
     location = String(form.get("location") ?? "").trim() || null;
     if (location && !/^[A-Za-z0-9 .,'&-]{2,60}$/.test(location)) return { error: "Use a plain town, county or area name (letters, numbers and spaces)." };
   }
-  if (!process.env.COMPANIES_HOUSE_API_KEY) return { error: "COMPANIES_HOUSE_API_KEY isn't set. Add it to .env (or your Codespaces secrets) and restart." };
+  if (!process.env.COMPANIES_HOUSE_API_KEY?.trim()) return { error: "The server can't see COMPANIES_HOUSE_API_KEY (it is missing or empty). Put it in the .env file in the top-level folder as COMPANIES_HOUSE_API_KEY=yourkey, or set it as a Codespaces secret, then stop and restart the CRM." };
   await query(`UPDATE lead_searches SET status = 'failed', finished_at = now(), output = coalesce(output, '') || 'Timed out.' WHERE status = 'running' AND started_at < now() - make_interval(mins => $1)`, [MAX_RUN_MINUTES]);
   const [busy] = await query(`SELECT 1 FROM lead_searches WHERE status = 'running'`);
   if (busy) return { error: "A search is already running. Wait for it to finish." };
