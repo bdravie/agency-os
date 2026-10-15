@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { query } from "@/lib/db";
-import { setQuoteStatus } from "@/lib/actions";
+import { acceptQuote, setQuoteStatus } from "@/lib/actions";
 import { TERMS, gbp, totals, type LineItem } from "@/lib/quote";
 import PrintButton from "@/components/PrintButton";
 
@@ -25,13 +25,23 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         <span className="muted">Status: <b>{q.status}</b></span>
         <PrintButton />
         <a href={`/quotes/${id}/pdf`}><button type="button">Download PDF</button></a>
-        <form action={setQuoteStatus} style={{ display: "flex", gap: 6 }}>
-          <input type="hidden" name="id" value={id} />
-          <select name="status" defaultValue={q.status === "Accepted" ? "Sent" : q.status}>
-            <option>Draft</option><option>Sent</option><option>Declined</option>
-          </select>
-          <button>Update status</button>
-        </form>
+        {q.status === "Accepted" ? (
+          <span>Accepted {q.accepted_at && new Date(q.accepted_at).toLocaleDateString("en-GB", { dateStyle: "medium" })} · <Link href="/clients">See Clients</Link></span>
+        ) : (
+          <>
+            <form action={setQuoteStatus} style={{ display: "flex", gap: 6 }}>
+              <input type="hidden" name="id" value={id} />
+              <select name="status" defaultValue={q.status}>
+                <option>Draft</option><option>Sent</option><option>Declined</option>
+              </select>
+              <button>Update status</button>
+            </form>
+            <form action={acceptQuote}>
+              <input type="hidden" name="id" value={id} />
+              <button title="Moves the deal to Won and creates the client">Mark as accepted</button>
+            </form>
+          </>
+        )}
       </div>
 
       <article className="card quote">

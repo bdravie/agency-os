@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { query } from "./db";
+import { query, tx } from "./db";
 import { logActivity } from "./activity";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
@@ -489,8 +489,55 @@ export async function setQuoteStatus(form: FormData) {
   if (!status || !["Draft", "Sent", "Declined"].includes(status)) return;
   const [q] = await query<{ deal_id: number; company_id: number | null }>(
     `UPDATE quotes q SET status = $2, sent_at = CASE WHEN $2::text = 'Sent' AND q.sent_at IS NULL THEN now() ELSE q.sent_at END
-       FROM deals d WHERE q.id = $1 AND d.id = q.deal_id RETURNING q.deal_id, d.company_id`, [id, status]);
+       FROM deals d WHERE q.id = $1 AND d.id = q.deal_id AND q.status <> 'Accepted' RETURNING q.deal_id, d.company_id`, [id, status]);
   if (q) await logActivity(`quote_${status.toLowerCase()}`, { company_id: q.company_id, deal_id: q.deal_id, body: `Quote #${id} marked ${status}` });
   revalidatePath(`/quotes/${id}`);
   revalidatePath("/quotes");
+}
+
+/** Accepting a quote: deal -> Won, company -> Client, one client_services row per line item, review task 7 days before each review. */
+export async function acceptQuote(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  const result = await tx(async (c) => {
+    const { rows: [q] } = await c.query(
+      `UPDATE quotes SET status = 'Accepted', accepted_at = now() WHERE id = $1 AND status <> 'Accepted'
+       RETURNING deal_id, line_items, discount_gbp`, [id]);
+    if (!q) return null; // already accepted: do nothing, so nothing is duplicated
+    const { rows: [d] } = await c.query(`UPDATE deals SET stage = 'Won', lost_reason = NULL WHERE id = $1 RETURNING company_id, title`, [q.deal_id]);
+    if (!d?.company_id) throw new Error("This deal has no company, so a client can't be created.");
+    const { rows: [co] } = await c.query(`UPDATE companies SET status = 'Client' WHERE id = $1 RETURNING name`, [d.company_id]);
+    const items = q.line_items as LineItem[];
+    const setupTotal = items.reduce((sum, i) => sum + i.setup_gbp, 0);
+    const discount = Number(q.discount_gbp);
+    for (const i of items) {
+      const setupFee = setupTotal > 0 ? Math.round((i.setup_gbp - (discount * i.setup_gbp) / setupTotal) * 100) / 100 : 0;
+      await c.query(
+        `INSERT INTO client_services (company_id, offer_id, setup_fee_gbp, monthly_fee_gbp, start_date, status, next_review_date)
+         VALUES ($1,$2,$3,$4,current_date,'Active', current_date + 90)`, [d.company_id, i.offer_id, setupFee, i.monthly_gbp]);
+      await c.query(
+        `INSERT INTO tasks (title, due_at, company_id, deal_id) VALUES ($1, (current_date + 83)::timestamptz, $2, $3)`,
+        [`Review ${i.name} with ${co.name}`, d.company_id, q.deal_id]);
+    }
+    return { company_id: d.company_id as number, deal_id: q.deal_id as number, title: d.title as string, count: items.length };
+  });
+  if (result) {
+    await logActivity("quote_accepted", { company_id: result.company_id, deal_id: result.deal_id, body: `Quote #${id} accepted` });
+    await logActivity("stage_changed", { company_id: result.company_id, deal_id: result.deal_id, body: `${result.title}: → Won` });
+  }
+  revalidatePath(`/quotes/${id}`);
+  revalidatePath("/quotes");
+  revalidatePath("/clients");
+  revalidatePath("/deals");
+  revalidatePath("/");
+}
+
+export async function saveService(form: FormData) {
+  await requireLogin();
+  const status = str(form, "status") ?? "Active";
+  if (!["Active", "Paused", "Ended"].includes(status)) return;
+  const review = str(form, "next_review_date");
+  if (review && !/^\d{4}-\d{2}-\d{2}$/.test(review)) return;
+  await query(`UPDATE client_services SET status = $2, next_review_date = $3 WHERE id = $1`, [num(form, "id"), status, review]);
+  revalidatePath("/clients");
 }

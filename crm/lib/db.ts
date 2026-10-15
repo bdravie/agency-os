@@ -1,4 +1,4 @@
-import { Pool, type QueryResultRow } from "pg";
+import { Pool, type PoolClient, type QueryResultRow } from "pg";
 
 // One pool per server process (survives hot reloads in dev). Parameterised queries only.
 const g = globalThis as unknown as { _pool?: Pool };
@@ -16,3 +16,19 @@ export async function query<T extends QueryResultRow = QueryResultRow>(text: str
 }
 
 export const demoMode = () => ["1", "true", "yes"].includes((process.env.DEMO_MODE ?? "").toLowerCase());
+
+/** Run several statements as one all-or-nothing transaction. */
+export async function tx<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool().connect();
+  try {
+    await client.query("BEGIN");
+    const out = await fn(client);
+    await client.query("COMMIT");
+    return out;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
