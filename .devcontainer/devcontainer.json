@@ -17,6 +17,7 @@
     "SESSION_SECRET": { "description": "Random 32+ character string for signing the session cookie" },
     "SENDER_NAME": { "description": "Your real name, used to sign proposals and emails" },
     "BUSINESS_NAME": { "description": "Your business name, used in email sign-offs and reports" },
+    "APIFY_TOKEN": { "description": "Apify API token (Google Maps lead search, free plan)" },
     "COMPANIES_HOUSE_API_KEY": { "description": "Free Companies House API key (company search and verification)" },
     "DEMO_MODE": { "description": "true or false" }
   },

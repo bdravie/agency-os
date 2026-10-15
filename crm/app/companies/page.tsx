@@ -8,6 +8,8 @@ import { fitTier, leadSettings, listNiches, shortMoney } from "@/lib/leadConfig"
 import ActionForm from "@/components/ActionForm";
 import VerifyAllButton from "@/components/VerifyAllButton";
 import LeadSearchPanel from "@/components/LeadSearchPanel";
+import ApifyPanel from "@/components/ApifyPanel";
+import { apifyBudgetAction, latestApifyRunAction } from "@/lib/apifyActions";
 import { leadSearchStatus } from "@/lib/leadSearchActions";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 
@@ -51,7 +53,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   const { minEstRevenue } = await leadSettings();
   const VIEWS = views(minEstRevenue);
   const active = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
-  const [rows, niches, counts, searchNiches, latestSearch] = await Promise.all([
+  const [rows, niches, counts, searchNiches, latestSearch, apifyBudget, apifyLatest] = await Promise.all([
     query<any>(
       `${BASE} SELECT * FROM c
         WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)
@@ -60,6 +62,8 @@ export default async function Companies({ searchParams }: { searchParams: Promis
     query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c`),
     listNiches(),
     leadSearchStatus(0),
+    apifyBudgetAction(),
+    latestApifyRunAction(),
   ]);
   const more = rows.length > limit;
   const shown = rows.slice(0, limit);
@@ -97,6 +101,11 @@ export default async function Companies({ searchParams }: { searchParams: Promis
       <details className="card" id="find" style={{ marginBottom: 16 }} open>
         <summary>Find and add companies from Companies House <span className="badge tone-good" style={{ marginLeft: 6 }}>free</span></summary>
         <div style={{ marginTop: 12 }}><LeadSearchPanel niches={searchNiches} latest={latestSearch} /></div>
+      </details>
+
+      <details className="card" id="maps" style={{ marginBottom: 16 }}>
+        <summary>Find local businesses on Google Maps (Apify) <span className="badge tone-warn" style={{ marginLeft: 6 }}>uses credits</span></summary>
+        <div style={{ marginTop: 12 }}><ApifyPanel niches={searchNiches} budget={apifyBudget} latest={apifyLatest} /></div>
       </details>
 
       <div className="grid" style={{ marginBottom: 16 }}>
