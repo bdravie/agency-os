@@ -4,6 +4,8 @@ import { query } from "@/lib/db";
 import { addContact, addDeal, addTask, completeTask, findEmailAction, findWebsiteOneAction, logContact, saveNotes, setWebsite } from "@/lib/actions";
 import { googleSearchUrl } from "@/lib/websites";
 import ActionForm from "@/components/ActionForm";
+import OutreachDraft from "@/components/OutreachDraft";
+import { outreachDrafts } from "@/lib/outreach";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
     query<any>(`SELECT * FROM tasks WHERE company_id = $1 AND done_at IS NULL ORDER BY due_at NULLS LAST`, [id]),
     query<any>(`SELECT * FROM activities WHERE company_id = $1 ORDER BY occurred_at DESC LIMIT 50`, [id]),
   ]);
+
+  const drafts = await outreachDrafts(company.name);
+  const [suppressed] = await query<any>(
+    `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = lower($1)) OR ($2::text IS NOT NULL AND lower(email) = lower($2))`,
+    [company.domain, company.generic_email]);
+  const blocker = company.is_ltd === false ? "Outreach is for limited companies only." : suppressed ? "This company is on your suppression list." : null;
 
   return (
     <>
@@ -128,6 +136,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             <input name="due" type="datetime-local" />
             <button>Add</button>
           </form>
+        </section>
+
+        <section className="card wide">
+          <h2>Outreach email</h2>
+          <OutreachDraft companyId={id} to={company.generic_email} first={drafts.first} followUp={drafts.followUp} blocker={blocker} />
         </section>
 
         <section className="card wide">

@@ -388,3 +388,23 @@ export async function findWebsiteOneAction(_prev: string | null, form: FormData)
   if (r.stopped) return r.stopped;
   return r.found ? null : "No confident match on Google. Search manually.";
 }
+
+/** The app never sends email. This only records that YOU sent it, and queues the follow-up. */
+export async function markOutreachSent(companyId: number, kind: "first" | "followup", subject: string) {
+  await requireLogin();
+  const [c] = await query<{ name: string; domain: string | null; generic_email: string | null; is_ltd: boolean | null; status: string }>(
+    `SELECT name, domain, generic_email, is_ltd, status FROM companies WHERE id = $1`, [companyId]);
+  if (!c) throw new Error("Company not found");
+  if (c.is_ltd === false) throw new Error("Outreach is for limited companies only.");
+  const suppressed = await query(
+    `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = lower($1)) OR ($2::text IS NOT NULL AND lower(email) = lower($2))`,
+    [c.domain, c.generic_email]);
+  if (suppressed.length) throw new Error("This company is on your suppression list.");
+  await logActivity("email_logged", { company_id: companyId, channel: "email", body: `${kind === "first" ? "Outreach sent" : "Follow-up sent"}: ${subject}` });
+  if (c.status === "New") await query(`UPDATE companies SET status = 'Contacted' WHERE id = $1`, [companyId]);
+  if (kind === "first") {
+    await query(`INSERT INTO tasks (title, due_at, company_id) VALUES ($1, now() + interval '4 days', $2)`, [`Send the one follow-up to ${c.name}`, companyId]);
+  }
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/");
+}
