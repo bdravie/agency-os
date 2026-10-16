@@ -5,12 +5,12 @@ import { normaliseName, pickExact, type ChCandidate } from "./companiesHouse.ts"
 // No network or database here, so the money rules and the ranking are testable.
 
 // ---------- budget ----------
-export type Settings = { dailyUsd: number; monthlyUsd: number; basePlaceUsd: number; contactsPlaceUsd: number; maxPlaces: number };
+export type Settings = { dailyUsd: number; monthlyUsd: number; basePlaceUsd: number; contactsPlaceUsd: number; maxPlaces: number; minCapUsd: number };
 const num = (v: string | undefined, d: number) => { const n = Number(v); return v !== undefined && v.trim() !== "" && Number.isFinite(n) && n >= 0 ? n : d; };
 
 /** Limits for the free plan ($5 a month, about $0.16 a day). Prices are our estimate for planning only: Apify's own spend cap is what actually protects you. */
 export function apifySettings(env: Record<string, string | undefined> = process.env): Settings {
-  return { dailyUsd: num(env.APIFY_DAILY_BUDGET_USD, 0.15), monthlyUsd: num(env.APIFY_MONTHLY_BUDGET_USD, 4), basePlaceUsd: num(env.APIFY_PRICE_PER_PLACE_USD, 0.004), contactsPlaceUsd: num(env.APIFY_PRICE_CONTACTS_PER_PLACE_USD, 0.002), maxPlaces: 50 };
+  return { dailyUsd: num(env.APIFY_DAILY_BUDGET_USD, 0.15), monthlyUsd: num(env.APIFY_MONTHLY_BUDGET_USD, 4), basePlaceUsd: num(env.APIFY_PRICE_PER_PLACE_USD, 0.004), contactsPlaceUsd: num(env.APIFY_PRICE_CONTACTS_PER_PLACE_USD, 0.002), maxPlaces: 50, minCapUsd: num(env.APIFY_MIN_RUN_CAP_USD, 0.5) };
 }
 export const perPlaceUsd = (contacts: boolean, s: Settings) => s.basePlaceUsd + (contacts ? s.contactsPlaceUsd : 0);
 const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
@@ -18,19 +18,27 @@ const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 export type Plan = { ok: true; places: number; estUsd: number; maxChargeUsd: number; limitedBy: "daily" | "monthly" | "size" | null }
   | { ok: false; error: string };
 
-/** How many places can be asked for right now, and the hard spend cap to send to Apify. Never plans to spend more than either budget has left. */
-export function planRun(i: { requested: number; contacts: boolean; dailyLeft: number; monthlyLeft: number; s: Settings }): Plan {
-  const each = perPlaceUsd(i.contacts, i.s);
+/**
+ * How many places can be asked for right now, and the safety cap to send to Apify.
+ * Apify refuses any run whose cap is under its minimum (currently $0.50), so the cap is only a backstop: the number of places is what keeps the real cost inside today's budget.
+ * `learnedPerPlace` is the real cost per place from the last finished run; the higher of that and our estimate is used. `headroomUsd` is what the Apify account has left this month:
+ * a run is refused if it could not afford its own cap.
+ */
+export function planRun(i: { requested: number; contacts: boolean; dailyLeft: number; monthlyLeft: number; s: Settings; learnedPerPlace?: number | null; headroomUsd?: number | null }): Plan {
+  const each = Math.max(perPlaceUsd(i.contacts, i.s), i.learnedPerPlace ?? 0);
   const left = Math.max(0, Math.min(i.dailyLeft, i.monthlyLeft));
   const requested = Math.max(1, Math.min(Math.round(i.requested) || 1, i.s.maxPlaces));
   const affordable = each > 0 ? Math.floor((left + 1e-9) / each) : requested;
-  if (affordable < 1) return { ok: false, error: i.dailyLeft <= i.monthlyLeft
+  const dailyIsTheLimit = i.dailyLeft <= i.monthlyLeft;
+  if (affordable < 1) return { ok: false, error: dailyIsTheLimit
     ? `Today's Apify budget is used up (about $${i.dailyLeft.toFixed(3)} left, and one place costs about $${each.toFixed(3)}). Try again tomorrow, or raise APIFY_DAILY_BUDGET_USD.`
     : `This month's Apify budget is used up (about $${i.monthlyLeft.toFixed(3)} left). It resets with your Apify billing cycle.` };
   const places = Math.min(requested, affordable);
   const estUsd = round4(places * each);
-  const maxChargeUsd = round4(Math.min(left, Math.max(estUsd * 1.3, each)));   // a little slack over the estimate, never above what is left
-  return { ok: true, places, estUsd, maxChargeUsd, limitedBy: places < requested ? (i.dailyLeft <= i.monthlyLeft ? "daily" : "monthly") : requested >= i.s.maxPlaces ? "size" : null };
+  const maxChargeUsd = round4(Math.max(i.s.minCapUsd, estUsd * 1.3));
+  if (i.headroomUsd !== null && i.headroomUsd !== undefined && i.headroomUsd < maxChargeUsd)
+    return { ok: false, error: `Your Apify account has only about $${Math.max(0, i.headroomUsd).toFixed(2)} of credit left this month, and Apify needs a safety cap of at least $${maxChargeUsd.toFixed(2)} on every run. It resets with your Apify billing cycle.` };
+  return { ok: true, places, estUsd, maxChargeUsd, limitedBy: places < requested ? (dailyIsTheLimit ? "daily" : "monthly") : requested >= i.s.maxPlaces ? "size" : null };
 }
 
 // ---------- reading a place ----------

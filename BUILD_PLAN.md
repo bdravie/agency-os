@@ -190,7 +190,7 @@ Free website research (up to four pages of the company's own site, robots.txt re
 
 ## Extra: Apify Google Maps lead search (built)
 
-Companies → "Find local businesses on Google Maps (Apify)": click-only search with a per-run spend cap sent to Apify, daily and monthly budgets for the free plan, results matched to the CRM, the suppression list and Companies House (free), ranked A/B/C, and added only when chosen. Needs `APIFY_TOKEN`; tested against a stand-in Apify server, so run your first real search small (10 places) and check the cost. Migration: `20261025100000_apify_leads.sql`.
+Companies → "Find local businesses on Google Maps (Apify)": click-only search with Apify's required $0.50 safety cap on every run, the place count sized to daily and monthly budgets for the free plan (learning the real price per place from each run), results matched to the CRM, the suppression list and Companies House (free), ranked A/B/C, and added only when chosen. Needs `APIFY_TOKEN`; tested against a stand-in Apify server, so run your first real search small (10 places) and check the cost. Migration: `20261025100000_apify_leads.sql`.
 
 ---
 

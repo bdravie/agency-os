@@ -11,13 +11,31 @@ test("defaults suit the free plan: about $0.15 a day, $4 a month", () => {
   assert.equal(apifySettings({ APIFY_DAILY_BUDGET_USD: "junk" }).dailyUsd, 0.15);
 });
 
-test("a run is cut down to what today's budget allows, and the cap never exceeds what is left", () => {
+test("a run is cut down to what today's budget allows; the cap is Apify's $0.50 minimum, never lower", () => {
   const p = planRun({ requested: 50, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S });
-  assert.equal(p.ok, true); assert.equal(p.places, 25); assert.equal(p.limitedBy, "daily");
-  assert.ok(p.maxChargeUsd <= 0.15 && p.maxChargeUsd >= p.estUsd);
+  assert.equal(p.ok, true); assert.equal(p.places, 25); assert.equal(p.limitedBy, "daily"); assert.equal(p.estUsd, 0.15);
+  assert.equal(p.maxChargeUsd, 0.5);
   const small = planRun({ requested: 10, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S });
-  assert.equal(small.places, 10); assert.equal(small.estUsd, 0.06); assert.equal(small.limitedBy, null);
-  assert.ok(small.maxChargeUsd > small.estUsd && small.maxChargeUsd <= 0.15);
+  assert.equal(small.places, 10); assert.equal(small.estUsd, 0.06); assert.equal(small.limitedBy, null); assert.equal(small.maxChargeUsd, 0.5);
+});
+
+test("a very large estimate raises the cap above the minimum", () => {
+  const big = planRun({ requested: 50, contacts: true, dailyLeft: 5, monthlyLeft: 5, s: apifySettings({ APIFY_PRICE_PER_PLACE_USD: "0.02", APIFY_PRICE_CONTACTS_PER_PLACE_USD: "0.01" }) });
+  assert.equal(big.places, 50); assert.equal(big.estUsd, 1.5); assert.equal(big.maxChargeUsd, 1.95);
+});
+
+test("the real cost per place from the last run overrides a too-low estimate", () => {
+  const p = planRun({ requested: 25, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S, learnedPerPlace: 0.0105 });
+  assert.equal(p.places, 14);   // floor(0.15 / 0.0105)
+  const lower = planRun({ requested: 25, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S, learnedPerPlace: 0.001 });
+  assert.equal(lower.places, 25);   // a cheaper run never lowers the estimate below ours
+});
+
+test("the account must be able to afford the safety cap, or the run is refused with a clear reason", () => {
+  const no = planRun({ requested: 10, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S, headroomUsd: 0.3 });
+  assert.equal(no.ok, false); assert.match(no.error, /only about \$0\.30 of credit left/);
+  assert.equal(planRun({ requested: 10, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S, headroomUsd: 0.5 }).ok, true);
+  assert.equal(planRun({ requested: 10, contacts: true, dailyLeft: 0.15, monthlyLeft: 4, s: S, headroomUsd: null }).ok, true);
 });
 
 test("the monthly budget limits too, and a spent budget refuses with a clear reason", () => {

@@ -84,7 +84,7 @@ export default function ApifyPanel({ niches, budget, latest }: { niches: NicheOp
         <label className="row muted" style={{ gap: 8 }}><input type="checkbox" name="contacts" checked={contacts} onChange={(e) => setContacts(e.target.checked)} /> Contact enrichment: look on their website for generic emails and company social pages (about {usd(budget.perPlace.withContacts - budget.perPlace.without)} more per place)</label>
         <div className="paid"><div className="field-label">Uses Apify credits · only when you click</div>
           <div className="row"><button disabled={busy || !budget.configured || budget.maxPlacesNow < 1}><Search size={15} aria-hidden /> {busy ? "Searching… (a few minutes)" : "Search Google Maps"}</button>
-            <span className="muted">{budget.maxPlacesNow < 1 ? "Today's or this month's budget is used up." : <>Estimated cost about <b>{usd(fit * each)}</b> for {fit} place{fit === 1 ? "" : "s"}{fit < places ? ` (reduced from ${places} to fit today's budget)` : ""}. Apify itself stops the run if it would spend more than the cap.</>}</span></div></div>
+            <span className="muted">{budget.maxPlacesNow < 1 ? (budget.blocked ?? "Today's or this month's budget is used up.") : <>Estimated cost about <b>{usd(fit * each)}</b> for {fit} place{fit === 1 ? "" : "s"}{fit < places ? ` (reduced from ${places} to fit today's budget)` : ""}. Apify requires every run to allow at least {usd(budget.minCap)}, so that is the safety cap; the number of places is what keeps the real cost down.</>}</span></div></div>
         {state?.error && <p className="error" role="alert">{state.error}</p>}
         {state?.note && <p role="status" className="muted" style={{ margin: 0 }}>{state.note}</p>}
       </form>

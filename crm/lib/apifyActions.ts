@@ -23,26 +23,33 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export type Budget = {
   configured: boolean; dailyCap: number; dailyUsed: number; dailyLeft: number; monthlyCap: number; monthlyUsed: number; monthlyLeft: number;
-  perPlace: { withContacts: number; without: number }; maxPlacesNow: number; planUsd: number | null; running: boolean;
+  perPlace: { withContacts: number; without: number }; maxPlacesNow: number; planUsd: number | null; running: boolean; minCap: number; blocked: string | null;
 };
 
-/** What has been spent (real cost where known, otherwise the cap the run was given) and what is left. */
+/** What has been spent (real cost where known, otherwise our estimate for that run) and what is left. */
 export async function apifyBudgetAction(): Promise<Budget> {
   await requireLogin();
   const s = apifySettings();
   const [r] = await query<any>(`
-    SELECT coalesce(sum(CASE WHEN cost_usd IS NOT NULL THEN cost_usd WHEN apify_run_id IS NULL AND status = 'failed' THEN 0 ELSE max_charge_usd END) FILTER (WHERE started_at::date = current_date), 0)::float8 AS day,
-           coalesce(sum(CASE WHEN cost_usd IS NOT NULL THEN cost_usd WHEN apify_run_id IS NULL AND status = 'failed' THEN 0 ELSE max_charge_usd END) FILTER (WHERE date_trunc('month', started_at) = date_trunc('month', now())), 0)::float8 AS month,
+    SELECT coalesce(sum(CASE WHEN cost_usd IS NOT NULL THEN cost_usd WHEN apify_run_id IS NULL AND status = 'failed' THEN 0 ELSE est_usd END) FILTER (WHERE started_at::date = current_date), 0)::float8 AS day,
+           coalesce(sum(CASE WHEN cost_usd IS NOT NULL THEN cost_usd WHEN apify_run_id IS NULL AND status = 'failed' THEN 0 ELSE est_usd END) FILTER (WHERE date_trunc('month', started_at) = date_trunc('month', now())), 0)::float8 AS month,
            count(*) FILTER (WHERE status IN ('starting', 'running', 'processing') AND started_at > now() - make_interval(mins => ${STALE_MINUTES})) AS active
       FROM apify_runs`);
   const live = apifyToken() ? await getLimits() : null;
   const dailyLeft = Math.max(0, s.dailyUsd - r.day);
   const monthlyLeft = Math.max(0, Math.min(s.monthlyUsd - r.month, live ? live.maxMonthlyUsd - live.usedUsd : Infinity));
-  const plan = planRun({ requested: s.maxPlaces, contacts: true, dailyLeft, monthlyLeft, s });
+  const headroomUsd = live ? Math.max(0, live.maxMonthlyUsd - live.usedUsd) : null;
+  const plan = planRun({ requested: s.maxPlaces, contacts: true, dailyLeft, monthlyLeft, s, learnedPerPlace: await learnedPrice(true), headroomUsd });
   return {
     configured: !!apifyToken(), dailyCap: s.dailyUsd, dailyUsed: r.day, dailyLeft, monthlyCap: s.monthlyUsd, monthlyUsed: Math.max(r.month, live?.usedUsd ?? 0), monthlyLeft,
-    perPlace: { withContacts: perPlaceUsd(true, s), without: perPlaceUsd(false, s) }, maxPlacesNow: plan.ok ? plan.places : 0, planUsd: live?.maxMonthlyUsd ?? null, running: Number(r.active) > 0,
+    perPlace: { withContacts: perPlaceUsd(true, s), without: perPlaceUsd(false, s) }, maxPlacesNow: plan.ok ? plan.places : 0, planUsd: live?.maxMonthlyUsd ?? null, running: Number(r.active) > 0, minCap: s.minCapUsd, blocked: plan.ok ? null : plan.error,
   };
+}
+
+/** The real cost per place from the most recent finished run with the same contact setting (null if there is none yet). */
+async function learnedPrice(contacts: boolean): Promise<number | null> {
+  const [r] = await query<{ p: number | null }>(`SELECT (cost_usd / NULLIF(items, 0))::float8 AS p FROM apify_runs WHERE status = 'done' AND cost_usd IS NOT NULL AND items >= 3 AND contacts = $1 ORDER BY id DESC LIMIT 1`, [contacts]);
+  return r?.p ?? null;
 }
 
 export type StartState = { id?: number; error?: string; note?: string } | null;
@@ -64,7 +71,7 @@ export async function startApifyAction(_prev: StartState, form: FormData): Promi
   if (busy) return { error: "A search is already running. Wait for it to finish." };
 
   const b = await apifyBudgetAction(), s = apifySettings();
-  const plan = planRun({ requested: Number(form.get("places")) || 10, contacts, dailyLeft: b.dailyLeft, monthlyLeft: b.monthlyLeft, s });
+  const plan = planRun({ requested: Number(form.get("places")) || 10, contacts, dailyLeft: b.dailyLeft, monthlyLeft: b.monthlyLeft, s, learnedPerPlace: await learnedPrice(contacts), headroomUsd: b.planUsd === null ? null : Math.max(0, b.planUsd - b.monthlyUsed) });
   if (!plan.ok) return { error: plan.error };
 
   const [row] = await query<{ id: number }>(
@@ -79,7 +86,7 @@ export async function startApifyAction(_prev: StartState, form: FormData): Promi
     await query(`UPDATE apify_runs SET status = 'failed', error = $2, finished_at = now() WHERE id = $1`, [row.id, scrub(e instanceof Error ? e.message : String(e))]);
     return { error: e instanceof ApifyError ? e.message : "Couldn't start the search." };
   }
-  await logActivity("apify_search_started", { channel: "apify", body: `${term} in ${location}: up to ${plan.places} places, spend capped at $${plan.maxChargeUsd.toFixed(3)}` });
+  await logActivity("apify_search_started", { channel: "apify", body: `${term} in ${location}: up to ${plan.places} places (about $${plan.estUsd.toFixed(3)}), safety cap $${plan.maxChargeUsd.toFixed(2)}` });
   return { id: Number(row.id), note: plan.limitedBy === "daily" || plan.limitedBy === "monthly" ? `Reduced to ${plan.places} places to stay inside your ${plan.limitedBy} budget.` : undefined };
 }
 
