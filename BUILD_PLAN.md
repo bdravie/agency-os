@@ -202,7 +202,7 @@ The Companies list can be sorted (recently added, most suitable, revenue, rating
 
 ## Extra: Lead Sourcer (built, phase 1)
 
-One search screen (`/sourcer`) replaces the separate Companies House panel, Google Maps panel and Find contacts page. Filters (company types, estimated revenue, employees, age, website, rating, reviews), a source picker with budgets, one merged and ranked results table, add-what-you-choose, and an Enrich tab. The suitability weights now live in one SQL function. Migration: `20261027100000_lead_sourcer.sql`. Next: Apollo as a company-level source once registered (confirm free-plan API access first), then saved searches.
+One search screen (`/sourcer`) replaces the separate Companies House panel, Google Maps panel and Find contacts page. Filters (company types, estimated revenue, employees, age, website, rating, reviews), a source picker with budgets, one merged and ranked results table, add-what-you-choose, and an Enrich tab. The suitability weights now live in one SQL function. Migration: `20261027100000_lead_sourcer.sql`. Added: **Find one company** (name search for the closest website and social pages, checked against Companies House, then add and enrich). Next: Apollo as a company-level source once registered (confirm free-plan API access first), then saved searches.
 
 ---
 
