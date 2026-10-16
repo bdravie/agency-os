@@ -28,7 +28,7 @@ scripts/              # setup check, backup, restore
 
 Decided 2026-10-15: leave these off until closer to launch. **Anything that spends credits or calls a Google API only ever runs when you click a button**, shows its cost on the button, and stops at a daily cap. Nothing paid runs on a schedule or in bulk by itself. The free route (search links, boxes, paste helper, free site checks) works today without any of these.
 
-- [ ] **Google Places lookup** (built: "Find with Google Places" on Find contacts and company pages, bulk "Find websites with Google" on Companies; default cap 30 a day)
+- [ ] **Google Places lookup** (built: "Find with Google Places" on the Lead Sourcer Enrich tab and company pages, bulk "Find websites with Google" on the Enrich tab; default cap 30 a day)
   - Create a Google Cloud project, enable **Places API (New)**, add a billing account.
   - Set a budget alert (about £5) and a **daily quota** on Text Search (about 30), restrict the key to Places API (New).
   - Check the current free monthly allowance for Text Search with the website field, and set the daily cap so 30 days stays inside it.
@@ -197,6 +197,12 @@ Companies → "Find local businesses on Google Maps (Apify)": click-only search 
 ## Extra: Companies list sorting, filters and suitability score (built)
 
 The Companies list can be sorted (recently added, most suitable, revenue, rating, name) and filtered (added, tier, source, contact details, revenue, rating, area). Suitability is one 0-100 score defined in the `lead_suitability` view, with the reasons in a tooltip. Migration: `20261026100000_lead_suitability.sql`.
+
+---
+
+## Extra: Lead Sourcer (built, phase 1)
+
+One search screen (`/sourcer`) replaces the separate Companies House panel, Google Maps panel and Find contacts page. Filters (company types, estimated revenue, employees, age, website, rating, reviews), a source picker with budgets, one merged and ranked results table, add-what-you-choose, and an Enrich tab. The suitability weights now live in one SQL function. Migration: `20261027100000_lead_sourcer.sql`. Next: Apollo as a company-level source once registered (confirm free-plan API access first), then saved searches.
 
 ---
 

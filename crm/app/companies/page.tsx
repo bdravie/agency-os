@@ -1,20 +1,14 @@
 import Link from "next/link";
 import { Building2, Check, Download, Search, Upload } from "lucide-react";
 import { query } from "@/lib/db";
-import { createCompany, findWebsitesAction } from "@/lib/actions";
+import { createCompany } from "@/lib/actions";
 import { nextStep } from "@/lib/nextStep";
 import { gateReasons } from "@/lib/compliance";
 import { buildListQuery, FILTERS, type FilterKey } from "@/lib/companyFilters";
 import { TIER_TONE, explainSuitability } from "@/lib/suitability";
 import ListFilters from "@/components/ListFilters";
-import OpenTarget from "@/components/OpenTarget";
-import { fitTier, leadSettings, listNiches, shortMoney } from "@/lib/leadConfig";
-import ActionForm from "@/components/ActionForm";
+import { leadSettings, shortMoney } from "@/lib/leadConfig";
 import VerifyAllButton from "@/components/VerifyAllButton";
-import LeadSearchPanel from "@/components/LeadSearchPanel";
-import ApifyPanel from "@/components/ApifyPanel";
-import { apifyBudgetAction, latestApifyRunAction } from "@/lib/apifyActions";
-import { leadSearchStatus } from "@/lib/leadSearchActions";
 import { Badge, EmptyState, PageHeader, Pill } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -61,17 +55,13 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   const VIEWS = views(minEstRevenue);
   const active = VIEWS.find((v) => v.key === view) ?? VIEWS[0];
   const list = buildListQuery(sp, 4), forCounts = buildListQuery(sp, 1);   // sort and filters: fixed choices only, the typed area is a parameter
-  const [rows, niches, counts, searchNiches, latestSearch, apifyBudget, apifyLatest] = await Promise.all([
+  const [rows, niches, counts] = await Promise.all([
     query<any>(
       `${BASE} SELECT * FROM c
         WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)${list.where.map((w) => ` AND ${w}`).join("")}
         ORDER BY ${list.order} LIMIT $3`, [q, niche, limit + 1, ...list.params]),
     query<{ niche: string }>(`SELECT DISTINCT niche FROM companies WHERE niche IS NOT NULL ORDER BY 1`),
     query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c${forCounts.where.length ? ` WHERE ${forCounts.where.join(" AND ")}` : ""}`, forCounts.params),
-    listNiches(),
-    leadSearchStatus(0),
-    apifyBudgetAction(),
-    latestApifyRunAction(),
   ]);
   const keep: Record<string, string> = { ...(q && { q }), ...(niche && { niche }), ...(sp.sort && { sort: sp.sort }), ...(sp.area && { area: sp.area }),
     ...Object.fromEntries((Object.keys(FILTERS) as FilterKey[]).filter((k) => sp[k]).map((k) => [k, sp[k]!])) };
@@ -86,8 +76,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         description="Pick a view to see who needs what. Open a company for its website, outreach email and history."
         actions={
           <>
-            <a href="#find" className="btn"><Search size={16} aria-hidden /> Find new companies</a>
-            <a href="#maps" className="btn secondary"><Search size={16} aria-hidden /> Google Maps</a>
+            <Link href="/sourcer" className="btn"><Search size={16} aria-hidden /> Lead Sourcer</Link>
             <Link href="/companies/import" className="btn secondary"><Upload size={16} aria-hidden /> Import CSV</Link>
             <a href="/api/companies/export" className="btn secondary"><Download size={16} aria-hidden /> Export</a>
           </>
@@ -96,35 +85,17 @@ export default async function Companies({ searchParams }: { searchParams: Promis
 
       <VerifyAllButton unchecked={Number(counts[0][`v${VIEWS.findIndex((v) => v.key === "unchecked")}`])} />
 
-      <details className="card" id="find" style={{ marginBottom: 16 }} open={latestSearch?.status === "running"}>
-        <summary>Find and add companies from Companies House <span className="badge tone-good" style={{ marginLeft: 6 }}>free</span></summary>
-        <div style={{ marginTop: 12 }}><LeadSearchPanel niches={searchNiches} latest={latestSearch} /></div>
+      <details className="card" style={{ marginBottom: 16 }}>
+        <summary>Add a company by hand</summary>
+        <form action={createCompany} className="row" style={{ marginTop: 12 }}>
+          <input name="name" placeholder="Company name" required style={{ flex: 1, minWidth: 160 }} />
+          <input name="domain" placeholder="Website (example.com)" />
+          <input name="phone" placeholder="Phone" />
+          <input name="niche" placeholder="Niche (e.g. hvac)" />
+          <button>Add</button>
+        </form>
+        <p className="muted" style={{ marginBottom: 0 }}>To find new businesses, use <Link href="/sourcer">Lead Sourcer</Link>.</p>
       </details>
-
-      <details className="card" id="maps" style={{ marginBottom: 16 }} open={apifyLatest?.status === "running" || apifyLatest?.status === "processing"}>
-        <summary>Find local businesses on Google Maps (Apify) <span className="badge tone-warn" style={{ marginLeft: 6 }}>uses credits</span></summary>
-        <div style={{ marginTop: 12 }}><ApifyPanel niches={searchNiches} budget={apifyBudget} latest={apifyLatest} /></div>
-      </details>
-
-      <div className="grid" style={{ marginBottom: 16 }}>
-        <details className="card">
-          <summary>Add a company</summary>
-          <form action={createCompany} className="row" style={{ marginTop: 12 }}>
-            <input name="name" placeholder="Company name" required style={{ flex: 1, minWidth: 160 }} />
-            <input name="domain" placeholder="Website (example.com)" />
-            <input name="phone" placeholder="Phone" />
-            <input name="niche" placeholder="Niche (e.g. hvac)" />
-            <button>Add</button>
-          </form>
-        </details>
-        <details className="card">
-          <summary>Find websites with Google <span className="badge tone-warn" style={{ marginLeft: 6 }}>uses credits</span></summary>
-          <p className="muted" style={{ marginTop: 8 }}>Runs only when you click. Each lookup uses one Google Places request (capped at 30 a day). The free alternative is Find contacts, which has search links and boxes ready.</p>
-          <ActionForm action={findWebsitesAction} label="Find websites" busyLabel="Looking up… (about 1 second each)" style={{ maxWidth: 260 }}>
-            <input name="limit" type="number" min="1" max="25" defaultValue="10" aria-label="How many" />
-          </ActionForm>
-        </details>
-      </div>
 
       <div className="pills" style={{ marginBottom: 12 }} role="group" aria-label="Views">
         {VIEWS.map((v, i) => (
@@ -132,7 +103,6 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         ))}
       </div>
 
-      <OpenTarget />
       <ListFilters niches={niches.map((n) => n.niche)} current={{ q, niche, view, sort: sp.sort ?? "", area: sp.area ?? "", added: sp.added ?? "", tier: sp.tier ?? "", source: sp.source ?? "", contact: sp.contact ?? "", rev: sp.rev ?? "", rating: sp.rating ?? "" }} />
 
       <div className="card table-wrap">
