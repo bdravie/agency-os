@@ -34,7 +34,7 @@ function envValue(key) {
 }
 
 // Files that must never be committed, even if .gitignore is edited by mistake.
-const NEVER = [/^\.env$/, /^\.env\.(?!example$)/, /(^|\/)node_modules\//, /(^|\/)\.venv\//];
+const NEVER = [/^\.env$/, /^\.env\.(?!example$)/, /(^|\/)node_modules\//, /(^|\/)\.venv(\/|$)/, /(^|\/)\._/, /(^|\/)\.DS_Store$/];
 
 async function ensureRepo() {
   if (!fs.existsSync(path.join(dir, ".git"))) {

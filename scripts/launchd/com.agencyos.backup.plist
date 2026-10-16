@@ -11,7 +11,7 @@
     <string>-m</string>
     <string>agency.backup</string>
   </array>
-  <key>WorkingDirectory</key><string>/Users/brad/Downloads/agency-os 2</string>
+  <key>WorkingDirectory</key><string>/Volumes/T7/agency-os 2</string>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>
   <key>StandardOutPath</key><string>/Users/brad/Library/Logs/agencyos-backup.log</string>

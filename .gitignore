@@ -1,7 +1,7 @@
 .env
 data/*
 !data/.gitkeep
-.venv/
+.venv
 __pycache__/
 *.pyc
 .cache/
@@ -14,3 +14,6 @@ output/
 crm/tsconfig.tsbuildinfo
 crm/next-env.d.ts
 *.tsbuildinfo
+# macOS metadata. On exFAT drives macOS leaves a ._ sidecar next to files; they must never be committed.
+._*
+.DS_Store
