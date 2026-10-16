@@ -194,6 +194,12 @@ Companies → "Find local businesses on Google Maps (Apify)": click-only search 
 
 ---
 
+## Extra: Companies list sorting, filters and suitability score (built)
+
+The Companies list can be sorted (recently added, most suitable, revenue, rating, name) and filtered (added, tier, source, contact details, revenue, rating, area). Suitability is one 0-100 score defined in the `lead_suitability` view, with the reasons in a tooltip. Migration: `20261026100000_lead_suitability.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**
