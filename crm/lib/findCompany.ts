@@ -14,11 +14,12 @@ export type WebHit = { title: string; host: string; snippet: string };
 export type Found = {
   name: string; place: string; ch: { ranked: Ranked[]; best: Ranked | null; error: string | null }; links: FoundLink[]; emails: string[]; contactUrl: string | null; pagesRead: number;
   hits: WebHit[]; webRan: boolean; existing: { id: number; name: string } | null; searchLinks: { label: string; href: string }[]; notes: string[];
+  signals: Record<string, boolean> | null;
 };
 
 const SOCIAL_OR_SEARCH = /(^|\.)(linkedin|facebook|fb|instagram|twitter|x|youtube|tiktok|google|bing|yell|companieshouse|company-information\.service\.gov)\./i;
 
-export async function findCompanyOnline(i: { name: string; place: string; pasted: string; web: boolean }): Promise<Found> {
+export async function findCompanyOnline(i: { name: string; place: string; pasted: string; web: boolean; knownNumber?: string | null }): Promise<Found> {
   const { name, place } = i;
   const notes: string[] = [];
   const links: FoundLink[] = [];
@@ -26,7 +27,8 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
 
   // 1. Companies House (free): who is this legally?
   let ranked: Ranked[] = [], best: Ranked | null = null, chError: string | null = null;
-  if (!process.env.COMPANIES_HOUSE_API_KEY?.trim()) chError = "The server can't see COMPANIES_HOUSE_API_KEY, so the company couldn't be checked on the register.";
+  if (i.knownNumber) { /* the company already has a number: no need to search the register, and it is the proof a website must show */ }
+  else if (!process.env.COMPANIES_HOUSE_API_KEY?.trim()) chError = "The server can't see COMPANIES_HOUSE_API_KEY, so the company couldn't be checked on the register.";
   else { try { ({ ranked, best } = rankCandidates(name, place, await searchByName(name))); } catch (e) { chError = e instanceof Error ? e.message : "Companies House couldn't be reached."; } }
 
   // 2. Anything you pasted: company pages and websites are sorted automatically (personal profiles are refused).
@@ -54,7 +56,7 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
   }
 
   // 4. A website: the one you gave, else the closest guess from the name (a guess only counts if the page shows the company number or full name), else the best search result.
-  const chNumber = best?.candidate.number ?? null;
+  const chNumber = best?.candidate.number ?? i.knownNumber ?? null;
   if (!links.some((l) => l.kind === "website")) {
     const guess = await guessWebsite({ name, company_number: chNumber }).catch(() => null);
     if (guess) add("website", guess.domain, guess.verified === "company number" ? trust.verifiedByNumber() : trust.verifiedByName());
@@ -70,12 +72,12 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
   if (!links.some((l) => l.kind === "website")) notes.push("No website found by guessing from the name. Paste it above, or use the search links below.");
 
   // 5. Read the website (free): social pages it links to, and generic emails.
-  let emails: string[] = [], contactUrl: string | null = null, pagesRead = 0;
+  let emails: string[] = [], contactUrl: string | null = null, pagesRead = 0, signals: Record<string, boolean> | null = null;
   const site = links.find((l) => l.kind === "website");
   if (site) {
     const f = await checkSite(site.value).catch(() => null);
     if (f) {
-      pagesRead = f.pages; emails = f.emails.slice(0, 3); contactUrl = f.contact_url;
+      pagesRead = f.pages; emails = f.emails.slice(0, 3); contactUrl = f.contact_url; signals = f.signals;
       add("linkedin", f.linkedin, trust.linkedFromSite()); add("instagram", f.instagram, trust.linkedFromSite()); add("facebook", f.facebook, trust.linkedFromSite());
     } else notes.push("Their website couldn't be read (it may block automated readers).");
   }
@@ -87,5 +89,5 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
   const [existing] = await query<{ id: number; name: string }>(
     `SELECT id, name FROM companies WHERE ($1::text IS NOT NULL AND company_number = $1) OR ($2::text IS NOT NULL AND lower(domain) = $2) OR lower(name) = lower($3) ORDER BY id LIMIT 1`, [chNumber, dom, name]);
 
-  return { name, place, ch: { ranked, best, error: chError }, links, emails, contactUrl, pagesRead, hits, webRan, existing: existing ? { id: Number(existing.id), name: existing.name } : null, searchLinks: searchLinks(name, place), notes };
+  return { name, place, ch: { ranked, best, error: chError }, links, emails, contactUrl, pagesRead, hits, webRan, existing: existing ? { id: Number(existing.id), name: existing.name } : null, searchLinks: searchLinks(name, place), notes, signals };
 }

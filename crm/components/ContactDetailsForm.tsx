@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ExternalLink, Globe, Search, Sparkles } from "lucide-react";
-import { checkSiteAction, guessWebsiteAction, saveContactDetails, searchWebAction, suggestPlacesAction, type SiteResult } from "@/lib/actions";
+import { ExternalLink, Search, Sparkles } from "lucide-react";
+import { saveContactDetails, suggestPlacesAction } from "@/lib/actions";
+import { autoSearchAction, type AutoField, type AutoResult } from "@/lib/findActions";
 import { extractFromText, searchLinks } from "@/lib/contact";
 import type { Usage } from "@/lib/usage";
 import ToastForm from "./ToastForm";
@@ -42,11 +43,20 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
   }
   const run = (label: string, job: () => Promise<void>) => { setBusy(label); setNote(null); start(async () => { try { await job(); } finally { setBusy(null); } }); };
 
-  function applySite(r: SiteResult) {
-    if (r.error) { setNote({ text: r.error, bad: true }); return; }
-    const filled = fill({ domain: r.domain, generic_email: r.emails?.[0], linkedin_url: r.linkedin ?? undefined, instagram_url: r.instagram ?? undefined, facebook_url: r.facebook ?? undefined, contact_url: r.contact_url ?? undefined });
+  const LABEL: Record<AutoField, string> = { domain: "Website", generic_email: "Email", linkedin_url: "LinkedIn", instagram_url: "Instagram", facebook_url: "Facebook", contact_url: "Contact page" };
+  const [auto, setAuto] = useState<{ lines: { label: string; value: string; confidence: string; how: string; used: boolean }[]; notes: string[] } | null>(null);
+
+  /** Runs the auto-search, puts what it found into EMPTY boxes only, and explains each value. Nothing is saved until you click Save. */
+  function applyAuto(r: AutoResult) {
+    if (r.error) { setNote({ text: r.error, bad: true }); setAuto(null); return; }
+    const entries = Object.entries(r.fields ?? {}) as [AutoField, { value: string; confidence: string; how: string }][];
+    const next = { ...f }; const lines: { label: string; value: string; confidence: string; how: string; used: boolean }[] = [];
+    for (const [k, v] of entries) { const used = !next[k]; if (used) next[k] = v.value; lines.push({ label: LABEL[k], value: v.value, confidence: v.confidence, how: v.how, used }); }
+    setF(next);
+    if (r.fields?.domain && next.domain === r.fields.domain.value) setVerified(r.verified ?? "");
     if (r.signals) setSignals(r.signals);
-    setNote({ text: filled.length ? `Filled: ${filled.join(", ")}. Check them, then click Save.` : "Nothing new to add (the boxes are already filled, or nothing was found)." });
+    setAuto({ lines, notes: r.notes ?? [] });
+    setNote({ text: lines.some((l) => l.used) ? "Filled the empty boxes below. Check them, then click Save." : lines.length ? "Found things, but your boxes already have values, so nothing was changed." : "Nothing new found." });
   }
 
   return (
@@ -112,43 +122,48 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
       </details>
 
       <div>
-        <div className="field-label">Free checks · no credits used</div>
+        <div className="field-label">Auto-search · free</div>
         <div className="row">
-          <button type="button" className="secondary" disabled={!!busy} onClick={() => run("guess", async () => { const r = await guessWebsiteAction(company.id); if (r.domain) setVerified(r.verified ?? ""); applySite(r); })}>
-            <Globe size={15} aria-hidden /> {busy === "guess" ? "Trying likely addresses…" : "Guess the website"}
+          <button type="button" className="secondary" disabled={!!busy} onClick={() => run("auto", async () => applyAuto(await autoSearchAction(company.id, f, false)))}>
+            <Search size={15} aria-hidden /> {busy === "auto" ? "Searching… (up to 30 seconds)" : "Auto-search"}
           </button>
-          <button type="button" className="secondary" disabled={!!busy || !(f.domain || company.domain)} onClick={() => run("site", async () => applySite(await checkSiteAction(company.id, f.domain)))}>
-            <Search size={15} aria-hidden /> {busy === "site" ? "Reading their site…" : "Check their website"}
-          </button>
+          <span className="muted">Guesses the website (it must show their company number or full name), then reads their pages for social links, a generic email and the contact page.</span>
         </div>
-        <p className="muted" style={{ margin: "6px 0 0" }}>These read the company&apos;s own public pages (respecting robots.txt). A guessed site must show their company number or full name to count.</p>
       </div>
 
       <div className="paid">
         <div className="field-label">Uses credits · only when you click</div>
         <div className="row">
+          <button type="button" disabled={!!busy || !usage.search.enabled || usage.search.used >= usage.search.cap} onClick={() => run("autopaid", async () => applyAuto(await autoSearchAction(company.id, f, true)))}>
+            <Sparkles size={15} aria-hidden /> {busy === "autopaid" ? "Searching the web… (up to 30 seconds)" : "Auto-search with web search"}
+          </button>
+          <span className="muted">{usage.search.enabled ? `Does everything above, plus a web search for the website and social pages guessing can't find · 1 search credit · ${usage.search.used} of ${usage.search.cap} used today` : "Switched off: add SEARCH_API_KEY (Brave Search) to .env to enable"}</span>
+        </div>
+        <div className="row" style={{ marginTop: 8 }}>
           <button type="button" className="secondary" disabled={!!busy || usage.places.used >= usage.places.cap} onClick={() => run("places", async () => {
             const r = await suggestPlacesAction(company.id);
             if (r.error) { setNote({ text: r.error, bad: true }); return; }
             const filled = fill({ domain: r.domain, phone: r.phone ?? undefined });
             setNote({ text: `Google matched “${r.matched}”. ${filled.length ? `Filled: ${filled.join(", ")}. Check it, then click Save.` : "The boxes were already filled."}` });
           })}>
-            <Sparkles size={15} aria-hidden /> {busy === "places" ? "Asking Google…" : "Find with Google Places"}
+            <Sparkles size={15} aria-hidden /> {busy === "places" ? "Asking Google…" : "Find phone and website with Google Places"}
           </button>
           <span className="muted">1 Google request · {usage.places.used} of {usage.places.cap} used today</span>
         </div>
-        <div className="row" style={{ marginTop: 8 }}>
-          <button type="button" className="secondary" disabled={!!busy || !usage.search.enabled || usage.search.used >= usage.search.cap} onClick={() => run("search", async () => {
-            const r = await searchWebAction(company.id);
-            if (r.error) { setNote({ text: r.error, bad: true }); return; }
-            const filled = fill({ linkedin_url: r.linkedin ?? undefined, instagram_url: r.instagram ?? undefined, facebook_url: r.facebook ?? undefined, domain: r.websites?.[0] });
-            setNote({ text: `${filled.length ? `Filled: ${filled.join(", ")}. ` : "Boxes already filled. "}${r.websites?.length ? `Possible websites: ${r.websites.join(", ")}. ` : ""}Unverified: check them, then click Save.` });
-          })}>
-            <Search size={15} aria-hidden /> {busy === "search" ? "Searching the web…" : "Search the web for social pages"}
-          </button>
-          <span className="muted">{usage.search.enabled ? `1 search credit · ${usage.search.used} of ${usage.search.cap} used today` : "Switched off: add SEARCH_API_KEY to .env to enable"}</span>
-        </div>
       </div>
+
+      {auto && (
+        <div className="stack" style={{ gap: 4 }} aria-label="What the auto-search found">
+          {auto.lines.map((l) => (
+            <div key={l.label} className="row" style={{ gap: 8 }}>
+              <b style={{ minWidth: 100 }}>{l.label}</b><span>{l.value.replace(/^https?:\/\/(www\.)?/, "")}</span>
+              <span className={`badge tone-${l.confidence === "high" ? "good" : l.confidence === "medium" ? "good" : "warn"}`}>{l.confidence} confidence</span>
+              <span className="muted">{l.how}{l.used ? "" : " · not used: that box already has a value"}</span>
+            </div>
+          ))}
+          {auto.notes.map((n) => <span key={n} className="muted">{n}</span>)}
+        </div>
+      )}
 
       {note && <p className={note.bad ? "error" : "muted"} role={note.bad ? "alert" : "status"} style={{ margin: 0 }}>{note.text}</p>}
     </div>

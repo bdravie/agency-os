@@ -11,8 +11,6 @@ import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
-import { checkSite, guessWebsite } from "./sitecheck";
-import { braveSearch, pickFromResults } from "./websearch";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
 import { dailyCap, lookupWebsite } from "./places";
 import { ask } from "./llm";
@@ -683,39 +681,6 @@ export async function saveContactDetails(form: FormData) {
   revalidatePath("/companies");
 }
 
-export type SiteResult = {
-  error?: string; domain?: string; verified?: string; emails?: string[]; linkedin?: string | null; instagram?: string | null; facebook?: string | null;
-  contact_url?: string | null; signals?: Record<string, boolean>; pages?: number;
-};
-
-/** Free: guess the website from the company name and prove it is theirs. Suggests only; you click Save. */
-export async function guessWebsiteAction(companyId: number): Promise<SiteResult> {
-  await requireLogin();
-  const [c] = await query<{ name: string; company_number: string | null }>(`SELECT name, company_number FROM companies WHERE id = $1`, [companyId]);
-  if (!c) return { error: "Company not found." };
-  const hit = await guessWebsite(c);
-  if (!hit) return { error: "No matching website found at the usual addresses. Try the Google links, then paste it in." };
-  if ((await query(`SELECT 1 FROM suppression WHERE lower(domain) = $1`, [hit.domain])).length) return { error: "That website is on your suppression list." };
-  return { domain: hit.domain, verified: hit.verified };
-}
-
-/** Free: read the company's own website for generic emails, company social pages and whether it runs ads. Suggests only. */
-export async function checkSiteAction(companyId: number, domainInput: string): Promise<SiteResult> {
-  await requireLogin();
-  const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
-  if (!c) return { error: "Company not found." };
-  const site = normaliseWebsite(domainInput || c.domain);
-  if (!site.value) return { error: site.error ?? "Enter the website first." };
-  const f = await checkSite(site.value);
-  if (!f) return { error: "Couldn't read that site (it may block automated checks or be down). Check it by hand." };
-  if (site.value === c.domain) {
-    await query(`UPDATE companies SET site_signals = $2::jsonb, site_checked_at = now() WHERE id = $1`, [companyId, JSON.stringify(f.signals)]);
-    revalidatePath(`/companies/${companyId}`);
-  }
-  await logActivity("site_checked", { company_id: companyId, channel: "website", body: `${site.value}: ${f.emails.length} generic email(s), ${f.signals.runs_ads ? "runs ads" : "no ad tags seen"}` });
-  return { domain: site.value, ...f };
-}
-
 /** Google Places lookup. Uses Google credits, so it only runs when you click, stops at the daily cap, and only suggests. */
 export async function suggestPlacesAction(companyId: number): Promise<{ error?: string; domain?: string; phone?: string | null; matched?: string }> {
   await requireLogin();
@@ -733,22 +698,3 @@ export async function suggestPlacesAction(companyId: number): Promise<{ error?: 
   }
 }
 
-/** Web search for social pages and the website. Uses search credits, so it only runs when you click, within a daily cap. Suggests only. */
-export async function searchWebAction(companyId: number): Promise<{ error?: string; linkedin?: string | null; instagram?: string | null; facebook?: string | null; websites?: string[] }> {
-  await requireLogin();
-  if (!process.env.SEARCH_API_KEY) return { error: "Web search isn't switched on. Add SEARCH_API_KEY (Brave Search) to your .env first." };
-  const cap = Number(process.env.SEARCH_DAILY_CAP ?? 15) || 15;
-  const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'search_lookup' AND occurred_at::date = current_date`);
-  if (Number(n) >= cap) return { error: `Daily cap of ${cap} searches reached. Use the free search links, or try again tomorrow.` };
-  const [c] = await query<{ name: string; postcode: string | null }>(`SELECT name, postcode FROM companies WHERE id = $1`, [companyId]);
-  if (!c) return { error: "Company not found." };
-  try {
-    const hits = await braveSearch(`"${c.name}" ${c.postcode?.split(" ")[0] ?? ""} UK`.trim());
-    await logActivity("search_lookup", { company_id: companyId, channel: "web_search", body: `${hits.length} results` });
-    const picked = pickFromResults(hits, c.name);
-    if (!picked.linkedin && !picked.instagram && !picked.facebook && picked.websites.length === 0) return { error: "Nothing confident in the results. Try the free search links." };
-    return picked;
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : String(err) };
-  }
-}

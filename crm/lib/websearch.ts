@@ -7,7 +7,8 @@ export type Hit = { url: string; title: string; description?: string };
 export async function braveSearch(q: string): Promise<Hit[]> {
   const key = process.env.SEARCH_API_KEY;
   if (!key) throw new Error("SEARCH_API_KEY is not set");
-  const res = await fetch(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&count=10&country=gb`, {
+  const base = (process.env.SEARCH_API_BASE?.trim() || "https://api.search.brave.com").replace(/\/$/, "");   // the override is only for testing against a stand-in server
+  const res = await fetch(`${base}/res/v1/web/search?q=${encodeURIComponent(q)}&count=10&country=gb`, {
     headers: { accept: "application/json", "x-subscription-token": key }, signal: AbortSignal.timeout(15000),
   });
   if (!res.ok) throw new Error(`The search service said ${res.status}${res.status === 429 ? " (out of credits or rate-limited)" : ""}.`);
