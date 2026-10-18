@@ -15,6 +15,7 @@ export function describeApolloError(status: number, body: unknown, key = ""): st
   if (key.length > 6) text = text.split(key).join("[hidden]");
   text = text.replace(/\s+/g, " ").trim().slice(0, 240);
   if (status === 401) return "Apollo rejected the key. Check APOLLO_API_KEY.";
+  if (status === 403 && /plan/i.test(text)) return `Apollo's plan doesn't include this: ${text}. The key is fine; the search needs a paid Apollo plan.`;
   if (status === 403) return `Apollo says this key can't use that endpoint. Create the key with People API Search and People Enrichment switched on, and without master-key access${text ? ` (${text})` : ""}.`;
   if (status === 422) return `Apollo refused the request${text ? `: ${text}` : ""}.`;
   if (status === 429) return "Apollo is rate-limiting you or you're out of credits. Wait a few minutes, or check your plan.";
