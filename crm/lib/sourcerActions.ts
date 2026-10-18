@@ -67,7 +67,8 @@ export async function sourcerPollAction(runId: number): Promise<SourcerPoll> {
   return { status: active ? "running" : parts.some((p) => p.state === "done") ? "done" : "failed", parts };
 }
 
-export type Scored = SourcerRow & { score: number; tier: string; why: string[] };
+export type ScoreParts = { size: number; verified: number; reach: number; reputation: number };
+export type Scored = SourcerRow & { score: number; tier: string; why: string[]; parts: ScoreParts };
 export type SourcerResults = {
   filters: SourcerFilters; rows: Scored[]; dropped: [string, number][]; found: number; warnings: string[]; mapsCostUsd: number | null; mapsEstUsd: number | null;
 };
@@ -106,6 +107,7 @@ export async function sourcerResultsAction(runId: number, override?: Record<stri
        CROSS JOIN LATERAL suitability_points(r.fit, r.eligible, r.site, r.email, r.phone, r.rating, r.reviews, r.excluded) sp ORDER BY r.ord`,
     [kept.map((r) => r.fit), kept.map((r) => r.eligible === "eligible"), kept.map((r) => !!r.domain), kept.map((r) => r.emails.length > 0), kept.map((r) => !!r.phone), kept.map((r) => r.rating), kept.map((r) => r.reviews), kept.map((r) => r.eligible === "not_eligible")]) : [];
   const scored: Scored[] = kept.map((r, i) => ({ ...r, score: pts[i].score, tier: pts[i].tier,
+    parts: r.eligible === "not_eligible" ? { size: 0, verified: 0, reach: 0, reputation: 0 } : { size: pts[i].fit_pts, verified: pts[i].eligible_pts, reach: pts[i].website_pts + pts[i].email_pts + pts[i].phone_pts, reputation: pts[i].rating_pts + pts[i].reviews_pts },
     why: explainSuitability({ suitability: pts[i].score, tier: pts[i].tier, excluded: r.eligible === "not_eligible", fit_pts: pts[i].fit_pts, eligible_pts: pts[i].eligible_pts, website_pts: pts[i].website_pts, email_pts: pts[i].email_pts,
       phone_pts: pts[i].phone_pts, rating_pts: pts[i].rating_pts, reviews_pts: pts[i].reviews_pts, fit_score: r.fit, maps_rating: r.rating, maps_reviews: r.reviews }) }));
   scored.sort((a, b) => Number(!!a.skip || a.added) - Number(!!b.skip || b.added) || b.score - a.score || a.name.localeCompare(b.name));

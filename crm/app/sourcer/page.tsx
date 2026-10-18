@@ -1,39 +1,40 @@
 import Link from "next/link";
-import { Radar } from "lucide-react";
 import { query } from "@/lib/db";
 import { listNiches } from "@/lib/leadConfig";
 import { getBudget } from "@/lib/launch";
+import { creditUsage } from "@/lib/usage";
 import EnrichTab from "@/components/EnrichTab";
 import FindCompanyPanel from "@/components/FindCompanyPanel";
-import { creditUsage } from "@/lib/usage";
 import SourcerPanel from "@/components/SourcerPanel";
-import { PageHeader } from "@/components/ui";
+import "./sourcer.css";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Lead Sourcer" };
 
 export default async function Sourcer({ searchParams }: { searchParams: Promise<{ tab?: string; scope?: string; limit?: string }> }) {
   const sp = await searchParams;
-  const enrich = sp.tab === "enrich", company = sp.tab === "company";
+  const tab = sp.tab === "enrich" ? "enrich" : sp.tab === "company" ? "company" : "search";
   return (
-    <>
-      <PageHeader title="Lead Sourcer" description="Find new businesses from every source in one search, filter them, and add the ones you want. Then fill in how to reach the ones you've added."
-        actions={<Link href="/companies" className="btn secondary"><Radar size={16} aria-hidden /> Companies in the CRM</Link>} />
-      <div className="seg" role="tablist" aria-label="Lead Sourcer" style={{ marginBottom: 16 }}>
-        <Link href="/sourcer" className={enrich || company ? "" : "on"} role="tab" aria-selected={!enrich && !company}>Search</Link>
-        <Link href="/sourcer?tab=company" className={company ? "on" : ""} role="tab" aria-selected={company}>Find one company</Link>
-        <Link href="/sourcer?tab=enrich" className={enrich ? "on" : ""} role="tab" aria-selected={enrich}>Enrich</Link>
-      </div>
-      {enrich ? <EnrichTab scope={sp.scope} limit={sp.limit} /> : company ? <CompanyTab /> : <SearchTab />}
-    </>
+    <div className="sx">
+      <header className="sx-head">
+        <div>
+          <h1 className="sx-title">Lead Sourcer</h1>
+          <p className="sx-lede">Search every source at once, narrow the results, and add the businesses worth approaching. Then fill in how to reach them.</p>
+        </div>
+        <Link href="/companies" className="btn secondary">Companies in the CRM</Link>
+      </header>
+      <nav className="sx-tabs" role="tablist" aria-label="Lead Sourcer">
+        <Link href="/sourcer" role="tab" aria-selected={tab === "search"}>Search</Link>
+        <Link href="/sourcer?tab=company" role="tab" aria-selected={tab === "company"}>Find one company</Link>
+        <Link href="/sourcer?tab=enrich" role="tab" aria-selected={tab === "enrich"}>Enrich</Link>
+      </nav>
+      {tab === "enrich" ? <EnrichTab scope={sp.scope} limit={sp.limit} /> : tab === "company" ? <CompanyTab /> : <SearchTab />}
+    </div>
   );
 }
 
 async function SearchTab() {
-  const [niches, budget, [latest]] = await Promise.all([
-    listNiches(), getBudget(),
-    query<{ id: number }>(`SELECT id FROM sourcer_runs ORDER BY id DESC LIMIT 1`),
-  ]);
+  const [niches, budget, [latest]] = await Promise.all([listNiches(), getBudget(), query<{ id: number }>(`SELECT id FROM sourcer_runs ORDER BY id DESC LIMIT 1`)]);
   return <SourcerPanel niches={niches} budget={budget} latestRunId={latest ? Number(latest.id) : null} />;
 }
 

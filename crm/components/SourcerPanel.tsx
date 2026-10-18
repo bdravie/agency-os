@@ -2,25 +2,26 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Globe, Mail, Phone, Plus, Search, Star } from "lucide-react";
 import { sourcerAddAction, sourcerPollAction, sourcerResultsAction, startSourcerAction, type SourcerPoll, type SourcerResults, type StartState } from "@/lib/sourcerActions";
 import type { Budget } from "@/lib/launch";
 import type { NicheOption } from "@/lib/leadConfig";
 import { OPTIONS, money } from "@/lib/sourcerFilters";
 import NicheManager from "./NicheManager";
-import { Pill } from "./ui";
+import ScoreBar from "./ScoreBar";
 import { useToast } from "./Toast";
 
 const usd = (n: number) => `$${n.toFixed(n < 0.1 ? 3 : 2)}`;
-const TONE: Record<string, "good" | "blue" | "neutral" | "bad"> = { A: "good", B: "blue", C: "neutral", Skip: "bad" };
-const Sel = ({ name, label, options, fmt }: { name: string; label: string; options: number[]; fmt: (n: number) => string }) => (
-  <label className="stack" style={{ gap: 3 }}><span className="field-label">{label}</span><select name={name} defaultValue=""><option value="">Any</option>{options.map((o) => <option key={o} value={o}>{fmt(o)}</option>)}</select></label>
+const FILTER_FIELDS = new Set(["revMin", "revMax", "empMin", "empMax", "ageMin", "website", "rating", "reviewsMin", "includeUnknown", "types"]);
+
+const Range = ({ name, label, options, fmt }: { name: string; label: string; options: number[]; fmt: (n: number) => string }) => (
+  <label className="sx-field">{label}<select name={name} defaultValue=""><option value="">Any</option>{options.map((o) => <option key={o} value={o}>{fmt(o)}</option>)}</select></label>
 );
 
-// One search for everything: tick where to look, set your filters, and get one merged, ranked list. Searching saves nothing until you choose and add.
+// Search every source at once, narrow the results, and add the businesses you want. The brief stays on the left while you read the ledger on the right.
 export default function SourcerPanel({ niches, budget, latestRunId }: { niches: NicheOption[]; budget: Budget; latestRunId: number | null }) {
   const router = useRouter(), toast = useToast();
-  const form = useRef<HTMLFormElement>(null);
+  const form = useRef<HTMLFormElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [start, action, pending] = useActionState<StartState, FormData>(startSourcerAction, null);
   const [runId, setRunId] = useState<number | null>(null);
   const [shown, setShown] = useState<number | null>(latestRunId);
@@ -31,15 +32,16 @@ export default function SourcerPanel({ niches, budget, latestRunId }: { niches: 
   const [adding, startAdd] = useTransition();
   const [maps, setMaps] = useState(false), [contacts, setContacts] = useState(true), [limit, setLimit] = useState(50);
   const [nicheKey, setNicheKey] = useState("");
+  const [loc, setLoc] = useState(""), [editing, setEditing] = useState(false);
   const terms = niches.find((n) => n.key === nicheKey)?.terms ?? [];
 
-  const load = async (id: number, override?: Record<string, string>) => {
+  const load = async (id: number, override?: Record<string, string>, keepPicks = false) => {
     const r = await sourcerResultsAction(id, override);
     setRes(r);
-    setPicked(new Set((r?.rows ?? []).filter((x) => !x.skip && !x.added && x.eligible === "eligible").map((x) => x.key)));
+    setPicked((prev) => new Set((r?.rows ?? []).filter((x) => !x.skip && !x.added && (keepPicks ? prev.has(x.key) : x.eligible === "eligible")).map((x) => x.key)));
   };
   useEffect(() => { if (shown) void load(shown); }, [shown]);
-  useEffect(() => { if (start?.id) { setRunId(start.id); setShown(null); setRes(null); setNote(null); } }, [start]);
+  useEffect(() => { if (start?.id) { setRunId(start.id); setShown(null); setRes(null); setNote(null); setEditing(false); } }, [start]);
   useEffect(() => {
     if (!runId) return;
     let stop = false;
@@ -54,121 +56,167 @@ export default function SourcerPanel({ niches, budget, latestRunId }: { niches: 
     return () => { stop = true; };
   }, [runId, router]);
 
-  const places = Math.min(50, limit), each = contacts ? budget.perPlace.withContacts : budget.perPlace.without, fit = Math.min(places, budget.maxPlacesNow);
+  /** Changing a filter re-ranks the results you already have (free). The niche, area and sources belong to the search itself. */
+  const onBrief = (e: React.FormEvent<HTMLFormElement>) => {
+    const name = (e.target as HTMLInputElement).name;
+    if (!shown || !FILTER_FIELDS.has(name) || !form.current) return;
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => { const o: Record<string, string> = {}; new FormData(form.current!).forEach((v, k) => { if (typeof v === "string") o[k] = v; }); void load(shown, o, true); }, 350);
+  };
+
+  const places = Math.min(50, limit), each = contacts ? budget.perPlace.withContacts : budget.perPlace.without, fit = Math.min(places, budget.maxPlacesNow), est = maps ? fit * each : 0;
   const busy = pending || !!runId;
+  // After a search the "what and where" sections fold into a summary, so the panel's space goes to the filters you'll be adjusting.
+  const collapsed = !!res && !!shown && !editing && nicheKey !== "" && loc.trim() !== "";
+  const nicheLabel = niches.find((n) => n.key === nicheKey)?.label ?? nicheKey;
   const available = (res?.rows ?? []).filter((r) => !r.skip && !r.added);
   const toggle = (k: string) => setPicked((p) => { const q = new Set(p); q.has(k) ? q.delete(k) : q.add(k); return q; });
-  const refilter = () => { if (!shown || !form.current) return; const o: Record<string, string> = {}; new FormData(form.current).forEach((v, k) => { if (typeof v === "string") o[k] = v; }); void load(shown, o); };
   const add = () => startAdd(async () => {
     if (!shown) return;
     const r = await sourcerAddAction(shown, [...picked]);
     if (r.error) { toast(r.error, "bad"); return; }
     setNote(r.ok ?? null); toast("Added to the CRM"); await load(shown); router.refresh();
   });
+  const usedPct = Math.min(100, (budget.dailyUsed / Math.max(budget.dailyCap, 0.0001)) * 100), estPct = Math.min(100 - usedPct, (est / Math.max(budget.dailyCap, 0.0001)) * 100);
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
-      <form ref={form} action={action} className="card stack" style={{ gap: 14 }}>
-        <div>
-          <div className="field-label" style={{ marginBottom: 6 }}>1 · What are you looking for?</div>
-          <div className="row">
-            <label className="stack" style={{ gap: 3 }}><span className="field-label">Niche</span>
-              <select name="niche" required value={nicheKey} onChange={(e) => setNicheKey(e.target.value)}><option value="" disabled>Choose…</option>{niches.map((n) => <option key={n.key} value={n.key}>{n.label}{n.custom ? " (yours)" : ""}</option>)}</select></label>
-            <label className="stack" style={{ gap: 3, flex: 1, minWidth: 160 }}><span className="field-label">Town or area</span><input name="location" placeholder="e.g. Leeds" maxLength={60} required /></label>
-            <label className="stack" style={{ gap: 3, flex: 1, minWidth: 160 }}><span className="field-label">Google Maps search phrase</span><input name="term" list="sourcer-terms" placeholder={terms[0] ?? "e.g. roofer"} maxLength={80} /><datalist id="sourcer-terms">{terms.map((t) => <option key={t} value={t} />)}</datalist></label>
-            <label className="stack" style={{ gap: 3 }}><span className="field-label">Company types</span><select name="types" defaultValue="limited"><option value="limited">Limited companies, LLPs and PLCs (can be contacted)</option><option value="all">Include sole traders and others (research only)</option></select></label>
-          </div>
-        </div>
-
-        <div>
-          <div className="field-label" style={{ marginBottom: 6 }}>2 · Filters</div>
-          <div className="row" style={{ gap: 10 }}>
-            <Sel name="revMin" label="Est. revenue from" options={OPTIONS.revMin} fmt={money} /><Sel name="revMax" label="up to" options={OPTIONS.revMax} fmt={money} />
-            <Sel name="empMin" label="Employees from" options={OPTIONS.empMin} fmt={(n) => `${n}`} /><Sel name="empMax" label="up to" options={OPTIONS.empMax} fmt={(n) => `${n}`} />
-            <Sel name="ageMin" label="Trading for at least" options={OPTIONS.ageMin} fmt={(n) => `${n} years`} />
-            <label className="stack" style={{ gap: 3 }}><span className="field-label">Website</span><select name="website" defaultValue="any"><option value="any">Any</option><option value="has">Has one</option><option value="none">Doesn&apos;t have one</option></select></label>
-            <label className="stack" style={{ gap: 3 }}><span className="field-label">Google rating</span><select name="rating" defaultValue="any"><option value="any">Any</option><option value="45">4.5 or more</option><option value="4">4.0 or more</option><option value="lt4">Under 4.0 (room to improve)</option></select></label>
-            <Sel name="reviewsMin" label="Google reviews at least" options={OPTIONS.reviewsMin} fmt={(n) => `${n}`} />
-          </div>
-          <label className="row muted" style={{ gap: 8, marginTop: 8 }}><input type="checkbox" name="includeUnknown" defaultChecked /> Keep businesses where a detail isn&apos;t known (Companies House only holds real turnover for some companies, and ratings come from Google Maps)</label>
-        </div>
-
-        <div>
-          <div className="field-label" style={{ marginBottom: 6 }}>3 · Where to look</div>
-          <label className="row" style={{ gap: 8 }}><input type="checkbox" name="src_ch" defaultChecked /> <b>Companies House</b> <Pill label="free" tone="good" /><span className="muted">Active limited companies by industry code and area, with filing health and size. Every Google Maps result is also matched to it.</span></label>
-          <label className="row" style={{ gap: 8, marginTop: 6 }}><input type="checkbox" name="src_maps" checked={maps} onChange={(e) => setMaps(e.target.checked)} disabled={!budget.configured} /> <b>Google Maps (Apify)</b> <Pill label="uses credits" tone="warn" /><span className="muted">Phone, website, rating, reviews, exact location and generic emails for local businesses.</span></label>
-          {!budget.configured && <p className="muted" style={{ margin: "4px 0 0 26px" }}>Add <code>APIFY_TOKEN</code> to switch this on.</p>}
-          {maps && (
-            <div className="paid" style={{ marginTop: 8 }}>
-              <div className="field-label">Uses Apify credits · only when you click Search</div>
-              <div className="row" style={{ gap: 18 }}>
-                <span><b>Today</b> <span className="muted">{usd(budget.dailyUsed)} of {usd(budget.dailyCap)} used</span></span>
-                <span><b>This month</b> <span className="muted">{usd(budget.monthlyUsed)} of {usd(budget.monthlyCap)}</span></span>
-                <label className="row muted" style={{ gap: 6 }}><input type="checkbox" name="contacts" checked={contacts} onChange={(e) => setContacts(e.target.checked)} /> Contact enrichment (+{usd(budget.perPlace.withContacts - budget.perPlace.without)} a place)</label>
+    <>
+      <div className="sx-bench">
+        <aside className="sx-rail" aria-label="Search brief">
+          <form ref={form} action={action} onChange={onBrief}>
+            {collapsed && (
+              <section className="sx-sec">
+                <h2>This search</h2>
+                <p style={{ margin: 0, fontSize: 15, lineHeight: 1.45 }}><b>{nicheLabel}</b> in <b>{loc}</b></p>
+                <p className="sx-hint">{res?.filters.sources.map((x) => (x === "ch" ? "Companies House" : "Google Maps")).join(" and ")}, up to {res?.filters.limit}</p>
+                <button type="button" className="secondary" onClick={() => setEditing(true)}>Change search</button>
+              </section>
+            )}
+            <section className="sx-sec" hidden={collapsed}>
+              <h2>What to look for</h2>
+              <label className="sx-field">Niche
+                <select name="niche" required value={nicheKey} onChange={(e) => setNicheKey(e.target.value)}><option value="" disabled>Choose a niche</option>{niches.map((n) => <option key={n.key} value={n.key}>{n.label}{n.custom ? " (yours)" : ""}</option>)}</select></label>
+              <label className="sx-field">Town or area<input name="location" placeholder="Leeds" maxLength={60} required value={loc} onChange={(e) => setLoc(e.target.value)} /></label>
+              <div className="sx-choice" role="radiogroup" aria-label="Company types">
+                <label><input type="radio" name="types" value="limited" defaultChecked />Limited companies only</label>
+                <label><input type="radio" name="types" value="all" />Include sole traders</label>
               </div>
-              <p className="muted" style={{ margin: "6px 0 0" }}>{budget.maxPlacesNow < 1 ? (budget.blocked ?? "Today's budget is used up.") : <>Estimated cost about <b>{usd(fit * each)}</b> for {fit} place{fit === 1 ? "" : "s"}{fit < places ? ` (reduced from ${places} to fit today's budget)` : ""}. Apify requires every run to allow at least {usd(budget.minCap)} as a safety cap; the number of places is what keeps the real cost down.</>}</p>
+              <p className="sx-hint">Sole traders can&apos;t be contacted, so they&apos;re for research only.</p>
+              {res && editing && <button type="button" className="link" style={{ alignSelf: "flex-start" }} onClick={() => setEditing(false)}>Keep this search</button>}
+            </section>
+
+            <section className="sx-sec" hidden={collapsed}>
+              <h2>Where to look</h2>
+              <div className="sx-source">
+                <label><input type="checkbox" name="src_ch" defaultChecked /><span><strong>Companies House</strong><span className="sx-hint">Active limited companies by industry code, with filing health and size.</span></span><span className="sx-cost free">Free</span></label>
+              </div>
+              <div className="sx-source">
+                <label><input type="checkbox" name="src_maps" checked={maps} onChange={(e) => setMaps(e.target.checked)} disabled={!budget.configured} /><span><strong>Google Maps</strong><span className="sx-hint">Phone, website, rating, reviews and generic emails.</span></span><span className="sx-cost paid">Credits</span></label>
+                {!budget.configured && <p className="sx-hint" style={{ paddingLeft: 26 }}>Add <code>APIFY_TOKEN</code> to switch this on.</p>}
+                {maps && (
+                  <div className="sx-sub">
+                    <label className="sx-field">What to search for<input name="term" list="sx-terms" placeholder={terms[0] ?? "roofer"} maxLength={80} /><datalist id="sx-terms">{terms.map((t) => <option key={t} value={t} />)}</datalist></label>
+                    <label className="row" style={{ gap: 8, fontSize: 13.5, color: "var(--text-2)" }}><input type="checkbox" name="contacts" checked={contacts} onChange={(e) => setContacts(e.target.checked)} />Look on their website for emails and social pages (+{usd(budget.perPlace.withContacts - budget.perPlace.without)} a place)</label>
+                    <div className="sx-meter">
+                      <div className="sx-track" role="img" aria-label={`${usd(budget.dailyUsed)} of ${usd(budget.dailyCap)} used today`}><i className="used" style={{ width: `${usedPct}%` }} /><i className="est" style={{ width: `${estPct}%` }} /></div>
+                      <span className="sx-hint">{budget.maxPlacesNow < 1 ? (budget.blocked ?? "Today's budget is used up.") : <>This search: about <b>{usd(est)}</b> for {fit} place{fit === 1 ? "" : "s"}{fit < places ? ` (cut from ${places} to fit today's budget)` : ""}. Today so far {usd(budget.dailyUsed)} of {usd(budget.dailyCap)}.</>}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <label className="sx-field">How many to look at<select name="limit" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>{OPTIONS.limit.map((n) => <option key={n}>{n}</option>)}</select></label>
+            </section>
+
+            <section className="sx-sec">
+              <h2>Narrow it down</h2>
+              <div className="sx-pair"><Range name="revMin" label="Revenue from" options={OPTIONS.revMin} fmt={money} /><Range name="revMax" label="up to" options={OPTIONS.revMax} fmt={money} /></div>
+              <div className="sx-pair"><Range name="empMin" label="Employees from" options={OPTIONS.empMin} fmt={(n) => `${n}`} /><Range name="empMax" label="up to" options={OPTIONS.empMax} fmt={(n) => `${n}`} /></div>
+              <div className="sx-pair"><Range name="ageMin" label="Trading for" options={OPTIONS.ageMin} fmt={(n) => `${n}+ years`} /><Range name="reviewsMin" label="Google reviews" options={OPTIONS.reviewsMin} fmt={(n) => `${n}+`} /></div>
+              <div className="sx-pair">
+                <label className="sx-field">Website<select name="website" defaultValue="any"><option value="any">Any</option><option value="has">Has one</option><option value="none">None</option></select></label>
+                <label className="sx-field">Google rating<select name="rating" defaultValue="any"><option value="any">Any</option><option value="45">4.5 or more</option><option value="4">4.0 or more</option><option value="lt4">Under 4.0</option></select></label>
+              </div>
+              <label className="row" style={{ gap: 8, alignItems: "flex-start", fontSize: 13.5, color: "var(--text-2)" }}><input type="checkbox" name="includeUnknown" defaultChecked style={{ marginTop: 3 }} /><span>Keep businesses where a detail isn&apos;t known. Companies House only holds real turnover for some companies.</span></label>
+              <p className="sx-hint">{shown ? "Changing these re-ranks the results straight away." : "Once you have results, changing these re-ranks them straight away."}</p>
+            </section>
+
+            <div className="sx-go">
+              <button disabled={busy}><Search size={16} aria-hidden /> {busy ? "Searching…" : "Search"}</button>
+              <p className="sx-hint">{maps ? "Google Maps uses credits, shown above." : "Free. Nothing is added until you choose."}</p>
+              {start?.error && <p className="error" role="alert" style={{ margin: 0, fontSize: 14 }}>{start.error}</p>}
+              {start?.notes?.map((n) => <p key={n} role="status" className="sx-hint" style={{ color: "var(--warn)" }}>{n}</p>)}
+            </div>
+          </form>
+        </aside>
+
+        <section className="sx-main" aria-live="polite">
+          {poll && (runId || poll.status === "failed") && (
+            <div className="sx-progress" role="status">
+              {poll.parts.map((p) => <div key={p.key} className="row"><span className={`sx-dot ${p.state === "done" ? "done" : p.state === "failed" ? "failed" : "run"}`} /><b>{p.label}</b><span className={p.state === "failed" ? "error" : "muted"}>{p.message}</span></div>)}
             </div>
           )}
-        </div>
 
-        <div className="row">
-          <label className="stack" style={{ gap: 3 }}><span className="field-label">How many to look at</span><select name="limit" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>{OPTIONS.limit.map((n) => <option key={n}>{n}</option>)}</select></label>
-          <button disabled={busy} style={{ alignSelf: "flex-end" }}><Search size={15} aria-hidden /> {busy ? "Searching… (a few minutes)" : "Search"}</button>
-          <span className="muted" style={{ alignSelf: "flex-end" }}>Nothing is added until you tick businesses below and click Add.</span>
-        </div>
-        {start?.error && <p className="error" role="alert">{start.error}</p>}
-        {start?.notes?.map((n) => <p key={n} role="status" className="muted" style={{ margin: 0, color: "var(--warn)" }}>{n}</p>)}
-      </form>
-
-      {poll && (runId || poll.status === "failed") && (
-        <div className="card stack" style={{ gap: 6 }} role="status">
-          {poll.parts.map((p) => <div key={p.key} className="row" style={{ gap: 8 }}><Pill label={p.label} tone={p.state === "done" ? "good" : p.state === "failed" ? "bad" : "blue"} /><span className={p.state === "failed" ? "error" : "muted"}>{p.state === "done" ? "Done: " : p.state === "failed" ? "Failed: " : ""}{p.message}</span></div>)}
-        </div>
-      )}
-
-      {res && shown && (
-        <section className="card stack" style={{ gap: 10 }}>
-          <div className="row-between">
-            <b>{available.length} new business{available.length === 1 ? "" : "es"} · ranked by suitability</b>
-            <span className="row" style={{ gap: 10 }}>
-              {res.mapsCostUsd !== null || res.mapsEstUsd !== null ? <span className="muted">Google Maps cost {res.mapsCostUsd !== null ? usd(res.mapsCostUsd) : `about ${usd(res.mapsEstUsd ?? 0)}`}</span> : null}
-              {available.length > 0 && <>
-                <button type="button" className="link" onClick={() => setPicked(new Set(available.map((r) => r.key)))}>Select all</button>
-                <button type="button" className="link" onClick={() => setPicked(new Set())}>None</button>
-                <button type="button" disabled={adding || picked.size === 0} onClick={add}><Plus size={15} aria-hidden /> {adding ? "Adding…" : `Add ${picked.size} to the CRM`}</button></>}
-            </span>
-          </div>
-          {note && <p role="status" className="muted" style={{ margin: 0 }}>{note}</p>}
-          {res.warnings.map((w) => <p key={w} className="muted" style={{ margin: 0, color: "var(--warn)" }}>{w}</p>)}
-          <div className="row" style={{ gap: 10 }}>
-            <span className="muted">{res.found} found{res.dropped.length ? `, ${res.found - res.rows.length} hidden by your filters` : ""}.</span>
-            <button type="button" className="link" onClick={refilter}>Apply the filters above to these results</button>
-          </div>
-          {res.dropped.length > 0 && <details><summary className="muted">What the filters hid</summary><ul style={{ marginTop: 6 }}>{res.dropped.map(([why, n]) => <li key={why} className="muted" style={{ border: 0, padding: "2px 0" }}>{n} · {why}</li>)}</ul></details>}
-          {res.rows.length === 0 ? <p className="muted" style={{ margin: 0 }}>Nothing matched. Loosen a filter and click &ldquo;Apply the filters above&rdquo;, or search a wider area.</p> : (
-            <div className="table-wrap"><table>
-              <thead><tr><th /><th>Suitability</th><th>Business</th><th>Where</th><th>Contact</th><th>Size</th><th>Google</th><th>Status</th></tr></thead>
-              <tbody>{res.rows.map((r) => {
-                const off = !!r.skip || r.added;
-                return (
-                  <tr key={r.key} style={off ? { opacity: 0.55 } : undefined}>
-                    <td><input type="checkbox" disabled={off} checked={picked.has(r.key)} onChange={() => toggle(r.key)} aria-label={`Add ${r.name}`} /></td>
-                    <td><span title={r.why.join("\n")}><Pill label={`${r.tier}${r.tier === "Skip" ? "" : ` · ${r.score}`}`} tone={TONE[r.tier] ?? "neutral"} /></span></td>
-                    <td><b>{r.name}</b><div className="muted">{[r.chNumber, ...r.categories.slice(0, 2)].filter(Boolean).join(" · ")}</div><div className="row" style={{ gap: 4, marginTop: 2 }}>{r.sources.map((s) => <Pill key={s} label={s === "ch" ? "Companies House" : "Google Maps"} tone="neutral" />)}</div></td>
-                    <td className="muted">{[r.city, r.postcode].filter(Boolean).join(" ") || "-"}</td>
-                    <td className="muted">{r.phone ?? "-"}{r.website && <div><a href={r.website} target="_blank" rel="noreferrer">website</a></div>}{r.emails[0] && <div>{r.emails[0]}</div>}</td>
-                    <td className="muted">{r.est !== null ? `≈ ${money(r.est)}` : "size unknown"}{r.employees !== null && <div>{r.employees} employee{r.employees === 1 ? "" : "s"}</div>}</td>
-                    <td className="muted">{r.rating !== null ? `${r.rating} ★` : "-"}{r.reviews !== null ? ` · ${r.reviews}` : ""}{r.mapsUrl && <div><a href={r.mapsUrl} target="_blank" rel="noreferrer">map</a></div>}</td>
-                    <td className="muted">{r.added ? "Added" : r.skip ?? (r.eligible === "eligible" ? `Active ${r.chType?.toUpperCase()}` : r.eligible === "not_eligible" ? `Not eligible (${r.chStatus})` : "Not matched: sole trader or trading name?")}</td>
-                  </tr>
-                );
-              })}</tbody>
-            </table></div>
-          )}
+          {res && shown ? (
+            <>
+              <div className="sx-resulthead">
+                <h2 className="sx-count">{available.length} new business{available.length === 1 ? "" : "es"}<small>{res.found} found, {res.found - res.rows.length} hidden by your filters{res.mapsCostUsd !== null || res.mapsEstUsd !== null ? `. Google Maps cost ${res.mapsCostUsd !== null ? usd(res.mapsCostUsd) : `about ${usd(res.mapsEstUsd ?? 0)}`}.` : "."}</small></h2>
+                {available.length > 0 && (
+                  <span className="row" style={{ gap: 10 }}>
+                    <button type="button" className="link" onClick={() => setPicked(new Set(available.map((r) => r.key)))}>Select all</button>
+                    <button type="button" className="link" onClick={() => setPicked(new Set())}>None</button>
+                    <button type="button" disabled={adding || picked.size === 0} onClick={add}><Plus size={16} aria-hidden /> {adding ? "Adding…" : `Add ${picked.size} to the CRM`}</button>
+                  </span>
+                )}
+              </div>
+              {note && <p role="status" className="muted" style={{ margin: 0 }}>{note}</p>}
+              {res.warnings.map((w) => <p key={w} className="sx-hint" style={{ color: "var(--warn)" }}>{w}</p>)}
+              {res.dropped.length > 0 && <details><summary className="muted">What the filters hid</summary><ul style={{ marginTop: 6 }}>{res.dropped.map(([why, n]) => <li key={why} className="muted" style={{ border: 0, padding: "2px 0" }}>{n} {why}</li>)}</ul></details>}
+              <div className="sx-legend" aria-label="What the score bar shows">
+                <span><i className="i-size" />Size and filing health</span><span><i className="i-verified" />Verified company</span><span><i className="i-reach" />Reachable</span><span><i className="i-rep" />Reputation</span>
+              </div>
+              {res.rows.length === 0 ? (
+                <div className="sx-empty"><h2>Nothing matches these filters</h2><p>Loosen a filter on the left to bring businesses back, or search a wider area.</p></div>
+              ) : (
+                <ul className="sx-ledger">
+                  {res.rows.map((r, i) => {
+                    const off = !!r.skip || r.added;
+                    return (
+                      <li key={r.key}>
+                        <div className={`sx-row${off ? " off" : ""}`}>
+                          <input type="checkbox" disabled={off} checked={picked.has(r.key)} onChange={() => toggle(r.key)} aria-label={`Add ${r.name}`} />
+                          <ScoreBar parts={r.parts} score={r.score} tier={r.tier} why={r.why} n={i} />
+                          <div className="sx-detail">
+                          <div className="sx-biz">
+                            <b>{r.name}</b>
+                            <span>{[r.chNumber, ...r.categories.slice(0, 2), [r.city, r.postcode].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "No further details"}</span>
+                            <span className="sx-status">{r.added ? "Added" : r.skip ?? (r.eligible === "eligible" ? `Active ${r.chType?.toUpperCase() ?? "company"}, verified` : r.eligible === "not_eligible" ? `Not eligible: ${r.chStatus ?? "status unknown"}` : "Not matched to a limited company")}{r.sources.length > 1 ? ". Found in both sources" : r.sources[0] === "maps" ? ". Google Maps" : ". Companies House"}</span>
+                          </div>
+                          <div className="sx-figs">
+                          <div className="sx-reach" aria-label="How to reach them">
+                            {r.phone ? <a className="on" href={`tel:${r.phone.replace(/\s/g, "")}`} title={r.phone} aria-label={`Phone ${r.phone}`}><Phone size={17} /></a> : <span className="off" title="No phone found"><Phone size={17} /></span>}
+                            {r.website ? <a className="on" href={r.website} target="_blank" rel="noreferrer" title={r.website} aria-label="Website"><Globe size={17} /></a> : <span className="off" title="No website found"><Globe size={17} /></span>}
+                            {r.emails[0] ? <a className="on" href={`mailto:${r.emails[0]}`} title={r.emails[0]} aria-label={`Email ${r.emails[0]}`}><Mail size={17} /></a> : <span className="off" title="No generic email found"><Mail size={17} /></span>}
+                          </div>
+                          <div className="sx-fig">{r.est !== null ? <b>≈ {money(r.est)}</b> : <b className="dim">–</b>}<span>{r.employees !== null ? `${r.employees} employee${r.employees === 1 ? "" : "s"}` : r.est !== null ? "estimated revenue" : "size unknown"}</span></div>
+                          <div className="sx-fig">{r.rating !== null ? <b style={{ display: "flex", alignItems: "center", gap: 4 }}><Star size={14} aria-hidden fill="currentColor" />{r.rating}</b> : <b className="dim">–</b>}<span>{r.reviews !== null ? `${r.reviews} reviews` : "no Google data"}{r.mapsUrl && <> <a href={r.mapsUrl} target="_blank" rel="noreferrer">map</a></>}</span></div>
+                          </div>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          ) : !poll || (!runId && poll.status !== "failed") ? (
+            <div className="sx-empty">
+              <h2>Pick a niche and an area</h2>
+              <p>Companies House is free and checks every company&apos;s filing health. Google Maps adds phone numbers, websites and reviews, and shows what it will cost before you spend anything. Results appear here, best first, with a bar showing why each one ranks where it does.</p>
+            </div>
+          ) : null}
         </section>
-      )}
-
-      <div className="card"><NicheManager niches={niches} /></div>
-    </div>
+      </div>
+      <div className="card" style={{ marginTop: 24 }}><NicheManager niches={niches} /></div>
+    </>
   );
 }
