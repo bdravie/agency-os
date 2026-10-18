@@ -1,0 +1,20 @@
+# Who counts as a decision-maker when you search Apollo from a company page. Edit freely.
+# The search itself is free; revealing a work email uses Apollo credits (1 per person with an email).
+
+# Seniority levels Apollo understands: owner, founder, c_suite, partner, vp, head, director, manager, senior, entry, intern
+seniorities: [owner, founder, c_suite, partner, director, head]
+
+# Job titles to look for as well (a person matches if they hold any one of these).
+titles:
+  - Owner
+  - Founder
+  - Managing Director
+  - CEO
+  - Director
+  - Head of Marketing
+  - Head of Operations
+  - Operations Director
+  - Marketing Director
+
+# Also match close variations of those titles (for example "Co-founder").
+include_similar_titles: true

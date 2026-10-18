@@ -8,13 +8,16 @@ type Draft = { subject: string; body: string };
 type Route = { label: string; href: string };
 type Kind = "first" | "followup" | "social";
 
-export default function OutreachDraft({ companyId, to, first, followUp, social, routes, blocker }: {
-  companyId: number; to: string | null; first: Draft; followUp: Draft; social: Draft; routes: Route[]; blocker: string | null;
+export default function OutreachDraft({ companyId, to, recipients, first, followUp, social, routes, blocker }: {
+  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string }[]; first: Draft; followUp: Draft; social: Draft; routes: Route[]; blocker: string | null;
 }) {
   const [kind, setKind] = useState<Kind>(to || routes.length === 0 ? "first" : "social");
   const [drafts, setDrafts] = useState<Record<Kind, Draft>>({ first, followup: followUp, social });
   const [note, setNote] = useState<string | null>(null);
+  const [toId, setToId] = useState("");
   const [pending, start] = useTransition();
+  const chosen = recipients.find((r) => String(r.id) === toId) ?? null;
+  const toEmail = chosen?.email ?? to;
   const d = drafts[kind];
   if (blocker) {
     return (
@@ -29,8 +32,8 @@ export default function OutreachDraft({ companyId, to, first, followUp, social, 
   const unfilled = d.subject.match(/\{\{.*?\}\}/g) ?? d.body.match(/\{\{.*?\}\}/g);
   const set = (patch: Partial<Draft>) => setDrafts({ ...drafts, [kind]: { ...d, ...patch } });
   const copy = async (text: string, label: string) => { await navigator.clipboard.writeText(text); setNote(`${label} copied`); };
-  const mailto = `mailto:${to ?? ""}?subject=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
-  const missing = isSocial ? (routes.length === 0 ? "Add a company page or contact form first (Contact details above)." : null) : (!to ? "Add a generic email on this company first." : null);
+  const mailto = `mailto:${toEmail ?? ""}?subject=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
+  const missing = isSocial ? (routes.length === 0 ? "Add a company page or contact form first (Contact details above)." : null) : (!toEmail ? "Add a generic email on this company first, or reveal a decision-maker above." : null);
   const why = blocker ?? missing ?? (unfilled ? `Fill in ${unfilled.length > 1 ? "the placeholders" : "the placeholder"} first: ${unfilled[0]}` : null);
 
   return (
@@ -47,7 +50,13 @@ export default function OutreachDraft({ companyId, to, first, followUp, social, 
           {" "}· Nothing is sent from here: copy it, send it yourself, then mark it sent.
         </p>
       ) : (
-        <p className="muted">To: {to ?? "no generic email saved yet"} · Nothing is sent from here: copy it or open it in your mail app, then mark it sent.</p>
+        <div className="stack" style={{ gap: 6 }}>
+          {recipients.length > 0 ? (
+            <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>To</span>
+              <select value={toId} onChange={(e) => setToId(e.target.value)} aria-label="Recipient"><option value="">{to ? `Company: ${to}` : "Company (no generic email saved)"}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
+          ) : <p className="muted" style={{ margin: 0 }}>To: {to ?? "no generic email saved yet"}</p>}
+          <p className="muted" style={{ margin: 0 }}>Nothing is sent from here: copy it or open it in your mail app, then mark it sent.</p>
+        </div>
       )}
       {!isSocial && <input value={d.subject} onChange={(e) => set({ subject: e.target.value })} aria-label="Subject" />}
       <textarea rows={isSocial ? 8 : 12} value={d.body} onChange={(e) => set({ body: e.target.value })} aria-label="Message" />
@@ -55,10 +64,10 @@ export default function OutreachDraft({ companyId, to, first, followUp, social, 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {!isSocial && <button type="button" className="secondary" onClick={() => copy(d.subject, "Subject")}>Copy subject</button>}
         <button type="button" className="secondary" onClick={() => copy(d.body, "Message")}>Copy {isSocial ? "message" : "body"}</button>
-        {!isSocial && <a href={mailto} aria-disabled={!to}><button type="button" className="secondary" disabled={!to}>Open in mail app</button></a>}
+        {!isSocial && <a href={mailto} aria-disabled={!toEmail}><button type="button" className="secondary" disabled={!toEmail}>Open in mail app</button></a>}
         <button type="button" disabled={pending || !!why} title={why ?? ""}
           onClick={() => start(async () => {
-            try { await markOutreachSent(companyId, kind, d.subject); setNote("Logged as sent"); }
+            try { await markOutreachSent(companyId, kind, d.subject, chosen?.id); setNote("Logged as sent"); }
             catch (err) { setNote(err instanceof Error ? err.message : String(err)); }
           })}>Mark as sent</button>
       </div>

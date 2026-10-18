@@ -12,6 +12,8 @@ import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
 import ComplianceCard from "@/components/ComplianceCard";
 import OfferSuggestionCard from "@/components/OfferSuggestionCard";
+import DecisionMakers from "@/components/DecisionMakers";
+import { apolloStatusAction, contactClearOptOutAction, contactOptOutAction } from "@/lib/apolloActions";
 import { loadGate } from "@/lib/complianceGate";
 import StatusStepper from "@/components/StatusStepper";
 import ContactDetailsForm from "@/components/ContactDetailsForm";
@@ -41,6 +43,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const gate = await loadGate(id);
   if (!gate) notFound();
   const blocker = gate.sendable ? null : gate.reasons.join(" ");
+  const apollo = await apolloStatusAction(id);
+  const recipients = await query<any>(`SELECT ct.id, ct.name, ct.role, ct.email FROM contacts ct JOIN contact_gate cg ON cg.contact_id = ct.id WHERE ct.company_id = $1 AND cg.sendable ORDER BY ct.name`, [id]);
 
   const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
   const next = nextStep({ ...company, gate: { sendable: gate.sendable, unchecked: company.compliance_status === "unchecked", reasons: gate.reasons }, followup_due: followUp?.due_at ?? null });
@@ -99,10 +103,14 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </ToastForm>
           </section>
 
+          <details className="card" id="decision-makers">
+            <summary>Decision-makers (Apollo) <span className="badge tone-warn" style={{ marginLeft: 6 }}>emails use credits</span>{apollo.saved > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {apollo.saved} saved</span>}</summary>
+            <div style={{ marginTop: 14 }}><DecisionMakers companyId={id} status={apollo} /></div>
+          </details>
           <details className="card" id="outreach" open={!!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) && !blocker}>
             <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
             <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
+              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
                 routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
             </div>
           </details>
@@ -189,7 +197,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             <h2>Contacts</h2>
             {contacts.length === 0 && <p className="muted">No named contacts. Add one only after they have engaged.</p>}
             <ul>{contacts.map((c: any) => (
-              <li key={c.id}><b>{c.name}</b> <span className="muted">{[c.role, c.email, c.phone].filter(Boolean).join(" · ")}</span><br /><span className="muted">via {c.consent_basis}</span></li>
+              <li key={c.id} className="stack" style={{ gap: 4 }}>
+                <div className="row-between"><span><b>{c.name}</b> {c.opted_out && <Badge value="Opted out" />} {c.source === "Apollo" && <span className="badge tone-neutral">Apollo</span>} <span className="muted">{[c.role, c.email, c.email_status, c.phone].filter(Boolean).join(" · ")}</span></span>
+                  {c.opted_out
+                    ? <ToastForm action={contactClearOptOutAction} success="Opt-out cleared" confirm="Only clear this if it was recorded by mistake. Clear it?"><input type="hidden" name="id" value={c.id} /><button className="link">Recorded by mistake?</button></ToastForm>
+                    : <ToastForm action={contactOptOutAction} success="Marked as opted out and suppressed" confirm={`Mark ${c.name} as opted out? They will be blocked everywhere and their address added to the suppression list.`}><input type="hidden" name="id" value={c.id} /><button className="link">They opted out</button></ToastForm>}</div>
+                <span className="muted">via {c.consent_basis}</span>
+              </li>
             ))}</ul>
             <details style={{ marginTop: 10 }}><summary>Add a contact</summary>
               <ToastForm action={addContact} success="Contact added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>

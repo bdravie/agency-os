@@ -206,6 +206,12 @@ One search screen (`/sourcer`) replaces the separate Companies House panel, Goog
 
 ---
 
+## Extra: Apollo decision-makers (built)
+
+Company page > Decision-makers (Apollo): free senior-people search, then a click-only, credit-capped reveal of work emails, saved as contacts with the lawful basis recorded; person-level opt-out and a combined company-plus-person gate (`contact_gate`) that the outreach recipient list and the send-guard trigger both use. Roles in `config/apollo.yaml`. Tested against a stand-in Apollo server, not the real service: run the first real search on one company and compare the credits shown with your Apollo balance. Migration: `20261029100000_apollo_decision_makers.sql`.
+
+---
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

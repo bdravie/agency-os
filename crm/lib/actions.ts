@@ -424,13 +424,20 @@ export async function findWebsiteOneAction(_prev: string | null, form: FormData)
 }
 
 /** The app never sends email. This only records that YOU sent it, and queues the follow-up. */
-export async function markOutreachSent(companyId: number, kind: "first" | "followup" | "social", subject: string) {
+export async function markOutreachSent(companyId: number, kind: "first" | "followup" | "social", subject: string, contactId?: number) {
   await requireLogin();
   await assertSendable(companyId);   // verified active limited company, not opted out, not suppressed: checked first, every time
   const [c] = await query<{ name: string; status: string }>(`SELECT name, status FROM companies WHERE id = $1`, [companyId]);
   if (!c) throw new Error("Company not found");
+  let person: { id: number; name: string } | null = null;
+  if (contactId) {   // sending to a named person: their own opt-out and suppression are checked too, on top of the company's
+    const [ct] = await query<{ id: number; name: string; sendable: boolean }>(`SELECT ct.id, ct.name, cg.sendable FROM contacts ct JOIN contact_gate cg ON cg.contact_id = ct.id WHERE ct.id = $1 AND ct.company_id = $2`, [contactId, companyId]);
+    if (!ct) throw new Error("That contact isn't at this company.");
+    if (!ct.sendable) throw new Error(`Blocked: ${ct.name} has opted out, is suppressed, or has no email address.`);
+    person = { id: Number(ct.id), name: ct.name };
+  }
   if (kind === "social") await logActivity("dm_logged", { company_id: companyId, channel: "dm", body: "Social message sent (company page or contact form)" });
-  else await logActivity("email_logged", { company_id: companyId, channel: "email", body: `${kind === "first" ? "Outreach sent" : "Follow-up sent"}: ${subject}` });
+  else await logActivity("email_logged", { company_id: companyId, contact_id: person?.id ?? null, channel: "email", body: `${kind === "first" ? "Outreach sent" : "Follow-up sent"}${person ? ` to ${person.name}` : ""}: ${subject}` });
   if (c.status === "New") await query(`UPDATE companies SET status = 'Contacted' WHERE id = $1`, [companyId]);
   if (kind === "first" || kind === "social") {
     await query(`INSERT INTO tasks (title, due_at, company_id) VALUES ($1, now() + interval '4 days', $2)`, [`Send the one follow-up to ${c.name}`, companyId]);
