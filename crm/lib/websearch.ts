@@ -11,7 +11,10 @@ export async function braveSearch(q: string): Promise<Hit[]> {
   const res = await fetch(`${base}/res/v1/web/search?q=${encodeURIComponent(q)}&count=10&country=gb`, {
     headers: { accept: "application/json", "x-subscription-token": key }, signal: AbortSignal.timeout(15000),
   });
-  if (!res.ok) throw new Error(`The search service said ${res.status}${res.status === 429 ? " (out of credits or rate-limited)" : ""}.`);
+  if (res.status === 401 || res.status === 403) throw new Error("Brave rejected the key (it may be wrong, expired or for a different plan). Check SEARCH_API_KEY");
+  if (res.status === 422) throw new Error("Brave refused the request (check the key's plan allows web search)");
+  if (res.status === 429) throw new Error("Brave says you're out of credits or searching too fast. Wait a minute and try again");
+  if (!res.ok) throw new Error(`The search service answered ${res.status}`);
   const data = (await res.json()) as { web?: { results?: { url: string; title?: string; description?: string }[] } };
   return (data.web?.results ?? []).map((r) => ({ url: r.url, title: r.title ?? "", description: r.description }));
 }

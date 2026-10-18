@@ -7,6 +7,7 @@ import { braveSearch, pickFromResults } from "./websearch";
 import { creditUsage } from "./usage";
 import { searchLinks, rankCandidates, trust, type FoundLink, type LinkKind, type Ranked } from "./findRank";
 import { safeDomain } from "./websites";
+import { postcodeDistrict } from "./apifyMath";
 
 // "Find one company": type a name and get its closest website and social pages, checked against Companies House. Free by default; the web search is opt-in and uses your search credits.
 // Nothing is saved here. Company pages only: personal profiles are never kept.
@@ -15,6 +16,7 @@ export type Found = {
   name: string; place: string; ch: { ranked: Ranked[]; best: Ranked | null; error: string | null }; links: FoundLink[]; emails: string[]; contactUrl: string | null; pagesRead: number;
   hits: WebHit[]; webRan: boolean; existing: { id: number; name: string } | null; searchLinks: { label: string; href: string }[]; notes: string[];
   signals: Record<string, boolean> | null;
+  web: { ran: boolean; results: number; matched: string[]; query: string | null };
 };
 
 const SOCIAL_OR_SEARCH = /(^|\.)(linkedin|facebook|fb|instagram|twitter|x|youtube|tiktok|google|bing|yell|companieshouse|company-information\.service\.gov)\./i;
@@ -39,7 +41,7 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
   if (pastedSite) add("website", pastedSite, given);
 
   // 3. Web search (opt-in, uses your search credits): the closest website and social pages.
-  let hits: WebHit[] = [], webRan = false;
+  let hits: WebHit[] = [], webRan = false, webResults = 0, webQuery: string | null = null;
   let picks: ReturnType<typeof pickFromResults> | null = null;
   if (i.web) {
     const usage = await creditUsage();
@@ -47,11 +49,13 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
     else if (usage.search.used >= usage.search.cap) notes.push(`The web search wasn't run: today's cap of ${usage.search.cap} searches is used up.`);
     else {
       try {
-        const raw = await braveSearch(`"${name}"${place ? ` ${place}` : ""}`);
-        webRan = true; picks = pickFromResults(raw, name);
+        const area = postcodeDistrict(place) ?? place;   // the postcode area (LS27), not the full postcode: a full postcode narrows the results too far
+        webQuery = `"${name}"${area ? ` ${area}` : ""} UK`;
+        const raw = await braveSearch(webQuery);
+        webRan = true; webResults = raw.length; picks = pickFromResults(raw, name);
         await logActivity("search_lookup", { channel: "search", body: `Find one company: ${name}` });
         hits = raw.slice(0, 6).map((h) => { let host = ""; try { host = new URL(h.url).hostname.replace(/^www\./, ""); } catch { /* skip */ } return { title: h.title.slice(0, 120), host, snippet: (h.description ?? "").replace(/<[^>]+>/g, "").slice(0, 200) }; }).filter((h) => h.host);
-      } catch (e) { notes.push(`The web search failed: ${e instanceof Error ? e.message : "unknown error"}.`); }
+      } catch (e) { notes.push(`The web search failed: ${(e instanceof Error ? e.message : "unknown error").replace(/\.$/, "")}.`); }
     }
   }
 
@@ -89,5 +93,6 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
   const [existing] = await query<{ id: number; name: string }>(
     `SELECT id, name FROM companies WHERE ($1::text IS NOT NULL AND company_number = $1) OR ($2::text IS NOT NULL AND lower(domain) = $2) OR lower(name) = lower($3) ORDER BY id LIMIT 1`, [chNumber, dom, name]);
 
-  return { name, place, ch: { ranked, best, error: chError }, links, emails, contactUrl, pagesRead, hits, webRan, existing: existing ? { id: Number(existing.id), name: existing.name } : null, searchLinks: searchLinks(name, place), notes, signals };
+  return { name, place, ch: { ranked, best, error: chError }, links, emails, contactUrl, pagesRead, hits, webRan, existing: existing ? { id: Number(existing.id), name: existing.name } : null, searchLinks: searchLinks(name, place), notes, signals,
+    web: { ran: webRan, results: webResults, matched: picks ? (["website", "linkedin", "instagram", "facebook"] as const).filter((k) => (k === "website" ? picks!.websites.length > 0 : !!picks![k])) : [], query: webQuery } };
 }

@@ -93,7 +93,8 @@ export async function addFoundAction(input: AddInput): Promise<AddResult> {
 export type AutoField = "domain" | "generic_email" | "linkedin_url" | "instagram_url" | "facebook_url" | "contact_url";
 export type AutoResult = {
   error?: string; fields?: Partial<Record<AutoField, { value: string; confidence: string; how: string }>>; verified?: string | null;
-  signals?: Record<string, boolean> | null; notes?: string[]; ranWeb?: boolean;
+  signals?: Record<string, boolean> | null; notes?: string[]; ranWeb?: boolean; emails?: string[];
+  web?: { ran: boolean; results: number; matched: string[]; query: string | null };
 };
 
 /**
@@ -119,5 +120,5 @@ export async function autoSearchAction(companyId: number, current: Record<string
   if (found.emails[0]) set("generic_email", found.emails[0], { confidence: "high", how: "shown on their website (company addresses only)" });
   if (found.contactUrl) set("contact_url", found.contactUrl, { confidence: "high", how: "their contact page" });
   const web = found.links.find((l) => l.kind === "website");
-  return { fields, verified: web && web.confidence !== "given" && /company number/.test(web.how) ? "company number" : web && web.confidence !== "given" && /name/.test(web.how) ? "name" : null, signals: found.signals, notes: found.notes, ranWeb: found.webRan };
+  return { fields, verified: web && web.confidence !== "given" && /company number/.test(web.how) ? "company number" : web && web.confidence !== "given" && /name/.test(web.how) ? "name" : null, signals: found.signals, notes: found.notes, ranWeb: found.webRan, emails: found.emails, web: found.web };
 }

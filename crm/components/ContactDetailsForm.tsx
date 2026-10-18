@@ -44,7 +44,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
   const run = (label: string, job: () => Promise<void>) => { setBusy(label); setNote(null); start(async () => { try { await job(); } finally { setBusy(null); } }); };
 
   const LABEL: Record<AutoField, string> = { domain: "Website", generic_email: "Email", linkedin_url: "LinkedIn", instagram_url: "Instagram", facebook_url: "Facebook", contact_url: "Contact page" };
-  const [auto, setAuto] = useState<{ lines: { label: string; value: string; confidence: string; how: string; used: boolean }[]; notes: string[] } | null>(null);
+  const [auto, setAuto] = useState<{ lines: { label: string; value: string; confidence: string; how: string; used: boolean }[]; notes: string[]; web: string | null; more: string[] } | null>(null);
 
   /** Runs the auto-search, puts what it found into EMPTY boxes only, and explains each value. Nothing is saved until you click Save. */
   function applyAuto(r: AutoResult) {
@@ -55,7 +55,9 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
     setF(next);
     if (r.fields?.domain && next.domain === r.fields.domain.value) setVerified(r.verified ?? "");
     if (r.signals) setSignals(r.signals);
-    setAuto({ lines, notes: r.notes ?? [] });
+    const w = r.web, firstEmail = r.fields?.generic_email?.value;
+    const web = w?.ran ? `Web search ran: ${w.results} result${w.results === 1 ? "" : "s"}${w.matched.length ? `, matched ${w.matched.join(", ")}` : ", nothing matched this company"}${w.query ? ` (searched ${w.query})` : ""}.` : null;
+    setAuto({ lines, notes: r.notes ?? [], web, more: (r.emails ?? []).filter((e) => e !== firstEmail) });
     setNote({ text: lines.some((l) => l.used) ? "Filled the empty boxes below. Check them, then click Save." : lines.length ? "Found things, but your boxes already have values, so nothing was changed." : "Nothing new found." });
   }
 
@@ -161,6 +163,9 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
               <span className="muted">{l.how}{l.used ? "" : " · not used: that box already has a value"}</span>
             </div>
           ))}
+          {auto.web && <span className="muted">{auto.web}</span>}
+          {auto.more.length > 0 && <span className="muted">Other generic emails on their site: {auto.more.join(", ")} (copy one into the email box if you prefer it).</span>}
+          <span className="muted">Only company addresses are found this way. Named people at the company are not: that needs the Apollo search, which isn&apos;t switched on yet.</span>
           {auto.notes.map((n) => <span key={n} className="muted">{n}</span>)}
         </div>
       )}
