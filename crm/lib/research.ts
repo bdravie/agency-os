@@ -74,14 +74,15 @@ export async function latestResearch(companyId: number): Promise<Research | null
   return r ? mapRow(r) : null;
 }
 
-/** True if the company's record was edited after this research ran, e.g. a website or social link added since. The research is a snapshot, so it would still describe the old record. */
+/** True if the company's record was edited after this research ran, e.g. a website, social link, email or contact added since. The research is a snapshot, so it would still describe the old record. */
 export async function companyChangedSince(companyId: number, r: Research): Promise<boolean> {
-  const [c] = await query<{ changed: boolean }>(`SELECT updated_at > $2::timestamptz AS changed FROM companies WHERE id = $1`, [companyId, r.created_at]);
+  const [c] = await query<{ changed: boolean }>(`SELECT GREATEST(c.updated_at, (SELECT max(GREATEST(k.created_at, k.revealed_at, k.opted_out_at)) FROM contacts k WHERE k.company_id = c.id)) > $2::timestamptz AS changed FROM companies c WHERE c.id = $1`, [companyId, r.created_at]);
   return !!c?.changed;
 }
 
 export async function runResearch(companyId: number, opts: { web: boolean }): Promise<Research> {
-  const [c] = await query<any>(`SELECT c.id, c.name, c.domain, c.postcode, c.linkedin_url, c.instagram_url, c.facebook_url, g.opted_out, g.suppressed FROM companies c JOIN lead_gate g ON g.company_id = c.id WHERE c.id = $1`, [companyId]);
+  const [c] = await query<any>(`SELECT c.id, c.name, c.domain, c.postcode, c.linkedin_url, c.instagram_url, c.facebook_url, c.generic_email IS NOT NULL AND btrim(c.generic_email) <> '' AS has_email,
+    (SELECT count(*) FROM contacts k WHERE k.company_id = c.id AND k.email IS NOT NULL AND btrim(k.email) <> '' AND NOT coalesce(k.opted_out, false))::int AS contact_emails, g.opted_out, g.suppressed FROM companies c JOIN lead_gate g ON g.company_id = c.id WHERE c.id = $1`, [companyId]);
   if (!c) throw new Error("Company not found.");
   if (c.opted_out || c.suppressed) throw new Error("This company has opted out or is on your suppression list, so no outreach research is done.");
   let site: SiteFacts | null = null, limits: string[] = [], error: string | null = null;
@@ -89,7 +90,7 @@ export async function runResearch(companyId: number, opts: { web: boolean }): Pr
   else limits.push("There is no website saved for this company, so only the CRM's own details were used.");
   const web = opts.web ? await searchWeb(c, limits) : null;
   if (!opts.web) limits.push("The web search was not run (tick the box to include it).");
-  const findings = deriveFindings(site, { hasDomain: !!c.domain, thisYear: new Date().getFullYear(), storedSocial: { facebook: !!c.facebook_url, instagram: !!c.instagram_url, linkedin: !!c.linkedin_url }, siteError: error });
+  const findings = deriveFindings(site, { hasDomain: !!c.domain, thisYear: new Date().getFullYear(), storedSocial: { facebook: !!c.facebook_url, instagram: !!c.instagram_url, linkedin: !!c.linkedin_url }, siteError: error, email: { generic: !!c.has_email, contacts: Number(c.contact_emails) } });
   const [row] = await query<any>(`INSERT INTO company_research (company_id, domain, site, findings, web, limits) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
     [companyId, c.domain, site ? JSON.stringify(site) : null, JSON.stringify(findings), web ? JSON.stringify(web) : null, JSON.stringify(limits)]);
   await logActivity("company_researched", { company_id: companyId, body: `${findings.filter((f) => f.kind === "gap").length} possible gaps found${site ? ` across ${site.pagesRead.filter((p) => p.ok).length} page(s)` : " (no readable website)"}` });

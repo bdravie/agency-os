@@ -126,3 +126,16 @@ test("an empty reply is reported, not crashed on", () => {
   const { result, warnings } = normaliseSuggestions(null, O);
   assert.equal(result.suggestions.length, 0); assert.match(warnings[0], /No usable suggestion/);
 });
+
+test("a saved email or contact email is noted, as a count only, in every case", () => {
+  const none = deriveFindings(null, ctx({ hasDomain: false }));
+  assert.ok(!none.some((x) => x.title === "An email is already on record"));
+  for (const c of [ctx({ hasDomain: false, email: { generic: true, contacts: 0 } }), ctx({ siteError: "x", email: { generic: true, contacts: 0 } }), ctx({ email: { generic: false, contacts: 2 } })]) {
+    const f = deriveFindings(c.hasDomain && !c.siteError ? merge(BARE) : null, c).find((x) => x.title === "An email is already on record");
+    assert.ok(f, "note present");
+    assert.equal(f.kind, "note");
+    assert.ok(!/@/.test(`${f.detail} ${f.evidence}`), "never contains an address");
+  }
+  const two = deriveFindings(merge(BARE), ctx({ email: { generic: true, contacts: 2 } })).find((x) => x.title === "An email is already on record");
+  assert.match(two.detail, /generic company email and an email for 2 named contacts/);
+});

@@ -94,13 +94,20 @@ export function pickLinks(html: string, host: string, max = 3): string[] {
 // ---------- findings ----------
 export type Area = "Website" | "Enquiries and booking" | "Marketing" | "Social media" | "Reputation";
 export type Finding = { id: string; area: Area; kind: "gap" | "strength" | "note"; severity: "high" | "medium" | "low"; title: string; detail: string; evidence: string };
-export type FindingContext = { hasDomain: boolean; thisYear: number; storedSocial: { facebook: boolean; instagram: boolean; linkedin: boolean }; siteError: string | null };
+export type FindingContext = { hasDomain: boolean; thisYear: number; storedSocial: { facebook: boolean; instagram: boolean; linkedin: boolean }; siteError: string | null;
+  /** Only whether an email is on record, never the address or a person's name: a saved generic company email, and how many named contacts (not opted out) have an email. */
+  email?: { generic: boolean; contacts: number } };
 const SEV = { high: 0, medium: 1, low: 2 } as const;
 
 export function deriveFindings(site: SiteFacts | null, ctx: FindingContext): Finding[] {
   const out: Omit<Finding, "id">[] = [];
   const add = (area: Area, kind: Finding["kind"], severity: Finding["severity"], title: string, detail: string, evidence: string) => out.push({ area, kind, severity, title, detail, evidence });
   const storedAny = ctx.storedSocial.facebook || ctx.storedSocial.instagram || ctx.storedSocial.linkedin;
+  const em = ctx.email;
+  if (em && (em.generic || em.contacts > 0)) {
+    const what = [em.generic && "a generic company email", em.contacts > 0 && `an email for ${em.contacts} named contact${em.contacts === 1 ? "" : "s"}`].filter(Boolean).join(" and ");
+    add("Enquiries and booking", "note", "low", "An email is already on record", `The CRM already holds ${what}, so how to reach them is not the gap. Outreach is still drafted for the owner to send.`, "Saved in the CRM");
+  }
 
   if (!ctx.hasDomain) {
     add("Website", "gap", "high", "No website on record", "There is no website saved for this company. Check with a quick search first: if they really have none, anyone looking for them has nothing of theirs to land on.", "No domain saved in the CRM");
