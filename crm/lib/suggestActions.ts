@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { query } from "./db";
 import { requireLogin } from "./auth";
 import { logActivity } from "./activity";
-import { latestResearch, runResearch } from "./research";
+import { companyChangedSince, latestResearch, runResearch } from "./research";
 import { suggestOffers } from "./offerSuggest";
 
 const FRESH_DAYS = 7;
@@ -18,7 +18,7 @@ export async function researchAction(companyId: number, web: boolean): Promise<O
   catch (err) { return { error: err instanceof Error ? err.message : String(err) }; }
 }
 
-/** Uses Claude credits, so only on click and within a daily cap. Re-uses research under a week old, otherwise researches first. */
+/** Uses Claude credits, so only on click and within a daily cap. Re-uses research under a week old that is still up to date with the company's record, otherwise researches first. */
 export async function suggestAction(companyId: number, web: boolean): Promise<Out> {
   await requireLogin();
   const cap = Number(process.env.SUGGEST_DAILY_CAP ?? 15) || 15;
@@ -26,7 +26,7 @@ export async function suggestAction(companyId: number, web: boolean): Promise<Ou
   if (Number(n) >= cap) return { error: `Daily cap of ${cap} AI suggestions reached. Read the earlier ones, or try again tomorrow.` };
   try {
     let research = await latestResearch(companyId);
-    if (!research || Date.now() - new Date(research.created_at).getTime() > FRESH_DAYS * 86_400_000 || (web && !research.web)) research = await runResearch(companyId, { web });
+    if (!research || Date.now() - new Date(research.created_at).getTime() > FRESH_DAYS * 86_400_000 || (web && !research.web) || await companyChangedSince(companyId, research)) research = await runResearch(companyId, { web });
     const { result, model, warnings } = await suggestOffers(companyId, research);
     await query(`INSERT INTO offer_suggestions (company_id, research_id, model, result) VALUES ($1,$2,$3,$4)`, [companyId, research.id, model, JSON.stringify(result)]);
     await logActivity("offer_suggested", { company_id: companyId, body: `${result.suggestions.length} offer idea${result.suggestions.length === 1 ? "" : "s"} drafted (${model})` });

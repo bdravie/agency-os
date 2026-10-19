@@ -1,7 +1,7 @@
 import { Check, CircleAlert, Lightbulb, ShieldAlert } from "lucide-react";
 import { query } from "@/lib/db";
 import { suggestModel } from "@/lib/llm";
-import { latestResearch } from "@/lib/research";
+import { companyChangedSince, latestResearch } from "@/lib/research";
 import { deleteSuggestionAction, saveToNotesAction } from "@/lib/suggestActions";
 import type { SuggestionResult } from "@/lib/offerSuggestNormalise";
 import type { Area, Finding } from "@/lib/researchAnalysis";
@@ -27,6 +27,7 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
   ]);
   const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'offer_suggested' AND occurred_at::date = current_date`);
   const latest = suggestions[0] as { id: number; model: string; result: SuggestionResult; created_at: Date } | undefined;
+  const stale = research ? await companyChangedSince(companyId, research) : false;
   const byId = new Map((research?.findings ?? []).map((f) => [f.id, f]));
   const gaps = (research?.findings ?? []).filter((f) => f.kind !== "strength"), strengths = (research?.findings ?? []).filter((f) => f.kind === "strength");
 
@@ -35,6 +36,7 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
       <div className="row-between"><h2 style={{ margin: 0 }} className="row"><Lightbulb size={18} aria-hidden /> Offer suggestion</h2>
         <span className="muted">{research ? `Researched ${dateOnly(research.created_at)}${research.domain ? ` · ${research.domain}` : ""}` : "Not researched yet"}</span></div>
       <p className="muted" style={{ margin: "6px 0 12px" }}>Reads their own public website, works out where it may be losing enquiries, and suggests what to automate and what outcome to sell. Nothing is sent or saved to their record without you.</p>
+      {stale && <p role="status" className="muted" style={{ margin: "0 0 12px", color: "var(--warn)" }}>This company&apos;s details were edited after this research ran, so the findings below may be out of date. Run the research again before relying on them.</p>}
       <OfferSuggestionButtons companyId={companyId} model={suggestModel()} usage={{ used: Number(n), cap: Number(process.env.SUGGEST_DAILY_CAP ?? 15) || 15 }}
         search={{ enabled: usage.search.enabled, left: Math.max(0, usage.search.cap - usage.search.used) }} hasSuggestion={!!latest} />
 

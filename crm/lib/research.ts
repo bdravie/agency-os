@@ -74,6 +74,12 @@ export async function latestResearch(companyId: number): Promise<Research | null
   return r ? mapRow(r) : null;
 }
 
+/** True if the company's record was edited after this research ran, e.g. a website or social link added since. The research is a snapshot, so it would still describe the old record. */
+export async function companyChangedSince(companyId: number, r: Research): Promise<boolean> {
+  const [c] = await query<{ changed: boolean }>(`SELECT updated_at > $2::timestamptz AS changed FROM companies WHERE id = $1`, [companyId, r.created_at]);
+  return !!c?.changed;
+}
+
 export async function runResearch(companyId: number, opts: { web: boolean }): Promise<Research> {
   const [c] = await query<any>(`SELECT c.id, c.name, c.domain, c.postcode, c.linkedin_url, c.instagram_url, c.facebook_url, g.opted_out, g.suppressed FROM companies c JOIN lead_gate g ON g.company_id = c.id WHERE c.id = $1`, [companyId]);
   if (!c) throw new Error("Company not found.");
