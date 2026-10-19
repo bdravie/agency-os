@@ -10,6 +10,7 @@ import { gbp } from "@/lib/quote";
 import { ago, dateOnly, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
+import InstagramDm from "@/components/InstagramDm";
 import ComplianceCard from "@/components/ComplianceCard";
 import OfferSuggestionCard from "@/components/OfferSuggestionCard";
 import DecisionMakers from "@/components/DecisionMakers";
@@ -112,6 +113,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             <div style={{ marginTop: 14 }}>
               <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
                 routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
+              {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
             </div>
           </details>
 
