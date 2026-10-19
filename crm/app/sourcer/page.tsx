@@ -5,6 +5,7 @@ import { getBudget } from "@/lib/launch";
 import { creditUsage } from "@/lib/usage";
 import EnrichTab from "@/components/EnrichTab";
 import FindCompanyPanel from "@/components/FindCompanyPanel";
+import { listSavedSearches } from "@/lib/savedSearchActions";
 import SourcerPanel from "@/components/SourcerPanel";
 import "./sourcer.css";
 
@@ -34,8 +35,8 @@ export default async function Sourcer({ searchParams }: { searchParams: Promise<
 }
 
 async function SearchTab() {
-  const [niches, budget, [latest]] = await Promise.all([listNiches(), getBudget(), query<{ id: number }>(`SELECT id FROM sourcer_runs ORDER BY id DESC LIMIT 1`)]);
-  return <SourcerPanel niches={niches} budget={budget} latestRunId={latest ? Number(latest.id) : null} />;
+  const [niches, budget, saved, [latest]] = await Promise.all([listNiches(), getBudget(), listSavedSearches(), query<{ id: number }>(`SELECT id FROM sourcer_runs ORDER BY id DESC LIMIT 1`)]);
+  return <SourcerPanel niches={niches} budget={budget} latestRunId={latest ? Number(latest.id) : null} saved={saved} />;
 }
 
 async function CompanyTab() {

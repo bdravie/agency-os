@@ -111,7 +111,7 @@
 .sx-row { display: grid; grid-template-columns: 26px 140px minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px 18px; }
 .sx-detail { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 22px; min-width: 0; }
 .sx-biz { flex: 1 1 240px; min-width: 0; }
-.sx-figs { display: flex; align-items: center; gap: 20px; flex: 0 0 auto; }
+.sx-figs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; flex: 0 1 auto; max-width: 100%; min-width: 0; }
 .sx-row.off { opacity: 0.55; }
 .sx-row:hover { background: rgba(176, 18, 107, 0.04); }
 .sx-score { display: flex; align-items: center; gap: 10px; }
