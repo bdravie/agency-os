@@ -45,5 +45,5 @@ test("only well-supported links start ticked", () => {
 
 test("manual search links are properly encoded", () => {
   const l = searchLinks("Smith & Sons", "Leeds");
-  assert.equal(l.length, 4); assert.ok(l[0].href.includes("Smith%20%26%20Sons%20Leeds")); assert.ok(l[1].href.includes("site%3Alinkedin.com%2Fcompany"));
+  assert.equal(l.length, 5); assert.ok(l[4].href.includes("site%3Atiktok.com")); assert.ok(l[0].href.includes("Smith%20%26%20Sons%20Leeds")); assert.ok(l[1].href.includes("site%3Alinkedin.com%2Fcompany"));
 });

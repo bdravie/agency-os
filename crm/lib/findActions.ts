@@ -102,7 +102,7 @@ export type AutoResult = {
  * The Contact details auto-search. Free: guesses the website (it must prove it is theirs), reads the site for its social pages, generic email and contact page.
  * Paid: also searches the web (1 search credit, inside your daily cap) for what guessing can't find. It only suggests; you check the boxes and click Save.
  */
-export async function autoSearchAction(companyId: number, current: Record<string, string>, paid: boolean): Promise<AutoResult> {
+export async function autoSearchAction(companyId: number, current: Record<string, string>, paid: boolean, socialSearch = false): Promise<AutoResult> {
   await requireLogin();
   const [c] = await query<{ name: string; postcode: string | null; company_number: string | null; opted_out: boolean; suppressed: boolean }>(
     `SELECT c.name, c.postcode, c.company_number, g.opted_out, g.suppressed FROM companies c JOIN lead_gate g ON g.company_id = c.id WHERE c.id = $1`, [companyId]);
@@ -110,7 +110,7 @@ export async function autoSearchAction(companyId: number, current: Record<string
   if (c.opted_out || c.suppressed) return { error: "This company has opted out or is on your suppression list, so nothing is searched for it." };
   const pasted = ["domain", "linkedin_url", "instagram_url", "facebook_url", "contact_url"].map((k) => String(current[k] ?? "").slice(0, 300)).filter(Boolean).join("\n");   // what you already have counts as given
   let found: Found;
-  try { found = await findCompanyOnline({ name: c.name, place: c.postcode ?? "", pasted, web: paid, knownNumber: c.company_number }); }
+  try { found = await findCompanyOnline({ name: c.name, place: c.postcode ?? "", pasted, web: paid, socialSearch: paid && socialSearch, knownNumber: c.company_number }); }
   catch (e) { return { error: e instanceof Error ? e.message : "The search failed." }; }
   const fields: AutoResult["fields"] = {};
   const set = (k: AutoField, value: string | null | undefined, t: { confidence: string; how: string }) => { if (value) fields[k] = { value, confidence: t.confidence, how: t.how }; };

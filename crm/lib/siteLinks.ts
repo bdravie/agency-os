@@ -3,13 +3,14 @@
 const STOP = new Set(["ltd", "limited", "llp", "plc", "uk", "the", "and", "group", "company", "co", "services", "holdings"]);
 
 /** The meaningful words of a company name. Apostrophes are dropped, not turned into spaces, so "Women's" stays one word. */
-export const nameWords = (name: string) => name.toLowerCase().replace(/\(.*?\)/g, " ").replace(/['’`]/g, "").replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && !STOP.has(w));
+export const nameWords = (name: string, keepAnd = false) => name.toLowerCase().replace(/\(.*?\)/g, " ").replace(/['’`]/g, "").replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && (!STOP.has(w) || (keepAnd && w === "and")));
 
 /** Domain stems for a name, e.g. "London Women's Clinic" -> londonwomensclinic, london-womens-clinic, londonwomens. */
 export function domainBases(name: string): string[] {
   const w = nameWords(name);
   if (w.length === 0) return [];
-  return [...new Set([w.join(""), w.join("-"), w.length > 2 ? w.slice(0, 2).join("") : ""].filter((b) => b.length >= 3))];
+  const withAnd = nameWords(name, true);   // "FHA Building and Roofing" is often fhabuildingandroofing, not fhabuildingroofing
+  return [...new Set([w.join(""), withAnd.join(""), w.join("-"), withAnd.join("-"), w.length > 2 ? w.slice(0, 2).join("") : ""].filter((b) => b.length >= 3))];
 }
 
 export type SocialCandidates = { instagram: string[]; facebook: string[]; linkedin: string[]; tiktok: string[]; youtube: string[]; x: string[] };
@@ -53,3 +54,6 @@ export function pageNamesCompany(html: string, name: string): boolean {
   const full = nameWords(name).join(" ");
   return full.length >= 5 && ` ${pageText(html)} `.includes(` ${full} `);
 }
+
+/** The second, social-focused web search: the quoted name and area plus the platform names, so profiles rank above directories. */
+export const socialSearchQuery = (name: string, area: string) => `"${name.replace(/"/g, "")}"${area ? ` ${area}` : ""} instagram tiktok facebook`;

@@ -8,6 +8,7 @@ import { creditUsage } from "./usage";
 import { searchLinks, rankCandidates, trust, type FoundLink, type LinkKind, type Ranked } from "./findRank";
 import { safeDomain } from "./websites";
 import { postcodeDistrict } from "./apifyMath";
+import { socialSearchQuery } from "./siteLinks.ts";
 
 // "Find one company": type a name and get its closest website and social pages, checked against Companies House. Free by default; the web search is opt-in and uses your search credits.
 // Nothing is saved here. Company pages only: personal profiles are never kept.
@@ -23,7 +24,7 @@ export type Found = {
 export type Extra = { kind: "tiktok" | "youtube" | "x"; value: string; confidence: string; how: string };
 const SOCIAL_OR_SEARCH = /(^|\.)(linkedin|facebook|fb|instagram|twitter|x|youtube|tiktok|google|bing|yell|companieshouse|company-information\.service\.gov)\./i;
 
-export async function findCompanyOnline(i: { name: string; place: string; pasted: string; web: boolean; knownNumber?: string | null }): Promise<Found> {
+export async function findCompanyOnline(i: { name: string; place: string; pasted: string; web: boolean; socialSearch?: boolean; knownNumber?: string | null }): Promise<Found> {
   const { name, place } = i;
   const notes: string[] = [];
   const links: FoundLink[] = [];
@@ -59,6 +60,17 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
         webRan = true; webResults = raw.length; picks = pickFromResults(raw, name);
         await logActivity("search_lookup", { channel: "search", body: `Find one company: ${name}` });
         hits = raw.slice(0, 6).map((h) => { let host = ""; try { host = new URL(h.url).hostname.replace(/^www\./, ""); } catch { /* skip */ } return { title: h.title.slice(0, 120), host, snippet: (h.description ?? "").replace(/<[^>]+>/g, "").slice(0, 200) }; }).filter((h) => h.host);
+        // Optional second search (1 more credit) aimed at social profiles, only if the first one left Instagram, Facebook or TikTok missing.
+        if (i.socialSearch && picks && (!picks.instagram || !picks.facebook || !picks.tiktok)) {
+          if (usage.search.used + 2 > usage.search.cap) notes.push("The extra social search wasn't run: it needs 1 more search and today's cap would be exceeded.");
+          else {
+            const raw2 = await braveSearch(socialSearchQuery(name, area));
+            webResults += raw2.length; await logActivity("search_lookup", { channel: "search", body: `Find one company (social search): ${name}` });
+            const p2 = pickFromResults(raw2, name);
+            picks = { ...picks, linkedin: picks.linkedin ?? p2.linkedin, instagram: picks.instagram ?? p2.instagram, facebook: picks.facebook ?? p2.facebook, tiktok: picks.tiktok ?? p2.tiktok };
+            notes.push(`The extra social search ran (${raw2.length} results).`);
+          }
+        }
       } catch (e) { notes.push(`The web search failed: ${(e instanceof Error ? e.message : "unknown error").replace(/\.$/, "")}.`); }
     }
   }
@@ -77,7 +89,7 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
     }
     if (!links.some((l) => l.kind === "website")) add("website", picks.websites[0], trust.fromSearch(null));
   }
-  if (!links.some((l) => l.kind === "website")) notes.push("No website found by guessing from the name. Paste it above, or use the search links below.");
+  if (!links.some((l) => l.kind === "website")) notes.push("No website found: none of the likely addresses for this name exist or show their name, so they may not have one. Without a website there is nothing to read their social pages from. Run the web search, or use the search links and paste what you find.");
 
   // 5. Read the website (free): social pages it links to, and generic emails.
   let emails: string[] = [], contactUrl: string | null = null, pagesRead = 0, signals: Record<string, boolean> | null = null;

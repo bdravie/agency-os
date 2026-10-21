@@ -57,3 +57,15 @@ test("a page proves it is the company even when the name is only in the title, m
   assert.equal(pageNamesCompany(`<script>var n="london womens clinic"</script><p>hi</p>`, "London Women's Clinic Limited"), false);   // scripts that aren't JSON-LD don't count
   assert.equal(decodeEntities("Women&#39;s &rsquo;"), "Women's '");
 });
+
+test("a name with 'and' also tries the 'and' spelling, and the 'and' is kept only for those variants", () => {
+  const b = domainBases("FHA Building and Roofing Limited");
+  assert.ok(b.includes("fhabuildingandroofing") && b.includes("fhabuildingroofing") && b.includes("fha-building-and-roofing"));
+  assert.deepEqual(nameWords("FHA Building & Roofing Ltd"), ["fha", "building", "roofing"]);
+});
+
+import { socialSearchQuery } from "../lib/siteLinks.ts";
+test("the social search names the platforms and keeps the name in quotes", () => {
+  assert.equal(socialSearchQuery("Fha Building And Roofing Ltd", "BB1"), '"Fha Building And Roofing Ltd" BB1 instagram tiktok facebook');
+  assert.equal(socialSearchQuery('A "B" Ltd', ""), '"A B Ltd" instagram tiktok facebook');
+});

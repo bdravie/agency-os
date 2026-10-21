@@ -29,6 +29,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
   const [verified, setVerified] = useState(company.domain_verified ?? "");
   const [signals, setSignals] = useState(company.site_signals);
   const [paste, setPaste] = useState("");
+  const [social, setSocial] = useState(false);
   const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
@@ -120,7 +121,8 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
           <button type="button" className="secondary" style={{ alignSelf: "flex-start" }} onClick={() => {
             const x = extractFromText(paste, f.domain || null);
             const filled = fill({ generic_email: x.emails[0], linkedin_url: x.linkedin ?? undefined, instagram_url: x.instagram ?? undefined, facebook_url: x.facebook ?? undefined, domain: x.websites[0], phone: x.phones[0] });
-            setNote({ text: filled.length ? `Filled: ${filled.join(", ")}. Check them, then click Save.` : "Nothing new found in that text." });
+            if (x.tiktok) setAuto((a) => ({ lines: a?.lines ?? [], notes: a?.notes ?? [], web: a?.web ?? null, more: a?.more ?? [], extras: [...(a?.extras ?? []).filter((e) => e.kind !== "tiktok"), { kind: "tiktok", value: x.tiktok!, confidence: "high", how: "from the text you pasted" }] }));
+            setNote({ text: filled.length || x.tiktok ? `Filled: ${[...filled, ...(x.tiktok ? ["TikTok (use the Add button below)"] : [])].join(", ")}. Check them, then click Save.` : "Nothing new found in that text." });
           }}>Fill the boxes</button>
         </div>
       </details>
@@ -138,11 +140,12 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
       <div className="paid">
         <div className="field-label">Uses credits · only when you click</div>
         <div className="row">
-          <button type="button" disabled={!!busy || !usage.search.enabled || usage.search.used >= usage.search.cap} onClick={() => run("autopaid", async () => applyAuto(await autoSearchAction(company.id, f, true)))}>
+          <button type="button" disabled={!!busy || !usage.search.enabled || usage.search.used >= usage.search.cap} onClick={() => run("autopaid", async () => applyAuto(await autoSearchAction(company.id, f, true, social)))}>
             <Sparkles size={15} aria-hidden /> {busy === "autopaid" ? "Searching the web… (up to 30 seconds)" : "Auto-search with web search"}
           </button>
           <span className="muted">{usage.search.enabled ? `Does everything above, plus a web search for the website and social pages guessing can't find · 1 search credit · ${usage.search.used} of ${usage.search.cap} used today` : "Switched off: add SEARCH_API_KEY (Brave Search) to .env to enable"}</span>
         </div>
+        <label className="row muted" style={{ gap: 6, marginTop: 8 }}><input type="checkbox" checked={social} onChange={(e) => setSocial(e.target.checked)} disabled={usage.search.cap - usage.search.used < 2} /> Also run a second search aimed at Instagram, Facebook and TikTok if the first misses them (1 more search credit; use it for businesses with no website)</label>
         <div className="row" style={{ marginTop: 8 }}>
           <button type="button" className="secondary" disabled={!!busy || usage.places.used >= usage.places.cap} onClick={() => run("places", async () => {
             const r = await suggestPlacesAction(company.id);

@@ -1,4 +1,5 @@
 import { normaliseDomain } from "./csv";
+import { normaliseTiktok } from "./contactMethods.ts";
 
 // Company-level contact routes only. No personal LinkedIn profiles, no named people's emails.
 // Pure functions, shared by the server actions and the forms.
@@ -61,7 +62,7 @@ export const normaliseWebsite = (input: string | null | undefined): Result => {
 
 /** Pull generic emails, company social pages, websites and phone numbers out of pasted text. */
 export function extractFromText(text: string, ownDomain?: string | null) {
-  const out = { emails: [] as string[], linkedin: null as string | null, instagram: null as string | null, facebook: null as string | null, websites: [] as string[], phones: [] as string[] };
+  const out = { emails: [] as string[], linkedin: null as string | null, instagram: null as string | null, facebook: null as string | null, websites: [] as string[], phones: [] as string[], tiktok: null as string | null };
   for (const e of text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []) {
     const r = normaliseEmail(e);
     if (r.value && !out.emails.includes(r.value)) out.emails.push(r.value);
@@ -70,6 +71,7 @@ export function extractFromText(text: string, ownDomain?: string | null) {
     const h = host(asUrl(m) ?? new URL("https://x.invalid"));
     if (h === "linkedin.com") { const r = normaliseSocial("linkedin", m); if (r.value && !out.linkedin) out.linkedin = r.value; }
     else if (h === "instagram.com") { const r = normaliseSocial("instagram", m); if (r.value && !out.instagram) out.instagram = r.value; }
+    else if (h === "tiktok.com") { const r = normaliseTiktok(m); if (r.value && !out.tiktok) out.tiktok = r.value; }
     else if (h === "facebook.com" || h === "fb.com") { const r = normaliseSocial("facebook", m); if (r.value && !out.facebook) out.facebook = r.value; }
     else if (!/@/.test(m) && !/\.(png|jpg|jpeg|gif|svg|css|js)$/i.test(m)) {
       const d = normaliseDomain(m);
@@ -95,6 +97,7 @@ export function searchLinks(c: { name: string; postcode?: string | null; company
     { label: "LinkedIn page", hint: "Company page only, not people", href: g(`"${name}" site:linkedin.com/company`) },
     { label: "Instagram", hint: "Business profile", href: g(`"${name}" site:instagram.com`) },
     { label: "Facebook page", hint: "Business Page", href: g(`"${name}" site:facebook.com`) },
+    { label: "TikTok", hint: "Business account", href: g(`"${name}" site:tiktok.com`) },
     { label: "Their ads", hint: "Meta Ad Library: do they run ads?", href: `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=GB&q=${q(name)}&search_type=keyword_unordered` },
     { label: "Google Maps", hint: "Phone, reviews, website", href: `https://www.google.com/maps/search/${q(`${name} ${c.postcode ?? ""}`.trim())}` },
     ...(c.company_number ? [{ label: "Companies House", hint: "Filings and accounts", href: `https://find-and-update.company-information.service.gov.uk/company/${c.company_number}` }] : []),

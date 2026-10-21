@@ -60,5 +60,6 @@ export function searchLinks(name: string, place: string): { label: string; href:
     { label: "LinkedIn company page", href: `https://www.google.com/search?q=${enc(`${q} site:linkedin.com/company`)}` },
     { label: "Instagram", href: `https://www.google.com/search?q=${enc(`${q} site:instagram.com`)}` },
     { label: "Facebook page", href: `https://www.google.com/search?q=${enc(`${q} site:facebook.com`)}` },
+    { label: "TikTok", href: `https://www.google.com/search?q=${enc(`${q} site:tiktok.com`)}` },
   ];
 }

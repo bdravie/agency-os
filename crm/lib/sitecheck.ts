@@ -10,7 +10,7 @@ const words = nameWords;
 
 /** A handful of likely domains for a company name, e.g. "Pluto Creative Labs" -> plutocreativelabs.co.uk, pluto-creative-labs.com… */
 export function candidateDomains(name: string): string[] {
-  return domainBases(name).flatMap((b) => [".co.uk", ".com", ".uk"].map((t) => `${b}${t}`)).filter(safeDomain).slice(0, 9);
+  return domainBases(name).flatMap((b) => [".co.uk", ".com", ".uk"].map((t) => `${b}${t}`)).filter(safeDomain).slice(0, 15);
 }
 
 export async function fetchPage(domain: string, path = "/"): Promise<string | null> {
