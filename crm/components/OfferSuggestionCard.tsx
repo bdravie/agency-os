@@ -10,6 +10,7 @@ import { creditUsage } from "@/lib/usage";
 import CopyButton from "./CopyButton";
 import OfferSuggestionButtons from "./OfferSuggestionButtons";
 import ToastForm from "./ToastForm";
+import AddToDealsButton from "./AddToDealsButton";
 import { Pill } from "./ui";
 
 const AREAS: Area[] = ["Website", "Enquiries and booking", "Marketing", "Social media", "Reputation"];
@@ -57,7 +58,7 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
                 <dt className="muted">Watch out</dt><dd style={{ margin: 0 }}>{s.risk}</dd>
                 <dt className="muted">Based on</dt><dd style={{ margin: 0 }} className="muted">{s.finding_ids.map((id) => byId.get(id)?.title ?? id).join(" · ") || "no finding (a guess)"}</dd>
               </dl>
-              <ToastForm action={saveToNotesAction} success="Added to the company notes" className="row" style={{ marginTop: 8 }}><input type="hidden" name="id" value={latest.id} /><input type="hidden" name="index" value={i} /><button className="link">Add to notes</button></ToastForm>
+              <ToastForm action={saveToNotesAction} success="Added to the company notes" className="row" style={{ marginTop: 8 }}><input type="hidden" name="id" value={latest.id} /><input type="hidden" name="index" value={i} /><AddToDealsButton suggestionId={latest.id} index={i} /><button className="link">Add to notes</button></ToastForm>
             </div>
           ))}
           {latest.result.opener && <div><div className="field-label">A true opening line</div><p style={{ margin: "4px 0 0" }}>{latest.result.opener}</p></div>}

@@ -105,7 +105,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
               <ul className="timeline">{activity.map((a: any) => (
                 <li key={a.id}>
                   <span className="tl-dot"><ActivityIcon type={a.type} /></span>
-                  <div><div className="tl-title">{activityLabel(a.type)}</div>{a.body && <div className="muted">{a.body}</div>}<div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div></div>
+                  <div><div className="tl-title">{activityLabel(a.type)}</div>{a.body && <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{a.body}</div>}<div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div></div>
                 </li>
               ))}</ul>
             )}
