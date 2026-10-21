@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ExternalLink, Search, Sparkles } from "lucide-react";
 import { saveContactDetails, suggestPlacesAction } from "@/lib/actions";
 import { addContactMethodAction } from "@/lib/contactMethodActions";
+import ContactMethods, { EMPTY_DRAFT, type MethodDraft, type SavedMethod } from "./ContactMethods";
 import { methodLabel } from "@/lib/contactMethods";
 import { autoSearchAction, type AutoField, type AutoResult } from "@/lib/findActions";
 import { extractFromText, searchLinks } from "@/lib/contact";
@@ -20,7 +21,7 @@ export type ContactCompany = {
 const SIGNAL_LABELS: Record<string, string> = { runs_ads: "Runs ads", meta_pixel: "Meta Pixel", google_ads: "Google Ads tag", ga4: "GA4", linkedin_insight: "LinkedIn Insight", tiktok_pixel: "TikTok pixel", hubspot: "HubSpot" };
 
 // The boxes for a company's contact routes, with free searches, a paste helper and clearly labelled paid options.
-export default function ContactDetailsForm({ company, usage, compact, onSaved }: { company: ContactCompany; usage: Usage; compact?: boolean; onSaved?: () => void }) {
+export default function ContactDetailsForm({ company, usage, compact, onSaved, methods }: { company: ContactCompany; usage: Usage; compact?: boolean; onSaved?: () => void; methods?: SavedMethod[] }) {
   const toast = useToast();
   const [f, setF] = useState({
     domain: company.domain ?? "", generic_email: company.generic_email ?? "", phone: company.phone ?? "", linkedin_url: company.linkedin_url ?? "",
@@ -30,6 +31,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
   const [signals, setSignals] = useState(company.site_signals);
   const [paste, setPaste] = useState("");
   const [social, setSocial] = useState(false);
+  const [draft, setDraft] = useState<MethodDraft>(EMPTY_DRAFT);
   const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
@@ -45,6 +47,23 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
     return filled;
   }
   const run = (label: string, job: () => Promise<void>) => { setBusy(label); setNote(null); start(async () => { try { await job(); } finally { setBusy(null); } }); };
+
+  /** Save also adds what you typed under "More contact methods" and any TikTok/YouTube/X the search or paste found, so nothing you entered is left behind. Those go first: if one is refused, nothing is saved and the reason is shown. */
+  async function saveAll(fd: FormData) {
+    // Text left in the paste box counts as an input too: it fills boxes that are still empty, exactly as "Fill the boxes" would.
+    let pastedTiktok: string | null = null;
+    if (paste.trim()) {
+      const x = extractFromText(paste, f.domain || null); pastedTiktok = x.tiktok;
+      const fill1 = (name: string, v: string | null | undefined) => { if (v && !String(fd.get(name) ?? "").trim()) fd.set(name, v); };
+      fill1("generic_email", x.emails[0]); fill1("linkedin_url", x.linkedin); fill1("instagram_url", x.instagram); fill1("facebook_url", x.facebook); fill1("domain", x.websites[0]); fill1("phone", x.phones[0]);
+    }
+    if (methods) {
+      const pending = [...(draft.value.trim() ? [{ kind: draft.kind, value: draft.value, note: draft.note, source: "manual" as const }] : []), ...(auto?.extras ?? []).filter((x) => x.value !== pastedTiktok).map((x) => ({ kind: x.kind, value: x.value, note: "", source: "auto-search" as const })), ...(pastedTiktok ? [{ kind: "tiktok", value: pastedTiktok, note: "", source: "manual" as const }] : [])];
+      for (const p of pending) { const r = await addContactMethodAction(company.id, p.kind, p.value, p.note, p.source); if (r.error && !/already saved/.test(r.error)) return { error: `${methodLabel(p.kind)}: ${r.error}` }; }
+      if (pending.length) { setPaste(""); setDraft(EMPTY_DRAFT); setAuto((a) => a && { ...a, extras: [] }); }
+    }
+    return saveContactDetails(fd);
+  }
 
   const LABEL: Record<AutoField, string> = { domain: "Website", generic_email: "Email", linkedin_url: "LinkedIn", instagram_url: "Instagram", facebook_url: "Facebook", contact_url: "Contact page" };
   const [auto, setAuto] = useState<{ lines: { label: string; value: string; confidence: string; how: string; used: boolean }[]; notes: string[]; web: string | null; more: string[]; extras: { kind: string; value: string; confidence: string; how: string }[] } | null>(null);
@@ -65,7 +84,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
   }
 
   return (
-    <div className="stack" style={{ gap: 14 }}>
+    <ToastForm action={saveAll} success="Contact details saved" onDone={onSaved} className="stack" style={{ gap: 14 }}>
       <div>
         <div className="field-label">Search by hand · free</div>
         <div className="pills">
@@ -75,7 +94,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
         </div>
       </div>
 
-      <ToastForm action={saveContactDetails} success="Contact details saved" onDone={onSaved} className="stack" style={{ gap: 10 }}>
+      <div className="stack" style={{ gap: 10 }}>
         <input type="hidden" name="company_id" value={company.id} />
         <input type="hidden" name="domain_verified" value={verified} />
         <div className={compact ? "contact-grid compact" : "contact-grid"}>
@@ -103,8 +122,8 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
           </label>
         </div>
         <p className="muted" style={{ margin: 0 }}>Company pages and generic inboxes only. Personal LinkedIn profiles and named people&apos;s emails are refused.</p>
-        <div className="row"><button>Save contact details</button></div>
-      </ToastForm>
+        {methods && <ContactMethods companyId={company.id} methods={methods} draft={draft} onDraft={setDraft} />}
+      </div>
 
       {signals && (
         <div className="row" style={{ gap: 6 }} aria-label="Signals from their website">
@@ -186,7 +205,11 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
       )}
 
       {note && <p className={note.bad ? "error" : "muted"} role={note.bad ? "alert" : "status"} style={{ margin: 0 }}>{note.text}</p>}
-    </div>
+      <div className="row" style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+        <button>Save contact details</button>
+        <span className="muted">Saves everything above: the boxes, anything typed under More contact methods, text in the paste box, and any TikTok, YouTube or X the search found.</span>
+      </div>
+    </ToastForm>
   );
 }
 

@@ -8,11 +8,15 @@ import { METHOD_KINDS, methodHref, methodLabel } from "@/lib/contactMethods";
 import { useToast } from "./Toast";
 
 export type SavedMethod = { id: number; kind: string; value: string; note: string | null };
+export type MethodDraft = { kind: string; value: string; note: string };
+export const EMPTY_DRAFT: MethodDraft = { kind: "tiktok", value: "", note: "" };
 
 // More ways to reach a company than the main boxes hold: TikTok and other social pages, a second email or phone, WhatsApp. Pick the type, then add.
-export default function ContactMethods({ companyId, methods }: { companyId: number; methods: SavedMethod[] }) {
+// The typed-in entry is controlled by the parent, so the form's Save button can save it too.
+export default function ContactMethods({ companyId, methods, draft, onDraft }: { companyId: number; methods: SavedMethod[]; draft: MethodDraft; onDraft: (d: MethodDraft) => void }) {
   const toast = useToast(), router = useRouter();
-  const [kind, setKind] = useState("tiktok"), [value, setValue] = useState(""), [note, setNote] = useState("");
+  const { kind, value, note } = draft;
+  const setKind = (k: string) => onDraft({ ...draft, kind: k }), setValue = (v: string) => onDraft({ ...draft, value: v }), setNote = (n: string) => onDraft({ ...draft, note: n });
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const groups = [...new Set(METHOD_KINDS.map((m) => m.group))];
@@ -22,7 +26,7 @@ export default function ContactMethods({ companyId, methods }: { companyId: numb
     setError(null);
     const r = await addContactMethodAction(companyId, kind, value, note);
     if (r.error) { setError(r.error); return; }
-    setValue(""); setNote(""); toast(`${methodLabel(kind)} added`); router.refresh();
+    onDraft({ ...draft, value: "", note: "" }); toast(`${methodLabel(kind)} added`); router.refresh();
   });
   const remove = (id: number) => start(async () => {
     const fd = new FormData(); fd.set("id", String(id));

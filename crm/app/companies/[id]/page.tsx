@@ -18,7 +18,6 @@ import { apolloStatusAction, contactClearOptOutAction, contactOptOutAction } fro
 import { loadGate } from "@/lib/complianceGate";
 import StatusStepper from "@/components/StatusStepper";
 import ContactDetailsForm from "@/components/ContactDetailsForm";
-import ContactMethods from "@/components/ContactMethods";
 import AuditsCard from "@/components/AuditsCard";
 import CallsCard from "@/components/CallsCard";
 import { creditUsage } from "@/lib/usage";
@@ -92,9 +91,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                   linkedin_url: company.linkedin_url, instagram_url: company.instagram_url, facebook_url: company.facebook_url, contact_url: company.contact_url,
                   domain_verified: company.domain_verified, site_signals: company.site_signals }}
                 usage={usage}
+                methods={methods.map((m: any) => ({ id: Number(m.id), kind: m.kind, value: m.value, note: m.note }))}
               />
             </div>
-            <div style={{ marginTop: 14 }}><ContactMethods companyId={id} methods={methods.map((m: any) => ({ id: Number(m.id), kind: m.kind, value: m.value, note: m.note }))} /></div>
           </details>
 
           <section className="card">
