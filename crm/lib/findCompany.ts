@@ -16,15 +16,19 @@ export type Found = {
   name: string; place: string; ch: { ranked: Ranked[]; best: Ranked | null; error: string | null }; links: FoundLink[]; emails: string[]; contactUrl: string | null; pagesRead: number;
   hits: WebHit[]; webRan: boolean; existing: { id: number; name: string } | null; searchLinks: { label: string; href: string }[]; notes: string[];
   signals: Record<string, boolean> | null;
+  extras: Extra[];
   web: { ran: boolean; results: number; matched: string[]; query: string | null };
 };
 
+export type Extra = { kind: "tiktok" | "youtube" | "x"; value: string; confidence: string; how: string };
 const SOCIAL_OR_SEARCH = /(^|\.)(linkedin|facebook|fb|instagram|twitter|x|youtube|tiktok|google|bing|yell|companieshouse|company-information\.service\.gov)\./i;
 
 export async function findCompanyOnline(i: { name: string; place: string; pasted: string; web: boolean; knownNumber?: string | null }): Promise<Found> {
   const { name, place } = i;
   const notes: string[] = [];
   const links: FoundLink[] = [];
+  const extras: Extra[] = [];
+  const addExtra = (kind: Extra["kind"], value: string | null | undefined, t: { confidence: string; how: string }) => { if (value && !extras.some((x) => x.kind === kind)) extras.push({ kind, value, ...t }); };
   const add = (kind: LinkKind, value: string | null | undefined, t: { confidence: FoundLink["confidence"]; how: string }) => { if (value && !links.some((l) => l.kind === kind)) links.push({ kind, value, ...t }); };
 
   // 1. Companies House (free): who is this legally?
@@ -83,9 +87,10 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
     if (f) {
       pagesRead = f.pages; emails = f.emails.slice(0, 3); contactUrl = f.contact_url; signals = f.signals;
       add("linkedin", f.linkedin, trust.linkedFromSite()); add("instagram", f.instagram, trust.linkedFromSite()); add("facebook", f.facebook, trust.linkedFromSite());
+      for (const k of ["tiktok", "youtube", "x"] as const) addExtra(k, f[k], trust.linkedFromSite());
     } else notes.push("Their website couldn't be read (it may block automated readers).");
   }
-  if (picks) { add("linkedin", picks.linkedin, trust.fromSearch(null)); add("instagram", picks.instagram, trust.fromSearch(null)); add("facebook", picks.facebook, trust.fromSearch(null)); }
+  if (picks) { addExtra("tiktok", picks.tiktok, trust.fromSearch(null)); add("linkedin", picks.linkedin, trust.fromSearch(null)); add("instagram", picks.instagram, trust.fromSearch(null)); add("facebook", picks.facebook, trust.fromSearch(null)); }
   if (!links.some((l) => l.kind === "linkedin" || l.kind === "instagram" || l.kind === "facebook")) notes.push("No social pages found yet. Social platforms block automated reading, so use the search links below and paste what you find.");
 
   // 6. Is it already in the CRM?
@@ -93,6 +98,6 @@ export async function findCompanyOnline(i: { name: string; place: string; pasted
   const [existing] = await query<{ id: number; name: string }>(
     `SELECT id, name FROM companies WHERE ($1::text IS NOT NULL AND company_number = $1) OR ($2::text IS NOT NULL AND lower(domain) = $2) OR lower(name) = lower($3) ORDER BY id LIMIT 1`, [chNumber, dom, name]);
 
-  return { name, place, ch: { ranked, best, error: chError }, links, emails, contactUrl, pagesRead, hits, webRan, existing: existing ? { id: Number(existing.id), name: existing.name } : null, searchLinks: searchLinks(name, place), notes, signals,
-    web: { ran: webRan, results: webResults, matched: picks ? (["website", "linkedin", "instagram", "facebook"] as const).filter((k) => (k === "website" ? picks!.websites.length > 0 : !!picks![k])) : [], query: webQuery } };
+  return { name, place, ch: { ranked, best, error: chError }, links, emails, contactUrl, pagesRead, hits, webRan, existing: existing ? { id: Number(existing.id), name: existing.name } : null, searchLinks: searchLinks(name, place), notes, signals, extras,
+    web: { ran: webRan, results: webResults, matched: picks ? (["website", "linkedin", "instagram", "facebook", "tiktok"] as const).filter((k) => (k === "website" ? picks!.websites.length > 0 : !!picks![k])) : [], query: webQuery } };
 }

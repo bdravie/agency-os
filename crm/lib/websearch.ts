@@ -1,5 +1,6 @@
 import { normaliseSocial } from "./contact";
 import { normaliseDomain } from "./csv";
+import { normaliseMethod } from "./contactMethods.ts";
 
 // Optional web search (Brave Search API). Uses search credits, so it only runs when you click, within a daily cap.
 export type Hit = { url: string; title: string; description?: string };
@@ -24,7 +25,7 @@ const DIRECTORIES = ["companieshouse", "company-information.service.gov.uk", "en
 
 /** Pick company-level social pages and likely websites out of search results. Suggestions only: you check them and save. */
 export function pickFromResults(hits: Hit[], name: string) {
-  const out = { linkedin: null as string | null, instagram: null as string | null, facebook: null as string | null, websites: [] as string[] };
+  const out = { linkedin: null as string | null, instagram: null as string | null, facebook: null as string | null, tiktok: null as string | null, websites: [] as string[] };
   const key = name.toLowerCase().replace(/\b(limited|ltd\.?|llp|plc)\b/g, "").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length > 2);
   const relevant = (h: Hit) => key.some((w) => `${h.title} ${h.url}`.toLowerCase().includes(w));
   for (const h of hits) {
@@ -34,6 +35,7 @@ export function pickFromResults(hits: Hit[], name: string) {
       const r = normaliseSocial(kind, h.url);
       if (r.value) out[kind] = r.value;
     }
+    if (!out.tiktok) { const t = /tiktok\.com/i.test(h.url) ? normaliseMethod("tiktok", h.url) : null; if (t?.value) out.tiktok = t.value; }
     const d = normaliseDomain(h.url);
     if (d && !DIRECTORIES.some((x) => d.includes(x)) && !out.websites.includes(d) && out.websites.length < 3) out.websites.push(d);
   }

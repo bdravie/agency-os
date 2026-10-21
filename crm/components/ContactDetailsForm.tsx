@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { ExternalLink, Search, Sparkles } from "lucide-react";
 import { saveContactDetails, suggestPlacesAction } from "@/lib/actions";
+import { addContactMethodAction } from "@/lib/contactMethodActions";
+import { methodLabel } from "@/lib/contactMethods";
 import { autoSearchAction, type AutoField, type AutoResult } from "@/lib/findActions";
 import { extractFromText, searchLinks } from "@/lib/contact";
 import type { Usage } from "@/lib/usage";
@@ -44,7 +46,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
   const run = (label: string, job: () => Promise<void>) => { setBusy(label); setNote(null); start(async () => { try { await job(); } finally { setBusy(null); } }); };
 
   const LABEL: Record<AutoField, string> = { domain: "Website", generic_email: "Email", linkedin_url: "LinkedIn", instagram_url: "Instagram", facebook_url: "Facebook", contact_url: "Contact page" };
-  const [auto, setAuto] = useState<{ lines: { label: string; value: string; confidence: string; how: string; used: boolean }[]; notes: string[]; web: string | null; more: string[] } | null>(null);
+  const [auto, setAuto] = useState<{ lines: { label: string; value: string; confidence: string; how: string; used: boolean }[]; notes: string[]; web: string | null; more: string[]; extras: { kind: string; value: string; confidence: string; how: string }[] } | null>(null);
 
   /** Runs the auto-search, puts what it found into EMPTY boxes only, and explains each value. Nothing is saved until you click Save. */
   function applyAuto(r: AutoResult) {
@@ -57,7 +59,7 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
     if (r.signals) setSignals(r.signals);
     const w = r.web, firstEmail = r.fields?.generic_email?.value;
     const web = w?.ran ? `Web search ran: ${w.results} result${w.results === 1 ? "" : "s"}${w.matched.length ? `, matched ${w.matched.join(", ")}` : ", nothing matched this company"}${w.query ? ` (searched ${w.query})` : ""}.` : null;
-    setAuto({ lines, notes: r.notes ?? [], web, more: (r.emails ?? []).filter((e) => e !== firstEmail) });
+    setAuto({ lines, notes: r.notes ?? [], web, more: (r.emails ?? []).filter((e) => e !== firstEmail), extras: r.extras ?? [] });
     setNote({ text: lines.some((l) => l.used) ? "Filled the empty boxes below. Check them, then click Save." : lines.length ? "Found things, but your boxes already have values, so nothing was changed." : "Nothing new found." });
   }
 
@@ -161,6 +163,16 @@ export default function ContactDetailsForm({ company, usage, compact, onSaved }:
               <b style={{ minWidth: 100 }}>{l.label}</b><span>{l.value.replace(/^https?:\/\/(www\.)?/, "")}</span>
               <span className={`badge tone-${l.confidence === "high" ? "good" : l.confidence === "medium" ? "good" : "warn"}`}>{l.confidence} confidence</span>
               <span className="muted">{l.how}{l.used ? "" : " · not used: that box already has a value"}</span>
+            </div>
+          ))}
+          {auto.extras.map((x) => (
+            <div key={x.kind} className="row" style={{ gap: 8 }}>
+              <b style={{ minWidth: 100 }}>{methodLabel(x.kind)}</b><span>{x.value.replace(/^https?:\/\/(www\.)?/, "")}</span>
+              <span className="badge tone-good">{x.confidence} confidence</span><span className="muted">{x.how}</span>
+              <button type="button" className="secondary" disabled={!!busy} onClick={() => run("extra", async () => {
+                const r = await addContactMethodAction(company.id, x.kind, x.value, undefined, "auto-search");
+                if (r.error) setNote({ text: r.error, bad: true }); else { setAuto((a) => a && { ...a, extras: a.extras.filter((e) => e.kind !== x.kind) }); toast(`${methodLabel(x.kind)} added`); onSaved?.(); }
+              })}>Add as {methodLabel(x.kind)}</button>
             </div>
           ))}
           {auto.web && <span className="muted">{auto.web}</span>}

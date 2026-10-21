@@ -8,7 +8,7 @@ import { containsContactDetails } from "./audit";
 import { DEFAULT_CONSENT_BASIS, classifyCompany } from "./compliance";
 import { fetchProfile, normaliseNumber } from "./companiesHouse";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
-import { findCompanyOnline, type Found } from "./findCompany";
+import { findCompanyOnline, type Extra, type Found } from "./findCompany";
 import { listNiches } from "./leadConfig";
 import { runResearch } from "./research";
 import { checkHealthInBackground } from "./apifyAdd";
@@ -95,6 +95,7 @@ export type AutoResult = {
   error?: string; fields?: Partial<Record<AutoField, { value: string; confidence: string; how: string }>>; verified?: string | null;
   signals?: Record<string, boolean> | null; notes?: string[]; ranWeb?: boolean; emails?: string[];
   web?: { ran: boolean; results: number; matched: string[]; query: string | null };
+  extras?: Extra[];
 };
 
 /**
@@ -120,5 +121,5 @@ export async function autoSearchAction(companyId: number, current: Record<string
   if (found.emails[0]) set("generic_email", found.emails[0], { confidence: "high", how: "shown on their website (company addresses only)" });
   if (found.contactUrl) set("contact_url", found.contactUrl, { confidence: "high", how: "their contact page" });
   const web = found.links.find((l) => l.kind === "website");
-  return { fields, verified: web && web.confidence !== "given" && /company number/.test(web.how) ? "company number" : web && web.confidence !== "given" && /name/.test(web.how) ? "name" : null, signals: found.signals, notes: found.notes, ranWeb: found.webRan, emails: found.emails, web: found.web };
+  return { fields, verified: web && web.confidence !== "given" && /company number/.test(web.how) ? "company number" : web && web.confidence !== "given" && /name/.test(web.how) ? "name" : null, signals: found.signals, extras: found.extras, notes: found.notes, ranWeb: found.webRan, emails: found.emails, web: found.web };
 }

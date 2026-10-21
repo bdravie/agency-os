@@ -1,19 +1,16 @@
 import { genericEmails, robotsAllows, safeDomain } from "./websites";
 import { normaliseSocial } from "./contact";
+import { normaliseMethod } from "./contactMethods.ts";
+import { domainBases, nameWords, pageNamesCompany, socialCandidates } from "./siteLinks.ts";
 import { fetchPublicHtml } from "./safeFetch";
 
 // Free checks that read a company's own public website. No paid API, no Google API. Run only when you click.
 const UA = "AgencyOSBot";
-const STOP = new Set(["ltd", "limited", "llp", "plc", "uk", "the", "and", "group", "company", "co", "services", "holdings"]);
-
-const words = (name: string) => name.toLowerCase().replace(/\(.*?\)/g, " ").replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w && !STOP.has(w));
+const words = nameWords;
 
 /** A handful of likely domains for a company name, e.g. "Pluto Creative Labs" -> plutocreativelabs.co.uk, pluto-creative-labs.com… */
 export function candidateDomains(name: string): string[] {
-  const w = words(name);
-  if (w.length === 0) return [];
-  const bases = [...new Set([w.join(""), w.join("-"), w.length > 2 ? w.slice(0, 2).join("") : ""].filter((b) => b.length >= 3))];
-  return bases.flatMap((b) => [".co.uk", ".com", ".uk"].map((t) => `${b}${t}`)).filter(safeDomain).slice(0, 9);
+  return domainBases(name).flatMap((b) => [".co.uk", ".com", ".uk"].map((t) => `${b}${t}`)).filter(safeDomain).slice(0, 9);
 }
 
 export async function fetchPage(domain: string, path = "/"): Promise<string | null> {
@@ -26,9 +23,7 @@ export type Verified = "company number" | "name";
 /** The page must prove it belongs to this company: UK sites must show the company number; otherwise a full-name match is a weaker yes. */
 export function verifyPage(html: string, c: { name: string; company_number: string | null }): Verified | null {
   if (c.company_number && c.company_number.length >= 6 && html.replace(/\s/g, "").includes(c.company_number)) return "company number";
-  const full = words(c.name).join(" ");
-  const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ");
-  return full.length >= 5 && text.includes(full) ? "name" : null;
+  return pageNamesCompany(html, c.name) ? "name" : null;
 }
 
 export async function guessWebsite(c: { name: string; company_number: string | null }): Promise<{ domain: string; verified: Verified } | null> {
@@ -57,21 +52,20 @@ const SIGNALS: Record<string, RegExp> = {
 };
 
 export type SiteFindings = {
-  emails: string[]; linkedin: string | null; instagram: string | null; facebook: string | null; contact_url: string | null;
+  emails: string[]; linkedin: string | null; instagram: string | null; facebook: string | null; tiktok: string | null; youtube: string | null; x: string | null; contact_url: string | null;
   signals: Record<string, boolean>; pages: number;
 };
 
 export function analyseHtml(html: string, domain: string): Omit<SiteFindings, "pages"> {
   const signals: Record<string, boolean> = Object.fromEntries(Object.entries(SIGNALS).map(([k, re]) => [k, re.test(html)]));
   signals.runs_ads = signals.meta_pixel || signals.google_ads || signals.linkedin_insight || signals.tiktok_pixel;
-  const out = { emails: genericEmails(html, domain), linkedin: null as string | null, instagram: null as string | null, facebook: null as string | null, contact_url: null as string | null, signals };
+  const out = { emails: genericEmails(html, domain), linkedin: null as string | null, instagram: null as string | null, facebook: null as string | null, tiktok: null as string | null, youtube: null as string | null, x: null as string | null, contact_url: null as string | null, signals };
+  // Every social address anywhere in the page (links, JSON-LD sameAs, scripts); each must still pass the company-page check.
+  const found = socialCandidates(html);
+  for (const kind of ["linkedin", "instagram", "facebook"] as const) for (const url of found[kind]) { const r = normaliseSocial(kind, url); if (r.value) { out[kind] = r.value; break; } }
+  for (const kind of ["tiktok", "youtube", "x"] as const) for (const url of found[kind]) { const r = normaliseMethod(kind, url); if (r.value) { out[kind] = r.value; break; } }
   for (const m of html.matchAll(/href=["']([^"'#]+)["']/gi)) {
     const href = m[1];
-    for (const kind of ["linkedin", "instagram", "facebook"] as const) {
-      if (out[kind]) continue;
-      const needle = kind === "linkedin" ? "linkedin.com/company" : `${kind}.com`;
-      if (href.includes(needle)) { const r = normaliseSocial(kind, href); if (r.value) out[kind] = r.value; }
-    }
     if (!out.contact_url && /\/contact/i.test(href)) {
       try { const u = new URL(href, `https://${domain}`); if (u.hostname.replace(/^www\./, "") === domain.replace(/^www\./, "")) out.contact_url = u.toString(); } catch { /* ignore */ }
     }
@@ -91,7 +85,7 @@ export async function checkSite(domain: string): Promise<SiteFindings | null> {
     const g = analyseHtml(html, domain);
     f.pages++;
     f.emails = [...new Set([...f.emails, ...g.emails])];
-    f.linkedin ??= g.linkedin; f.instagram ??= g.instagram; f.facebook ??= g.facebook;
+    f.linkedin ??= g.linkedin; f.instagram ??= g.instagram; f.facebook ??= g.facebook; f.tiktok ??= g.tiktok; f.youtube ??= g.youtube; f.x ??= g.x;
     f.contact_url ??= g.contact_url ?? (path.startsWith("/contact") ? `https://${domain}${path}` : null);
     f.signals = Object.fromEntries(Object.keys(f.signals).map((k) => [k, f.signals[k] || g.signals[k]]));
   }

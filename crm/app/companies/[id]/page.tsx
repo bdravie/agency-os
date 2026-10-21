@@ -18,6 +18,7 @@ import { apolloStatusAction, contactClearOptOutAction, contactOptOutAction } fro
 import { loadGate } from "@/lib/complianceGate";
 import StatusStepper from "@/components/StatusStepper";
 import ContactDetailsForm from "@/components/ContactDetailsForm";
+import ContactMethods from "@/components/ContactMethods";
 import AuditsCard from "@/components/AuditsCard";
 import CallsCard from "@/components/CallsCard";
 import { creditUsage } from "@/lib/usage";
@@ -33,11 +34,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!Number.isInteger(id)) notFound();
   const [company] = await query<any>(`SELECT * FROM companies WHERE id = $1`, [id]);
   if (!company) notFound();
-  const [contacts, deals, tasks, activity] = await Promise.all([
+  const [contacts, deals, tasks, activity, methods] = await Promise.all([
     query<any>(`SELECT * FROM contacts WHERE company_id = $1 ORDER BY created_at`, [id]),
     query<any>(`SELECT * FROM deals WHERE company_id = $1 ORDER BY created_at DESC`, [id]),
     query<any>(`SELECT * FROM tasks WHERE company_id = $1 AND done_at IS NULL ORDER BY due_at NULLS LAST`, [id]),
     query<any>(`SELECT * FROM activities WHERE company_id = $1 AND type <> 'places_lookup' ORDER BY occurred_at DESC LIMIT 50`, [id]),
+    query<any>(`SELECT id, kind, value, note FROM company_contact_methods WHERE company_id = $1 ORDER BY id`, [id]),
   ]);
   const drafts = await outreachDrafts(company.name);
   const usage = await creditUsage();
@@ -92,6 +94,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 usage={usage}
               />
             </div>
+            <div style={{ marginTop: 14 }}><ContactMethods companyId={id} methods={methods.map((m: any) => ({ id: Number(m.id), kind: m.kind, value: m.value, note: m.note }))} /></div>
           </details>
 
           <section className="card">
