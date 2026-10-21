@@ -43,7 +43,7 @@ export async function askStructured<T>(prompt: string, schema: Schema, model: Mo
     model: resolve(model), max_tokens: maxTokens, messages: [{ role: "user", content: `${prompt}\n\nWhen finished, call the submit tool with your complete result. Do not reply in plain text.` }],
     tools: [{ name: "submit", description: "Submit the finished result.", input_schema: schema }],
   });
-  if (res.stop_reason === "max_tokens") throw new Error("The AI reply was cut off. Try again, or use a shorter input.");
+  if (res.stop_reason === "max_tokens") throw new Error(`The AI reply was cut off (it used all ${maxTokens} tokens on ${resolve(model)} before finishing). Try again, or use a shorter input.`);
   const block = res.content.find((b) => b.type === "tool_use");
   if (!block || block.type !== "tool_use") throw new Error("The AI did not return a result. Try again.");
   return block.input as T;

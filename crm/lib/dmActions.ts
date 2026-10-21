@@ -41,7 +41,7 @@ export async function draftInstagramDmAction(companyId: number): Promise<DmResul
     const idea = sug?.result?.suggestions?.[0];
     const earlier = idea ? `\n\nEARLIER OFFER IDEA (for the kind of automation to mention): ${idea.title}. ${idea.automation}` : "";
     const model = dmModel();
-    const raw = await askStructured<unknown>(`${rules}\n\nCOMPANY NAME FOR THE GREETING: ${co.name.replace(/[.,]?\s+(limited|ltd\.?|llp|plc)$/i, "").trim()}\n\n${facts.text}${earlier}`, SCHEMA as never, model, 1200);
+    const raw = await askStructured<unknown>(`${rules}\n\nCOMPANY NAME FOR THE GREETING: ${co.name.replace(/[.,]?\s+(limited|ltd\.?|llp|plc)$/i, "").trim()}\n\n${facts.text}${earlier}`, SCHEMA as never, model, 4000);   // the message itself is short; the headroom is for models that write out their reasoning first
     const draft = finishDm(raw, { sender, business }, facts.findingIds);
     if (await companyChangedSince(companyId, research)) draft.warnings.push("This company was edited after the research ran, so run the research again if the message looks out of date.");
     await logActivity("dm_drafted", { company_id: companyId, channel: "dm", body: `Instagram DM drafted (${model})` });
