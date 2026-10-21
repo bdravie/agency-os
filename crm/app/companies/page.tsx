@@ -43,6 +43,7 @@ const BASE = `
            co.filing_ok, co.fit_score, co.est_revenue_gbp::float AS est_revenue_gbp, co.est_revenue_basis, co.employees, co.accounts_type,
            co.source, co.phone, co.city, co.postcode, co.address, co.linkedin_url, co.instagram_url, co.facebook_url, co.contact_url, co.maps_rating::float AS maps_rating, co.maps_reviews,
            su.score AS suitability, su.tier, su.excluded, su.fit_pts, su.eligible_pts, su.website_pts, su.email_pts, su.phone_pts, su.rating_pts, su.reviews_pts,
+           (co.created_at >= current_date AND NOT (co.generic_email IS NOT NULL OR co.linkedin_url IS NOT NULL OR co.instagram_url IS NOT NULL OR co.facebook_url IS NOT NULL OR co.contact_url IS NOT NULL)) AS fresh,
            (SELECT min(t.due_at) FROM tasks t WHERE t.company_id = co.id AND t.done_at IS NULL AND t.title ILIKE '%follow-up%') AS followup_due
       FROM companies co JOIN lead_gate g ON g.company_id = co.id JOIN lead_suitability su ON su.company_id = co.id
   )`;
@@ -116,8 +117,8 @@ export default async function Companies({ searchParams }: { searchParams: Promis
                 const reasons = gateReasons(c);
                 const n = nextStep({ ...c, gate: { sendable: c.sendable, unchecked: c.compliance_status === "unchecked", reasons } });
                 return (
-                  <tr key={c.id}>
-                    <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link><div className="muted">{[c.niche, c.city ?? c.postcode?.split(" ")[0]].filter(Boolean).join(" · ")}</div></td>
+                  <tr key={c.id} className={c.fresh ? "row-new" : undefined}>
+                    <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link>{c.fresh && <> <Pill label="New today" tone="blue" /></>}<div className="muted">{[c.niche, c.city ?? c.postcode?.split(" ")[0]].filter(Boolean).join(" · ")}</div></td>
                     <td><span title={explainSuitability(c).join("\n")}><Pill label={`${c.tier}${c.tier === "Skip" ? "" : ` · ${c.suitability}`}`} tone={TIER_TONE[c.tier] ?? "neutral"} /></span></td>
                     <td className="muted" title={(c.est_revenue_basis ?? "No size signal in the filed accounts").replace(/GBP /g, "£")}>{c.filing_ok === false ? "–" : c.est_revenue_gbp ? `≈ ${shortMoney(c.est_revenue_gbp)}` : "Unknown"}</td>
                     <td><Badge value={c.status} /></td>

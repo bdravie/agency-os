@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Sparkles } from "lucide-react";
-import { apolloRevealAction, apolloSearchAction, type ApolloStatus, type FoundPerson, type RevealResult } from "@/lib/apolloActions";
+import { Search, Sparkles, Upload } from "lucide-react";
+import { apolloImportAction, apolloRevealAction, apolloSearchAction, type ApolloStatus, type FoundPerson, type ImportResult, type RevealResult } from "@/lib/apolloActions";
 import { useToast } from "./Toast";
 import { Pill } from "./ui";
 
@@ -17,6 +17,20 @@ export default function DecisionMakers({ companyId, status }: { companyId: numbe
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<"search" | "reveal" | null>(null);
   const [, start] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [imp, setImp] = useState<ImportResult | null>(null);
+
+  const importFile = (file: File | undefined) => {
+    if (!file) return;
+    setBusy("reveal"); setImp(null);
+    start(async () => {
+      try {
+        const r = await apolloImportAction(companyId, await file.text());
+        setImp(r);
+        if (r.error) toast(r.error, "bad"); else { toast(`${r.saved?.length ?? 0} saved as contacts`); router.refresh(); }
+      } finally { setBusy(null); }
+    });
+  };
 
   const blocked = !status.configured ? "Apollo is switched off: add APOLLO_API_KEY to .env (or as a Codespaces secret) and restart the CRM."
     : !status.sendable ? `Apollo is only used for verified active limited companies that can be contacted. ${status.blockedReason ?? ""}`
@@ -83,6 +97,23 @@ export default function DecisionMakers({ companyId, status }: { companyId: numbe
             </div>
           )}
         </>
+      )}
+      {!status.sendable || !status.domain ? null : (
+        <div className="stack" style={{ gap: 6 }}>
+          <div className="field-label">Or import a CSV you exported from Apollo's website (free, no API)</div>
+          <div className="row" style={{ gap: 12 }}>
+            <button type="button" className="secondary" disabled={!!busy} onClick={() => fileRef.current?.click()}><Upload size={15} aria-hidden /> Choose CSV</button>
+            <input ref={fileRef} type="file" accept=".csv,text/csv" hidden disabled={!!busy} onChange={(e) => { importFile(e.target.files?.[0]); e.target.value = ""; }} style={{ display: "none" }} />
+            <span className="muted">Needs Name (or First/Last Name) and Email columns. Only work emails on {status.domain} are saved; up to 50 rows.</span>
+          </div>
+          {imp?.error && <p className="error" role="alert" style={{ margin: 0 }}>{imp.error}</p>}
+          {imp && !imp.error && (
+            <div className="stack" style={{ gap: 4 }} role="status">
+              {imp.saved?.map((s) => <div key={s.email}>Saved <b>{s.name}</b> · {s.title ?? "no title"} · {s.email}</div>)}
+              {imp.skipped?.map((s) => <span key={s} className="muted" style={{ color: "var(--warn)" }}>{s}</span>)}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

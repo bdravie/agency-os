@@ -7,6 +7,7 @@ import { logActivity } from "./activity";
 import { loadGate } from "./complianceGate";
 import { apolloRoles } from "./apolloConfig";
 import { apolloKey, revealPerson, searchPeople, ApolloError } from "./apollo";
+import { importConsentText, parseApolloCsv } from "./apolloImport";
 import { apolloSettings, consentText, linkedinProfile, parsePeople, planReveal, rankPeople, workEmail, type Person } from "./apolloMath";
 
 // Finding decision-makers through Apollo. The search is free; revealing a work email uses a credit, so it only runs when you click,
@@ -29,7 +30,7 @@ export async function apolloStatusAction(companyId: number): Promise<ApolloStatu
   const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
   const gate = await loadGate(companyId);
   const used = await creditsUsedToday();
-  const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM contacts WHERE company_id = $1 AND source = 'Apollo'`, [companyId]);
+  const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM contacts WHERE company_id = $1 AND source IN ('Apollo', 'Apollo CSV')`, [companyId]);
   return { configured: !!apolloKey(), domain: c?.domain ?? null, sendable: !!gate?.sendable, blockedReason: gate && !gate.sendable ? gate.reasons.join(" ") : null,
     used, cap: s.dailyCredits, left: Math.max(0, s.dailyCredits - used), maxPerClick: s.maxPerClick, seniorities: roles.seniorities, titles: roles.titles, saved: Number(n) };
 }
@@ -106,6 +107,38 @@ export async function apolloRevealAction(companyId: number, ids: string[]): Prom
     revalidatePath(`/companies/${companyId}`);
     return { saved, noEmail, skipped, credits, note: plan.limitedBy ? `Revealed ${chosen.length} of the ${wanted.length} you ticked, to stay inside your ${plan.limitedBy === "credits" ? "daily credit" : "per-click"} limit.` : undefined };
   } catch (e) { return { error: e instanceof ApolloError ? e.message : "Revealing emails failed." }; }
+}
+
+// ---------- importing a CSV exported by hand from Apollo's website ----------
+
+export type ImportResult = { error?: string; saved?: { name: string; title: string | null; email: string }[]; skipped?: string[] };
+
+/** Free and offline: no Apollo call and no credits. Saves people from a CSV you exported yourself, with the same checks as the Apollo reveal. */
+export async function apolloImportAction(companyId: number, csvText: string): Promise<ImportResult> {
+  await requireLogin();
+  const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
+  if (!c) return { error: "Company not found." };
+  const gate = await loadGate(companyId);
+  if (!gate?.sendable) return { error: `People are only added for verified active limited companies that can be contacted. ${gate?.reasons.join(" ") ?? ""}`.trim() };
+  if (!c.domain) return { error: "Add the company's website first: only work emails on that website's domain are accepted." };
+  const domain = c.domain.toLowerCase().replace(/^www\./, "");
+  const parsed = parseApolloCsv(csvText, domain);
+  if (parsed.error) return { error: parsed.error };
+  const saved: NonNullable<ImportResult["saved"]> = [], skipped = [...parsed.skipped];
+  const today = new Date().toLocaleDateString("en-GB", { dateStyle: "medium" });
+  for (const p of parsed.people) {
+    const [sup] = await query(`SELECT 1 FROM suppression WHERE lower(email) = $1 OR lower(domain) = $2 LIMIT 1`, [p.email, domain]);
+    if (sup) { skipped.push(`${p.name}: on your suppression list`); continue; }
+    const [dup] = await query(`SELECT 1 FROM contacts WHERE company_id = $1 AND lower(email) = $2 LIMIT 1`, [companyId, p.email]);
+    if (dup) { skipped.push(`${p.name}: already saved`); continue; }
+    const [row] = await query<{ id: number }>(
+      `INSERT INTO contacts (company_id, name, role, email, linkedin_url, consent_basis, source, email_status) VALUES ($1,$2,$3,$4,$5,$6,'Apollo CSV',$7) RETURNING id`,
+      [companyId, p.name, p.role, p.email, p.linkedin, importConsentText(today), p.emailStatus]);
+    await logActivity("contact_added", { company_id: companyId, contact_id: Number(row.id), channel: "apollo", body: `${p.name} (${p.role ?? "contact"}) imported from an Apollo export` });
+    saved.push({ name: p.name, title: p.role, email: p.email });
+  }
+  revalidatePath(`/companies/${companyId}`);
+  return { saved, skipped };
 }
 
 // ---------- opting a person out ----------

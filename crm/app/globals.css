@@ -120,6 +120,8 @@ th { text-align: left; padding: 10px 12px; font-size: 12px; font-weight: 600; le
 td { padding: 11px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
 tbody tr { transition: background var(--ease); }
 tbody tr:hover { background: var(--surface-2); }
+tbody tr.row-new { background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+tbody tr.row-new:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 tbody tr:last-child td { border-bottom: 0; }
 td.num, th.num { text-align: right; }
 .timeline li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 10px 0; }

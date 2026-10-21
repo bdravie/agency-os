@@ -5,11 +5,13 @@ import { explainSuitability } from "../lib/suitability.ts";
 
 test("no filters means no extra conditions and the usual order", () => {
   const q = buildListQuery({}, 4);
-  assert.deepEqual(q.where, []); assert.deepEqual(q.params, []); assert.match(q.order, /followup_due/);
+  assert.deepEqual(q.where, []); assert.deepEqual(q.params, []); assert.match(q.order, /^created_at DESC/);
 });
 
 test("recently added and most suitable sort as expected", () => {
-  assert.match(buildListQuery({ sort: "recent" }, 1).order, /^created_at DESC/);
+  assert.match(buildListQuery({ sort: "junk" }, 1).order, /^created_at DESC/);
+  assert.match(buildListQuery({}, 1).order, /^created_at DESC/);
+  assert.match(buildListQuery({ sort: "followups" }, 1).order, /followup_due/);
   assert.match(buildListQuery({ sort: "suitable" }, 1).order, /^suitability DESC/);
   assert.match(buildListQuery({ sort: "name" }, 1).order, /lower\(name\)/);
 });
@@ -24,7 +26,7 @@ test("every sort and filter choice in the menus has a working query", () => {
 
 test("unknown or hostile values are ignored, never put into SQL", () => {
   const q = buildListQuery({ sort: "name; DROP TABLE companies", added: "1' OR '1'='1", tier: "zzz", source: "x" }, 1);
-  assert.deepEqual(q.where, []); assert.doesNotMatch(q.order, /DROP/); assert.match(q.order, /followup_due/);
+  assert.deepEqual(q.where, []); assert.doesNotMatch(q.order, /DROP/); assert.match(q.order, /^created_at DESC/);
 });
 
 test("filters combine, and the typed area is a numbered parameter", () => {

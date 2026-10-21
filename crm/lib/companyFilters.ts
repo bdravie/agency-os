@@ -2,8 +2,8 @@
 // and anything typed (the area) goes in as a parameter. Pure, so it can be tested.
 
 export const SORTS = [
-  { key: "", label: "Follow-ups first, then best fit" },
-  { key: "recent", label: "Recently added" },
+  { key: "", label: "Recently added (newest first)" },
+  { key: "followups", label: "Follow-ups first, then best fit" },
   { key: "suitable", label: "Most suitable" },
   { key: "revenue", label: "Highest estimated revenue" },
   { key: "rating", label: "Best Google rating" },
@@ -33,8 +33,8 @@ const CLAUSES: Record<FilterKey, Record<string, string>> = {
   rating: { "45": "maps_rating >= 4.5", "4": "maps_rating >= 4", lt4: "maps_rating < 4" },
 };
 const ORDERS: Record<string, string> = {
-  "": "(followup_due IS NULL), followup_due, fit_score DESC NULLS LAST, created_at DESC",
-  recent: "created_at DESC, id DESC",
+  "": "created_at DESC, id DESC",
+  followups: "(followup_due IS NULL), followup_due, fit_score DESC NULLS LAST, created_at DESC",
   suitable: "suitability DESC, fit_score DESC NULLS LAST, created_at DESC",
   revenue: "est_revenue_gbp DESC NULLS LAST, suitability DESC",
   rating: "maps_rating DESC NULLS LAST, maps_reviews DESC NULLS LAST, suitability DESC",
