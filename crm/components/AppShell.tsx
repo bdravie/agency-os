@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import CommandPalette from "./CommandPalette";
 import { ToastProvider } from "./Toast";
+import HashScroll from "./HashScroll";
 
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
 export default function AppShell({ children, demo, signOut }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void> }) {
@@ -39,7 +40,7 @@ export default function AppShell({ children, demo, signOut }: { children: React.
         <Sidebar demo={demo} signOut={signOut} onSearch={() => { setOpen(false); setPalette(true); }} />
       </aside>
       {open && <div className="scrim" onClick={() => setOpen(false)} aria-hidden />}
-      <main id="main" className="main">{children}</main>
+      <main id="main" className="main"><HashScroll />{children}</main>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
     </ToastProvider>

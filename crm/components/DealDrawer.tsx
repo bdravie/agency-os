@@ -8,7 +8,9 @@ import { gbp } from "@/lib/quote";
 import { ago } from "@/lib/format";
 import { STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/lib/stages";
 import { billingShort, lineNet, totals, type Billing } from "@/lib/dealOffers";
-import { ActivityIcon, activityLabel } from "./activity";
+import { activityLabel } from "./activity";
+import ActivityItem from "./ActivityItem";
+import { activityTarget } from "@/lib/activityTarget";
 import DealStageBar from "./DealStageBar";
 import DeleteDealButton from "./DeleteDealButton";
 import ToastForm from "./ToastForm";
@@ -66,7 +68,7 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
 
         {d && data && (
           <div className="drawer-body">
-            <section>
+            <section id="dr-stage">
               <div className="field-label">Stage</div>
               <DealStageBar stage={current} onPick={(s) => onMove(dealId, s)} />
               <div className="next" style={{ marginTop: 12 }}>
@@ -82,7 +84,7 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
               <div><div className="field-label">Channel</div><div className="kv-value small">{channelLabel(d.channel)}</div></div>
             </section>
 
-            <section>
+            <section id="dr-offers">
               <div className="row-between"><div className="field-label">Offers &amp; fees</div><Link href={`/deals/${dealId}#offers`} className="muted">{data.offers.length ? "Manage" : "Add offers"}</Link></div>
               {data.offers.length === 0 ? <p className="muted">No offers on this deal yet.</p> : (
                 <>
@@ -122,7 +124,7 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
               </ToastForm>
             </section>
 
-            <section>
+            <section id="dr-note">
               <div className="field-label">Quick note</div>
               <ToastForm action={logDealNote} success="Note saved" reset onDone={load} className="row">
                 <input type="hidden" name="deal_id" value={dealId} />
@@ -131,7 +133,7 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
               </ToastForm>
             </section>
 
-            <section>
+            <section id="dr-quotes">
               <div className="row-between"><div className="field-label">Quotes</div><Link href={`/quotes/new?deal=${dealId}`} className="muted">Create quote</Link></div>
               {data.quotes.length === 0 ? <p className="muted">No quotes yet.</p> : (
                 <ul>{data.quotes.map((q) => (
@@ -144,8 +146,9 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
               <div className="field-label">Recent activity</div>
               {data.activity.length === 0 ? <p className="muted">Nothing yet.</p> : (
                 <ul className="timeline">{data.activity.map((a) => (
-                  <li key={a.id}><span className="tl-dot"><ActivityIcon type={a.type} /></span>
-                    <div><div className="tl-title">{activityLabel(a.type)}</div>{a.body && <div className="muted">{a.body}</div>}<div className="tl-time">{ago(a.occurred_at)}</div></div></li>
+                  <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "drawer")}>
+                    <div className="tl-title">{activityLabel(a.type)}</div>{a.body && <div className="muted">{a.body}</div>}<div className="tl-time">{ago(a.occurred_at)}</div>
+                  </ActivityItem>
                 ))}</ul>
               )}
             </section>

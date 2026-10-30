@@ -12,7 +12,9 @@ import DealOffersCard from "@/components/DealOffersCard";
 import AuditsCard from "@/components/AuditsCard";
 import CallsCard from "@/components/CallsCard";
 import ToastForm from "@/components/ToastForm";
-import { ActivityIcon, activityLabel } from "@/components/activity";
+import { activityLabel } from "@/components/activity";
+import ActivityItem from "@/components/ActivityItem";
+import { activityTarget } from "@/lib/activityTarget";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +45,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
+      <div id="top" />
       <PageHeader
         back={{ href: "/deals", label: "Deals" }}
         title={deal.title}
@@ -56,7 +59,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
         actions={<span className="row"><Link href={`/quotes/new?deal=${id}`} className="btn"><FileText size={16} aria-hidden /> Create quote</Link><DeleteDealButton dealId={id} title={deal.title} stage={deal.stage_text} /></span>}
       />
 
-      <section className="card" style={{ marginBottom: 20 }}>
+      <section className="card" id="stage" style={{ marginBottom: 20 }}>
         <div className="field-label">Stage</div>
         <DealStageControl dealId={id} title={deal.title} stage={deal.stage_text} />
         <div className="next" style={{ marginTop: 12 }}>
@@ -71,7 +74,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
           {deal.company_id && <CallsCard companyId={deal.company_id} dealId={id} />}
           {deal.company_id && <AuditsCard companyId={deal.company_id} dealId={id} />}
 
-          <section className="card">
+          <section className="card" id="details">
             <h2>Details</h2>
             <ToastForm action={updateDeal} success="Deal saved" className="stack" style={{ gap: 12 }}>
               <input type="hidden" name="id" value={id} />
@@ -89,7 +92,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             <p className="muted" style={{ marginTop: 10 }}>Created {dateOnly(deal.created_at)} · last change {ago(deal.updated_at)}</p>
           </section>
 
-          <section className="card">
+          <section className="card" id="history">
             <h2>Stage history</h2>
             <ul>{history.map((h: any, i: number) => (
               <li key={i} className="row-between">
@@ -104,17 +107,16 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             <h2>Activity</h2>
             {activity.length === 0 ? <EmptyState title="Nothing yet">Notes, emails and stage changes appear here.</EmptyState> : (
               <ul className="timeline">{activity.map((a: any) => (
-                <li key={a.id}>
-                  <span className="tl-dot"><ActivityIcon type={a.type} /></span>
-                  <div><div className="tl-title">{activityLabel(a.type)}</div>{a.body && <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{a.body}</div>}<div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div></div>
-                </li>
+                <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "deal")}>
+                  <div className="tl-title">{activityLabel(a.type)}</div>{a.body && <div className="muted" style={{ whiteSpace: "pre-wrap" }}>{a.body}</div>}<div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
+                </ActivityItem>
               ))}</ul>
             )}
           </section>
         </div>
 
         <div className="stack">
-          <section className="card">
+          <section className="card" id="company">
             <h2>Company</h2>
             {deal.company_id ? (
               <div className="stack" style={{ gap: 6 }}>
@@ -126,7 +128,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             {contact[0] && <p style={{ marginTop: 10 }}><b>{contact[0].name}</b> <span className="muted">{[contact[0].role, contact[0].email, contact[0].phone].filter(Boolean).join(" · ")}</span></p>}
           </section>
 
-          <section className="card">
+          <section className="card" id="tasks">
             <h2>Tasks</h2>
             {tasks.length === 0 && <p className="muted">No open tasks.</p>}
             <ul>{tasks.map((t: any) => (
@@ -146,7 +148,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             </ToastForm>
           </section>
 
-          <section className="card">
+          <section className="card" id="note">
             <h2>Quick note</h2>
             <ToastForm action={logDealNote} success="Note saved" reset className="stack" style={{ gap: 8 }}>
               <input type="hidden" name="deal_id" value={id} />
@@ -155,7 +157,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             </ToastForm>
           </section>
 
-          <section className="card">
+          <section className="card" id="quotes">
             <div className="row-between"><h2 style={{ margin: 0 }}>Quotes</h2><Link href={`/quotes/new?deal=${id}`} className="muted">Create</Link></div>
             {quotes.length === 0 ? <p className="muted" style={{ marginTop: 8 }}>No quotes yet.</p> : (
               <ul style={{ marginTop: 8 }}>{quotes.map((q: any) => (

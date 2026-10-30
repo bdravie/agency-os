@@ -509,3 +509,11 @@ tr.held td { color: var(--muted); }
 
 /* Destructive action button (secondary look, red on hover) */
 button.danger:hover, .btn.danger:hover { color: var(--bad); border-color: var(--bad); background: var(--bad-soft); }
+
+/* Clickable activity lines, and the flash on the section they point to */
+.timeline li.tl-click { cursor: pointer; border-radius: var(--radius-sm); transition: background var(--ease); }
+.timeline li.tl-click:hover { background: var(--accent-soft); }
+.timeline li.tl-click:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@keyframes flash-section { 0%, 55% { box-shadow: 0 0 0 3px var(--accent); background: var(--accent-soft); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.flash { animation: flash-section 2.2s ease-out; border-radius: var(--radius); scroll-margin-top: 90px; }
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; box-shadow: 0 0 0 3px var(--accent); } }

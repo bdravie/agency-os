@@ -8,7 +8,9 @@ import { dueForSession, loadTraining } from "@/lib/enablementData";
 import { completeTask } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
-import { ActivityIcon, activityLabel } from "@/components/activity";
+import { activityLabel } from "@/components/activity";
+import ActivityItem from "@/components/ActivityItem";
+import { activityTarget } from "@/lib/activityTarget";
 import { EmptyState, PageHeader, StageBadge, Stat } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,7 @@ export default async function Today() {
         WHERE d.stage IN ('Contacted','Replied','Call booked','Audit sold','Proposal sent') AND d.updated_at < now() - interval '3 days'
         ORDER BY d.updated_at LIMIT 8`),
     query<any>(
-      `SELECT a.id, a.type, a.body, a.occurred_at, a.company_id, c.name AS company_name
+      `SELECT a.id, a.type, a.body, a.occurred_at, a.company_id, a.deal_id, a.contact_id, c.name AS company_name
          FROM activities a LEFT JOIN companies c ON c.id = a.company_id
         WHERE a.type NOT IN ('places_lookup', 'lead_added', 'website_found') ORDER BY a.occurred_at DESC LIMIT 12`),
     query<{ last: string | null }>(`SELECT max(occurred_at) AS last FROM activities WHERE type = 'backup_completed'`),
@@ -110,14 +112,11 @@ export default async function Today() {
           <h2 id="act-h">Recent activity</h2>
           {recent.length === 0 ? <EmptyState title="Nothing yet">Activity appears here as you work.</EmptyState> : (
             <ul className="timeline">{recent.map((a: any) => (
-              <li key={a.id}>
-                <span className="tl-dot"><ActivityIcon type={a.type} /></span>
-                <div>
-                  <div className="tl-title">{activityLabel(a.type)}{a.company_id && <> · <Link href={`/companies/${a.company_id}`}>{a.company_name}</Link></>}</div>
-                  {a.body && a.body !== a.company_name && <div className="muted">{a.body}</div>}
-                  <div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
-                </div>
-              </li>
+              <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "feed")}>
+                <div className="tl-title">{activityLabel(a.type)}{a.company_id && <> · <Link href={`/companies/${a.company_id}`}>{a.company_name}</Link></>}</div>
+                {a.body && a.body !== a.company_name && <div className="muted">{a.body}</div>}
+                <div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
+              </ActivityItem>
             ))}</ul>
           )}
           <p className={backupBad ? "error" : "muted"} style={{ marginTop: 12 }}>

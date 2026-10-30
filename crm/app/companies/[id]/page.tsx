@@ -24,7 +24,9 @@ import CallsCard from "@/components/CallsCard";
 import { creditUsage } from "@/lib/usage";
 import { nextStep } from "@/lib/nextStep";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
-import { ActivityIcon, activityLabel } from "@/components/activity";
+import { activityLabel } from "@/components/activity";
+import ActivityItem from "@/components/ActivityItem";
+import { activityTarget } from "@/lib/activityTarget";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +56,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
+      <div id="top" />
       <PageHeader
         back={{ href: "/companies", label: "Companies" }}
         title={company.name}
@@ -70,7 +73,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         }
       />
 
-      <StatusStepper companyId={id} status={company.status} />
+      <div id="status"><StatusStepper companyId={id} status={company.status} /></div>
 
       <div className="split">
         <div className="stack">
@@ -115,7 +118,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </div>
           </details>
 
-          <section className="card">
+          <section className="card" id="log-activity">
             <h2>Log activity</h2>
             <ToastForm action={logContact} success="Activity logged" reset className="row">
               <input type="hidden" name="company_id" value={id} />
@@ -125,18 +128,15 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </ToastForm>
           </section>
 
-          <section className="card">
+          <section className="card" id="activity">
             <h2>Activity</h2>
             {activity.length === 0 ? <EmptyState title="No activity yet">Log a call or email above, or mark an outreach email as sent.</EmptyState> : (
               <ul className="timeline">{activity.map((a: any) => (
-                <li key={a.id}>
-                  <span className="tl-dot"><ActivityIcon type={a.type} /></span>
-                  <div>
-                    <div className="tl-title">{activityLabel(a.type)}</div>
-                    {a.body && a.body !== company.name && <div className="muted">{a.body}</div>}
-                    <div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
-                  </div>
-                </li>
+                <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "company")}>
+                  <div className="tl-title">{activityLabel(a.type)}</div>
+                  {a.body && a.body !== company.name && <div className="muted">{a.body}</div>}
+                  <div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
+                </ActivityItem>
               ))}</ul>
             )}
           </section>
@@ -173,7 +173,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             )}
           </section>
 
-          <section className="card">
+          <section className="card" id="notes">
             <h2>Notes</h2>
             <ToastForm action={saveNotes} success="Notes saved" className="stack" style={{ gap: 8 }}>
               <input type="hidden" name="company_id" value={id} />
@@ -190,7 +190,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             <h2>Deals</h2>
             {deals.length === 0 && <p className="muted">No deals yet.</p>}
             <ul>{deals.map((d: any) => (
-              <li key={d.id}>
+              <li key={d.id} id={`deal-${d.id}`}>
                 <div className="row-between"><b><Link href={`/deals/${d.id}`}>{d.title}</Link></b><StageBadge stage={d.stage} /></div>
                 <div className="row-between"><span className="muted">{gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span><Link href={`/quotes/new?deal=${d.id}`}>Create quote</Link></div>
               </li>
@@ -205,11 +205,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </details>
           </section>
 
-          <section className="card">
+          <section className="card" id="contacts">
             <h2>Contacts</h2>
             {contacts.length === 0 && <p className="muted">No named contacts. Add one only after they have engaged.</p>}
             <ul>{contacts.map((c: any) => (
-              <li key={c.id} className="stack" style={{ gap: 4 }}>
+              <li key={c.id} id={`contact-${c.id}`} className="stack" style={{ gap: 4 }}>
                 <div className="row-between"><span><b>{c.name}</b> {c.opted_out && <Badge value="Opted out" />} {c.source === "Apollo" && <span className="badge tone-neutral">Apollo</span>} <span className="muted">{[c.role, c.email, c.email_status, c.phone].filter(Boolean).join(" · ")}</span></span>
                   {c.opted_out
                     ? <ToastForm action={contactClearOptOutAction} success="Opt-out cleared" confirm="Only clear this if it was recorded by mistake. Clear it?"><input type="hidden" name="id" value={c.id} /><button className="link">Recorded by mistake?</button></ToastForm>
@@ -233,7 +233,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </details>
           </section>
 
-          <section className="card">
+          <section className="card" id="tasks">
             <h2>Tasks</h2>
             {tasks.length === 0 && <p className="muted">No open tasks.</p>}
             <ul>{tasks.map((t: any) => (
