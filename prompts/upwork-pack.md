@@ -10,8 +10,8 @@ Rules:
 - If the job would need the client's own customers' personal data (names, emails, phone numbers of end customers), say in data_note that a data processing agreement is needed first. Otherwise null.
 
 Fill these blanks:
-- system_title: what the thing is called, at most 8 words (for example "Receipt and invoice extraction system").
-- what_they_asked: their request in your own words, finishing "I've done this kind of thing before and X is one of my favourite parts", at most 12 words, no full stop.
+- system_title: what the thing is called, at most 8 words, keeping capital letters on acronyms and product names (AI, SMS, GoHighLevel) (for example "Receipt and invoice extraction system").
+- what_they_asked: a short phrase that completes the sentence "Your post is about ..." in their words, at most 14 words, no full stop. Start in lower case unless the first word is an acronym or proper noun (for example "an AI voice agent that answers calls and books appointments").
 - explanation: one or two sentences saying what the system does for them day to day, at most 45 words.
 - steps: 4 to 7 build steps, left to right, each at most 12 words, naming their tools where the post does.
 - diagram: a Mermaid flowchart (starts with "flowchart LR") of those same steps. Plain ASCII node labels in square brackets, no quotes, no brackets inside labels.
@@ -20,5 +20,5 @@ Fill these blanks:
   - show: 3 to 5 beats, each { say: what to say, at most 35 words; on_screen: what to have on screen, such as the workflow diagram, a demo from the demos folder, their job post or their website }.
   - close: the last line, at most 30 words, asks one specific question about their setup.
   - prep: up to 3 things to open or get ready before pressing record.
-  - Never claim to have built anything that ABOUT ME does not say.
+  - Never claim to have built anything that ABOUT ME does not say. Never say aloud that you lack experience or past projects: the script shows the plan and how you would work. Put any gap in fit_note instead.
 - fit_note: one sentence on the main risk or thing to clarify with this client, at most 30 words.

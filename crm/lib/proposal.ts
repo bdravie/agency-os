@@ -21,7 +21,7 @@ export function parseFit(reply: string): [number, string] {
 
 export async function scoreFit(job: string): Promise<[number, string]> {
   const rubric = await readFile(path.join(ROOT, "prompts/proposal-fit.md"), "utf8");
-  return parseFit(await ask(`${rubric}\n\nJOB POST:\n${job}`, "haiku", 100));
+  return parseFit(await ask(`${rubric}\n\nJOB POST:\n${job}`, "haiku", 400));
 }
 
 export async function draftProposal(job: string): Promise<string> {

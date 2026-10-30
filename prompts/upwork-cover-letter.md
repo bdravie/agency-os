@@ -1,6 +1,6 @@
 Hi{client_greeting},
 
-{what_they_asked}. I'm confident I'm the right fit, so I've already put together a short plan for you: a diagram of how I'd build your {system_title}{loom_line}.
+Your post is about {what_they_asked}. I've put together a short plan for you: a diagram of how I'd build your {system_title}{loom_line}.
 
 {explanation}
 

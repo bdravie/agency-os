@@ -39,7 +39,7 @@ def parse_fit(reply: str) -> tuple[int, str]:
 
 def score_fit(job_text: str) -> tuple[int, str]:
     prompt = (ROOT / "prompts" / "proposal-fit.md").read_text()
-    reply = llm.ask(f"{prompt}\n\nJOB POST:\n{job_text}", model="haiku", max_tokens=100)
+    reply = llm.ask(f"{prompt}\n\nJOB POST:\n{job_text}", model="haiku", max_tokens=400)
     return parse_fit(reply)
 
 

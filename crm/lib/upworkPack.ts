@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
 import { askStructured, upworkModel } from "./llm";
-import { cleanDiagram, cleanName, fillCover, type Pack } from "./upworkPackMath";
+import { cleanDiagram, cleanName, fillCover, packProblems, type Pack } from "./upworkPackMath";
 
 export type { Pack, LoomBeat } from "./upworkPackMath";
 
@@ -49,7 +49,11 @@ export async function buildPack(jobText: string): Promise<Pack> {
   const prompt =
     `${rules}\n\nABOUT ME:\n${about || "(Nothing written yet. Do not describe any past work.)"}\n\n` +
     `OFFERS:\n${offers.map((o) => `- ${o.name}: ${o.outcome ?? ""}`).join("\n")}\n\nJOB POST:\n${jobText}`;
-  const r = await askStructured<Omit<Pack, "cover_letter">>(prompt, SCHEMA, upworkModel(), 3000);
+  const run = () => askStructured<Omit<Pack, "cover_letter">>(prompt, SCHEMA, upworkModel(), 3000);
+  let r = await run();
+  let bad = packProblems(r);
+  if (bad.length) { r = await run(); bad = packProblems(r); }
+  if (bad.length) throw new Error(`The AI reply was incomplete (${bad.join(", ")}). Try again.`);
   const sender = [process.env.SENDER_NAME, process.env.BUSINESS_NAME].filter(Boolean).join(", ");
   return {
     ...r,

@@ -29,8 +29,8 @@ export function fillCover(template: string, p: Pick<Pack, "client_name" | "syste
   const name = cleanName(p.client_name);
   let out = template
     .replace("{client_greeting}", name ? ` ${name}` : "")
-    .replace("{what_they_asked}", p.what_they_asked.replace(/[.\s]+$/, "").replace(/^./, (c) => c.toUpperCase()))
-    .replace("{system_title}", p.system_title.toLowerCase().replace(/\s+system$/, " system"))
+    .replace("{what_they_asked}", p.what_they_asked.replace(/[.\s]+$/, ""))
+    .replace("{system_title}", p.system_title.trim())
     .replace("{loom_line}", hasLoom ? " and a short Loom walking through it" : "")
     .replace("{explanation}", p.explanation)
     .replace("{steps}", p.steps.map((s, i) => `${i + 1}. ${s.replace(/^\d+[.)]\s*/, "")}`).join("\n"))
@@ -39,3 +39,20 @@ export function fillCover(template: string, p: Pick<Pack, "client_name" | "syste
   return out.trim();
 }
 
+
+/** What is wrong with the model's reply, if anything. Structured output is not enforced by the API, so check it before saving. */
+export function packProblems(r: any): string[] {
+  const bad: string[] = [];
+  const text = (v: unknown) => typeof v === "string" && v.trim().length > 0 && !/<\/?parameter|<invoke/i.test(v);
+  for (const k of ["system_title", "what_they_asked", "explanation", "diagram", "fit_note"]) if (!text(r?.[k])) bad.push(k);
+  if (!Array.isArray(r?.steps) || r.steps.length < 3 || !r.steps.every(text)) bad.push("steps");
+  const l = r?.loom;
+  if (!l || typeof l !== "object") bad.push("loom");
+  else {
+    if (!text(l.hook)) bad.push("loom.hook");
+    if (!text(l.close)) bad.push("loom.close");
+    if (!Array.isArray(l.show) || l.show.length < 2 || !l.show.every((b: any) => text(b?.say) && text(b?.on_screen))) bad.push("loom.show");
+    if (!Array.isArray(l.prep)) bad.push("loom.prep");
+  }
+  return bad;
+}
