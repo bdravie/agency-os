@@ -506,3 +506,6 @@ tr.held td { color: var(--muted); }
 .status-option { width: 100%; min-height: 34px; border: 0; border-radius: 6px; font-size: 13.5px; font-weight: 650; color: #0b1020; cursor: pointer; text-align: center; }
 .status-option:hover, .status-option:focus-visible { filter: brightness(1.12); outline: 2px solid var(--text); outline-offset: 1px; }
 .status-option.current { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7); }
+
+/* Destructive action button (secondary look, red on hover) */
+button.danger:hover, .btn.danger:hover { color: var(--bad); border-color: var(--bad); background: var(--bad-soft); }

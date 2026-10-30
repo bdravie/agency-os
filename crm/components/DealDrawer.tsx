@@ -10,6 +10,7 @@ import { STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/l
 import { billingShort, lineNet, totals, type Billing } from "@/lib/dealOffers";
 import { ActivityIcon, activityLabel } from "./activity";
 import DealStageBar from "./DealStageBar";
+import DeleteDealButton from "./DeleteDealButton";
 import ToastForm from "./ToastForm";
 import { Badge } from "./ui";
 
@@ -148,6 +149,8 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
                 ))}</ul>
               )}
             </section>
+
+            <section><DeleteDealButton dealId={dealId} title={d.title} stage={current} onDeleted={onClose} /></section>
 
             <p className="muted" style={{ paddingBottom: 8 }}>Created {ago(d.created_at)} · now in <b>{stageLabel(current)}</b></p>
           </div>

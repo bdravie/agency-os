@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { query } from "@/lib/db";
 import { STAGES } from "@/lib/stages";
 import { gbp } from "@/lib/quote";
@@ -19,6 +20,7 @@ export default async function Deals() {
       <PageHeader
         title="Deals"
         description={`${open.length} open deals · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup + ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo. Click a card for details, or drag it to another stage.`}
+        actions={<Link href="/deals/deleted" className="btn secondary">Deletion log</Link>}
       />
       <Board initial={rows} stages={STAGES} />
     </>

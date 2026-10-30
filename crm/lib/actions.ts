@@ -11,6 +11,7 @@ import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
+import { deletionLabel, deletionProblem } from "./dealDeletion";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
@@ -191,6 +192,32 @@ export async function moveDeal(dealId: number, stage: string, lostReason?: strin
   revalidatePath("/deals");
   revalidatePath("/funnel");
   revalidatePath("/");
+}
+
+/** Remove a deal from the pipeline. Needs a category and a written note; the reason is kept in deal_deletions. Won deals are clients, so they cannot be removed here. */
+export async function deleteDeal(dealId: number, category: string, note: string): Promise<string | null> {
+  await requireLogin();
+  const problem = deletionProblem(category, note);
+  if (problem) return problem;
+  const reason = note.trim();
+  const gone = await tx(async (c) => {
+    const { rows } = await c.query(
+      `SELECT d.*, d.stage::text AS stage_text, co.name AS company_name FROM deals d LEFT JOIN companies co ON co.id = d.company_id WHERE d.id = $1 FOR UPDATE OF d`, [dealId]);
+    const d = rows[0];
+    if (!d) return { error: "This deal no longer exists." };
+    if (d.stage_text === "Won") return { error: "A won deal is a client. Move it to Lost first if it really should go." };
+    const { stage_text, company_name, ...snapshot } = d;
+    await c.query(
+      `INSERT INTO deal_deletions (deal_id, title, company_id, company_name, stage, setup_gbp, monthly_gbp, category, note, snapshot)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [dealId, d.title, d.company_id, company_name, stage_text, d.setup_value_gbp, d.monthly_value_gbp, category, reason, JSON.stringify(snapshot)]);
+    await c.query(`DELETE FROM deals WHERE id = $1`, [dealId]);
+    return { title: d.title as string, company_id: d.company_id as number | null };
+  });
+  if ("error" in gone) return gone.error ?? null;
+  await logActivity("deal_deleted", { company_id: gone.company_id, body: `${gone.title}: removed from the pipeline (${deletionLabel(category)}): ${reason}` });
+  for (const path of ["/deals", "/deals/deleted", "/funnel", "/"]) revalidatePath(path);
+  return null;
 }
 
 export async function addLooseTask(form: FormData) {

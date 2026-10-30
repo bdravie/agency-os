@@ -7,6 +7,7 @@ import { gbp } from "@/lib/quote";
 import { ago, dateOnly, when } from "@/lib/format";
 import { CHANNELS, STAGE_META, channelLabel, lostLabel, stageLabel, type Stage } from "@/lib/stages";
 import DealStageControl from "@/components/DealStageControl";
+import DeleteDealButton from "@/components/DeleteDealButton";
 import DealOffersCard from "@/components/DealOffersCard";
 import AuditsCard from "@/components/AuditsCard";
 import CallsCard from "@/components/CallsCard";
@@ -52,7 +53,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             {deal.company_id && <Link href={`/companies/${deal.company_id}`}>{deal.company_name}</Link>}
           </span>
         }
-        actions={<Link href={`/quotes/new?deal=${id}`} className="btn"><FileText size={16} aria-hidden /> Create quote</Link>}
+        actions={<span className="row"><Link href={`/quotes/new?deal=${id}`} className="btn"><FileText size={16} aria-hidden /> Create quote</Link><DeleteDealButton dealId={id} title={deal.title} stage={deal.stage_text} /></span>}
       />
 
       <section className="card" style={{ marginBottom: 20 }}>
