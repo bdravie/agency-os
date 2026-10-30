@@ -5,16 +5,30 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { addNicheAction, checkSicAction, deleteNicheAction, type NicheState } from "@/lib/nicheActions";
 import type { NicheOption } from "@/lib/leadConfig";
+import { writeNicheCopyAction } from "@/lib/outreachTemplateActions";
+import type { CopyStatus } from "@/lib/outreachTemplates";
 import ConfirmButton from "./ConfirmButton";
 
 // Add your own niche: a name plus the SIC codes Companies House files those businesses under. The codes can be checked first (free).
-export default function NicheManager({ niches }: { niches: NicheOption[] }) {
+const COPY_LABEL: Record<CopyStatus, { text: string; tone: string }> = {
+  written: { text: "Written", tone: "good" }, ai: { text: "AI draft: read it", tone: "warn" }, starter: { text: "Starter only", tone: "warn" }, none: { text: "Using the default", tone: "neutral" },
+};
+
+export default function NicheManager({ niches, copy }: { niches: NicheOption[]; copy: Record<string, CopyStatus> }) {
   const router = useRouter();
   const [state, action, pending] = useActionState<NicheState, FormData>(async (prev, form) => { const r = await addNicheAction(prev, form); if (r?.ok) router.refresh(); return r; }, null);
   const [sic, setSic] = useState("");
   const [check, setCheck] = useState<{ hits?: number; error?: string } | null>(null);
   const [checking, startCheck] = useTransition();
   const mine = niches.filter((n) => n.custom);
+  const [writing, setWriting] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState<{ ok?: string; error?: string } | null>(null);
+  const writeCopy = (n: NicheOption) => {
+    const status = copy[n.key] ?? "none";
+    if (status === "written" && !window.confirm(`${n.label} already has copy you wrote or edited. Replace it with AI copy? The old copy is kept as a .bak file.`)) return;
+    setWriting(n.key); setCopyMsg(null);
+    void writeNicheCopyAction(n.key, status === "written").then((r) => { setCopyMsg(r); if (r.ok) router.refresh(); }).finally(() => setWriting(null));
+  };
   return (
     <details>
       <summary>Add or manage niches</summary>
@@ -39,6 +53,21 @@ export default function NicheManager({ niches }: { niches: NicheOption[] }) {
           {state?.ok && <p role="status" style={{ margin: 0, color: "var(--good)" }}>{state.ok}</p>}
           {state?.error && <p className="error" role="alert">{state.error}</p>}
         </form>
+        <div className="stack" style={{ gap: 6 }}>
+          <div className="field-label">Outreach copy for each niche</div>
+          <p className="muted" style={{ margin: 0 }}>Each niche has its own first email, follow-up and social message in <code>prompts/outreach/&lt;niche&gt;.md</code>. Edit them in any editor. &ldquo;Write copy with AI&rdquo; is click-only and checks the result against your outreach rules.</p>
+          {niches.map((n) => {
+            const st = COPY_LABEL[copy[n.key] ?? "none"];
+            return (
+              <div key={n.key} className="row-between">
+                <span><b>{n.label}</b> <span className={`badge tone-${st.tone}`}>{st.text}</span></span>
+                <button type="button" className="secondary" disabled={writing !== null} onClick={() => writeCopy(n)}>{writing === n.key ? "Writing… (about 20 seconds)" : "Write copy with AI"}</button>
+              </div>
+            );
+          })}
+          {copyMsg?.ok && <p role="status" style={{ margin: 0, color: "var(--good)" }}>{copyMsg.ok}</p>}
+          {copyMsg?.error && <p className="error" role="alert">{copyMsg.error}</p>}
+        </div>
         {mine.length > 0 && (
           <div className="stack" style={{ gap: 6 }}>
             <div className="field-label">Your niches</div>

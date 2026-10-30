@@ -6,6 +6,7 @@ import { requireLogin } from "./auth";
 import { containsContactDetails } from "./audit";
 import { listNiches } from "./leadConfig";
 import { nicheKey, parseSicCodes, parseTerms } from "./niche";
+import { ensureStarter } from "./outreachTemplates";
 
 // Niches you add in the CRM live in the custom_niches table (the ones in config/niches.yaml stay in that file).
 
@@ -39,8 +40,10 @@ export async function addNicheAction(_prev: NicheState, form: FormData): Promise
   if (containsContactDetails(label) || containsContactDetails(offer)) return { error: "Keep this to business wording, without emails or phone numbers." };
   if ((await listNiches()).some((n) => n.key === key)) return { error: `There is already a niche called “${key.replace(/_/g, " ")}”.` };
   await query(`INSERT INTO custom_niches (key, label, sic_codes, search_terms, offer) VALUES ($1,$2,$3,$4,$5)`, [key, label, codes, terms, offer?.slice(0, 300) ?? null]);
+  // A starter outreach template for the new niche, so its first drafts never use another niche's wording. Replace it with real copy below.
+  const made = await ensureStarter(key, label, offer).catch(() => false);
   revalidatePath("/companies");
-  return { ok: `Added “${label}”. It is now in the niche list.` };
+  return { ok: `Added “${label}”. It is now in the niche list.${made ? " A starter outreach template was created: use Write copy with AI below, or edit it by hand." : ""}` };
 }
 
 export async function deleteNicheAction(form: FormData): Promise<void> {

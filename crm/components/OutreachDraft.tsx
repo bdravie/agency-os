@@ -15,6 +15,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
   const [kind, setKind] = useState<Kind>(to || routes.length === 0 ? "first" : "social");
   const [drafts, setDrafts] = useState<Record<Kind, Draft> | null>(null);   // nothing is written until you click Generate
   const [genError, setGenError] = useState<string | null>(null);
+  const [templateNote, setTemplateNote] = useState<string | null>(null);
   const [generating, startGen] = useTransition();
   const [note, setNote] = useState<string | null>(null);
   const [toId, setToId] = useState("");
@@ -36,7 +37,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
     startGen(async () => {
       const r = await generateOutreachAction(companyId, chosen?.id ?? null);
       if (r.error || !r.drafts) { setGenError(r.error ?? "Could not write the drafts."); return; }
-      setDrafts(r.drafts); setNote(null);
+      setDrafts(r.drafts); setTemplateNote(r.templateNote ?? null); setNote(null);
     });
   };
   if (!drafts) {
@@ -92,6 +93,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
           <ul className="stack" style={{ gap: 6, marginTop: 8 }}>{openers.map((o, i) => <li key={i} className="row-between" style={{ gap: 10 }}><i>{o}</i><button type="button" className="secondary" onClick={() => useOpener(o)}>Use</button></li>)}</ul>
         </details>
       )}
+      {templateNote && <p className="muted" style={{ margin: 0 }}>{templateNote}</p>}
       <p className="muted">{!isSocial && `${d.subject.length} characters in the subject · `}{d.body.split(/\s+/).filter(Boolean).length} words in the body{unfilled && " · placeholders still to fill in"}</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {!isSocial && <button type="button" className="secondary" onClick={() => copy(d.subject, "Subject")}>Copy subject</button>}
