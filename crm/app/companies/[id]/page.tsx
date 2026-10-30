@@ -50,6 +50,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!gate) notFound();
   const blocker = gate.sendable ? null : gate.reasons.join(" ");
   const apollo = await apolloStatusAction(id);
+  const [latestSuggestion] = await query<any>(`SELECT id, result FROM offer_suggestions WHERE company_id = $1 ORDER BY id DESC LIMIT 1`, [id]);
+  const offerChoices = ((latestSuggestion?.result?.suggestions ?? []) as any[]).slice(0, 3).map((x, i) => ({ suggestionId: Number(latestSuggestion.id), index: i, title: String(x.title), offerName: x.offer_name ?? null, needsDpa: !!x.needs_dpa }));
   const rapport = await latestRapportFor(contacts.map((c: any) => Number(c.id)));
   const recipients = await query<any>(`SELECT ct.id, ct.name, ct.role, ct.email FROM contacts ct JOIN contact_gate cg ON cg.contact_id = ct.id WHERE ct.company_id = $1 AND cg.sendable ORDER BY ct.name`, [id]);
 
@@ -113,14 +115,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </div>
           </details>
           <ComplianceCard company={company} gate={gate} />
-          <details className="card" id="outreach">
-            <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
-            <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, openers: (rapport.get(Number(r.id))?.points ?? []).map((p) => p.opener) }))} blocker={blocker}
-                routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
-              {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
-            </div>
-          </details>
 
           <section className="card" id="log-activity">
             <h2>Log activity</h2>
@@ -146,6 +140,14 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           </section>
 
           <OfferSuggestionCard companyId={id} name={company.name} />
+          <details className="card" id="outreach">
+            <summary>Outreach email · last step{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
+            <div style={{ marginTop: 14 }}>
+              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, openers: (rapport.get(Number(r.id))?.points ?? []).map((p) => p.opener) }))} blocker={blocker} offers={offerChoices}
+                routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
+              {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
+            </div>
+          </details>
         </div>
 
         <div className="stack">

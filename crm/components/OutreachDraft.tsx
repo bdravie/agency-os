@@ -4,18 +4,23 @@ import { useState, useTransition } from "react";
 import { ExternalLink } from "lucide-react";
 import { markOutreachSent } from "@/lib/actions";
 import { generateOutreachAction } from "@/lib/outreachActions";
+import { generateOfferOutreachAction } from "@/lib/outreachOfferActions";
+import AddToDealsButton from "./AddToDealsButton";
 
 type Draft = { subject: string; body: string };
 type Route = { label: string; href: string };
 type Kind = "first" | "followup" | "social";
+export type OfferChoice = { suggestionId: number; index: number; title: string; offerName: string | null; needsDpa: boolean };
 
-export default function OutreachDraft({ companyId, to, recipients, routes, blocker }: {
-  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string; openers: string[] }[]; routes: Route[]; blocker: string | null;
+export default function OutreachDraft({ companyId, to, recipients, routes, blocker, offers }: {
+  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string; openers: string[] }[]; routes: Route[]; blocker: string | null; offers: OfferChoice[];
 }) {
   const [kind, setKind] = useState<Kind>(to || routes.length === 0 ? "first" : "social");
   const [drafts, setDrafts] = useState<Record<Kind, Draft> | null>(null);   // nothing is written until you click Generate
   const [genError, setGenError] = useState<string | null>(null);
   const [templateNote, setTemplateNote] = useState<string | null>(null);
+  const [offerKey, setOfferKey] = useState<string>(offers.length > 0 ? "0" : "");   // index into offers; "" means the standard niche template
+  const [usedOffer, setUsedOffer] = useState<OfferChoice | null>(null);
   const [generating, startGen] = useTransition();
   const [note, setNote] = useState<string | null>(null);
   const [toId, setToId] = useState("");
@@ -35,9 +40,10 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
     if (drafts && !window.confirm("Write new drafts? This replaces the ones below, including any edits you made.")) return;
     setGenError(null);
     startGen(async () => {
-      const r = await generateOutreachAction(companyId, chosen?.id ?? null);
+      const offer = offerKey === "" ? null : offers[Number(offerKey)] ?? null;
+      const r = offer ? await generateOfferOutreachAction(companyId, offer.suggestionId, offer.index, chosen?.id ?? null) : await generateOutreachAction(companyId, chosen?.id ?? null);
       if (r.error || !r.drafts) { setGenError(r.error ?? "Could not write the drafts."); return; }
-      setDrafts(r.drafts); setTemplateNote(r.templateNote ?? null); setNote(null);
+      setDrafts(r.drafts); setUsedOffer(offer); setTemplateNote(r.templateNote ?? null); setNote(null);
     });
   };
   if (!drafts) {
@@ -47,7 +53,8 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
           <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>Write it for</span>
             <select value={toId} onChange={(e) => setToId(e.target.value)} aria-label="Recipient"><option value="">The company{to ? `: ${to}` : ""}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
         ) : <p className="muted" style={{ margin: 0 }}>No decision-makers saved yet. Find them first (Decision-makers above) so the message can be personal and start with their first name. You can still write a company-level draft now.</p>}
-        <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : "Generate draft"}</button><span className="muted">Nothing is written until you click. Nothing is ever sent from here.</span></div>
+        <OfferPicker offers={offers} value={offerKey} onChange={setOfferKey} />
+        <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : offerKey === "" ? "Generate draft" : "Write email for this offer"}</button><span className="muted">Nothing is written until you click. Nothing is ever sent from here.</span></div>
         {genError && <p className="error" role="alert">{genError}</p>}
       </div>
     );
@@ -94,6 +101,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
         </details>
       )}
       {templateNote && <p className="muted" style={{ margin: 0 }}>{templateNote}</p>}
+      {usedOffer && <div className="row" style={{ gap: 8 }}><AddToDealsButton suggestionId={usedOffer.suggestionId} index={usedOffer.index} /><span className="muted">Adds &ldquo;{usedOffer.title}&rdquo; to Deals with a written plan and first tasks. Nothing is sent.</span></div>}
       <p className="muted">{!isSocial && `${d.subject.length} characters in the subject · `}{d.body.split(/\s+/).filter(Boolean).length} words in the body{unfilled && " · placeholders still to fill in"}</p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {!isSocial && <button type="button" className="secondary" onClick={() => copy(d.subject, "Subject")}>Copy subject</button>}
@@ -110,5 +118,22 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
       {note && <p className="muted">{note}</p>}
       {genError && <p className="error" role="alert">{genError}</p>}
     </div>
+  );
+}
+
+// Which offer the email is written around: one of the offers found for this company, or the standard template for its niche.
+function OfferPicker({ offers, value, onChange }: { offers: OfferChoice[]; value: string; onChange: (v: string) => void }) {
+  if (offers.length === 0) return <p className="muted" style={{ margin: 0 }}>No offers found yet. Run the offer suggestion above to write an email around the offer that suits them best.</p>;
+  return (
+    <fieldset className="stack" style={{ gap: 6, border: 0, padding: 0, margin: 0 }}>
+      <legend className="field-label">Write the email around</legend>
+      {offers.map((o, i) => (
+        <label key={`${o.suggestionId}-${o.index}`} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+          <input type="radio" name="offer" checked={value === String(i)} onChange={() => onChange(String(i))} style={{ marginTop: 4 }} />
+          <span><b>{o.title}</b>{o.offerName && <span className="muted"> · {o.offerName}</span>}{o.needsDpa && <span className="badge tone-warn" style={{ marginLeft: 6 }}>needs a data processing agreement first</span>}</span>
+        </label>
+      ))}
+      <label className="row" style={{ gap: 8 }}><input type="radio" name="offer" checked={value === ""} onChange={() => onChange("")} /><span>None: use the standard template for their niche</span></label>
+    </fieldset>
   );
 }
