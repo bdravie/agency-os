@@ -85,4 +85,4 @@ Errors are learning opportunities. When something breaks:
 - Explain what you are about to change in one or two sentences, then do it.
 - Keep running costs low: cache API responses during development, use Haiku where quality allows.
 
-- **Lead Sourcer look** is scoped to `/sourcer` only: all styles live in `crm/app/sourcer/sourcer.css` under `.sx` (light "survey sheet" palette, Bricolage Grotesque + Instrument Sans). The memorable element is `components/ScoreBar.tsx`, which draws the four score parts (size, verified, reach, reputation) from `parts` on each result. Keep new Lead Sourcer UI inside `.sx`; don't leak these tokens into the rest of the CRM.
+- **Lead Sourcer look** is scoped to `/sourcer` only: all styles live in `crm/app/sourcer/sourcer.css` under `.sx` (Bricolage Grotesque + Instrument Sans, on the CRM's normal dark theme: use the tokens from `globals.css`, no light palette). The memorable element is `components/ScoreBar.tsx`, which draws the four score parts (size, verified, reach, reputation) from `parts` on each result. Keep new Lead Sourcer UI inside `.sx`; the only colours defined there are the four score-part colours.
