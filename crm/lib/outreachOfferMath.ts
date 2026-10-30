@@ -11,17 +11,18 @@ const lowerFirst = (s: string) => { const w = s.split(/\s/)[0] ?? ""; return /^[
 const BOASTS = /\b(proven|guarantee[sd]?|revolutionis\w*|revolutioniz\w*|game[- ]chang\w*|we(?:'ve| have) (?:helped|built|worked)|case stud(?:y|ies)|clients like|best[- ]in[- ]class|cutting[- ]edge|per ?cent|[0-9]+%)\b|!/i;
 
 /** Cleans what the AI returned and lists what is wrong with it. Links, addresses and tags are removed; anything else wrong is reported. */
-export function checkOfferParts(raw: unknown): { parts: OfferParts; problems: string[] } {
+export function checkOfferParts(raw: unknown, opts: { bodyMax?: number } = {}): { parts: OfferParts; problems: string[] } {
   const r = (raw ?? {}) as Record<string, unknown>;
   const parts: OfferParts = { subject: clean(r.subject), body: clean(r.body), follow_up: lowerFirst(noGreeting(clean(r.follow_up))), social: lowerFirst(noGreeting(clean(r.social))) };
   const bad: string[] = [];
   for (const k of ["subject", "body", "follow_up", "social"] as const) if (!parts[k]) bad.push(`${k} is empty`);
   if (parts.subject.length > 30) bad.push(`the subject is ${parts.subject.length} characters (30 or fewer)`);
-  if (words(parts.body) > 70) bad.push(`the body is ${words(parts.body)} words (70 or fewer)`);
+  const bodyMax = opts.bodyMax ?? 70;
+  if (words(parts.body) > bodyMax) bad.push(`the body is ${words(parts.body)} words (${bodyMax} or fewer)`);
   if (words(parts.follow_up) > 45) bad.push(`the follow-up is ${words(parts.follow_up)} words (45 or fewer)`);
   if (words(parts.social) > 60) bad.push(`the social message is ${words(parts.social)} words (60 or fewer)`);
   for (const k of ["subject", "body", "follow_up", "social"] as const) {
-    const digits = (parts[k].replace(/\b15 minutes\b/gi, "").match(/\d/g) ?? []).length;
+    const digits = (parts[k].replace(/\b15[- ]minutes?\b/gi, "").match(/\d/g) ?? []).length;
     if (digits) bad.push(`the ${k.replace("_", "-")} contains a number, which must come from you, not the AI`);
     if (BOASTS.test(parts[k])) bad.push(`the ${k.replace("_", "-")} uses a boast or an exclamation mark`);
     if (/\{\{|\}\}/.test(parts[k])) bad.push(`the ${k.replace("_", "-")} contains a placeholder`);
@@ -41,4 +42,13 @@ export function assembleOfferDrafts(parts: OfferParts, o: { firstName: string | 
     followup: { subject: `Re: ${parts.subject}`, body: `${hi}, ${parts.follow_up.replace(/[.\s]+$/, "")}. If it's not relevant, reply "no" and I won't email again.\n\n${you}, ${biz}` },
     social: { subject: "", body: `${hi}, I'm ${you} at ${biz}. ${parts.social} Reply "no" and I won't message again.` },
   };
+}
+
+/** Puts an icebreaker straight after the greeting. In an email it becomes the first paragraph; in a social message it follows "Hi Alex,". */
+export function insertOpener(body: string, opener: string): string {
+  const line = opener.trim();
+  if (!line) return body;
+  const parts = body.split("\n\n");
+  if (parts.length > 1) { parts.splice(1, 0, line); return parts.join("\n\n"); }
+  return body.replace(/^(Hi [^,]+,)\s*/, `$1 ${line} `);
 }

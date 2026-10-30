@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assembleOfferDrafts, checkOfferParts } from "../lib/outreachOfferMath.ts";
+import { assembleOfferDrafts, checkOfferParts, insertOpener } from "../lib/outreachOfferMath.ts";
 
 const good = { subject: "Monday bookings email", body: "I'd set up a one-page email each Monday showing the week's bookings and reviews. I'd start with one week of your totals. Could we have 15 minutes?", follow_up: "A quick nudge on the Monday bookings email idea.", social: "I'd set up a Monday email of your bookings and reviews, starting with one week of totals. Could we have 15 minutes?" };
 
@@ -12,6 +12,7 @@ test("clean parts pass, and links, addresses and tags are stripped rather than k
 test("numbers, boasts, long text and placeholders are caught", () => {
   const p = (patch) => checkOfferParts({ ...good, ...patch }).problems.join(" | ");
   assert.match(p({ body: "We save you 30 hours a week. Could we have 15 minutes?" }), /contains a number/);
+  assert.deepEqual(checkOfferParts({ ...good, social: "Could we have a 15-minute chat?" }).problems, []);
   assert.match(p({ body: "A proven approach. Could we have 15 minutes?" }), /boast/);
   assert.match(p({ body: "Great idea! Could we have 15 minutes?" }), /boast/);
   assert.match(p({ subject: "x".repeat(31) }), /subject is 31/);
@@ -43,4 +44,13 @@ test("a greeting the AI added is dropped, and the text after the code's greeting
   const d = assembleOfferDrafts(r.parts, { firstName: "Alex", company: "X", opener: null, name: "B", business: "C" });
   assert.match(d.followup.body, /^Hi Alex, a gentle nudge on the idea\./);
   assert.equal(checkOfferParts({ ...good, social: "I'd set up a Monday email. Could we have 15 minutes?" }).parts.social.startsWith("I'd"), true);
+});
+
+test("with an icebreaker the body limit is tighter, and the icebreaker goes straight after the greeting", () => {
+  const long = { ...good, body: "word ".repeat(60).trim() };
+  assert.deepEqual(checkOfferParts(long).problems.filter((p) => /body is/.test(p)), []);
+  assert.match(checkOfferParts(long, { bodyMax: 55 }).problems.join(" "), /body is 60 words \(55 or fewer\)/);
+  assert.equal(insertOpener("Hi Alex,\n\nBody text.\n\nSam, Acme", "I read your piece."), "Hi Alex,\n\nI read your piece.\n\nBody text.\n\nSam, Acme");
+  assert.equal(insertOpener("Hi Alex, I'm Sam at Acme.", "I read your piece."), "Hi Alex, I read your piece. I'm Sam at Acme.");
+  assert.equal(insertOpener("Hi Alex,\n\nBody", "  "), "Hi Alex,\n\nBody");
 });

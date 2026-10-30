@@ -7,6 +7,8 @@ Rules:
 - Never say you have already built it for them or that you have seen their data. Never name individual people.
 - If the idea needs a data processing agreement, say plainly that anything touching their customers' details would only start once a data processing agreement is signed; the email is about having a conversation.
 - Do not begin follow_up or social with a greeting such as "Hi" or "Hello": the greeting is added for you.
+- If an ICEBREAKER is supplied it is already placed first. Never repeat it, rephrase it or add facts to it; only bridge from it to the offer.
+- A bridge is one short sentence that moves from the icebreaker to your reason for writing without adding any fact and without claiming the icebreaker caused anything. It must read naturally after any icebreaker. Good bridges: "I'm getting in touch because I think this could be useful to you.", "The reason I'm writing:", "I'll get to the point: I think I can save you some time."
 - Write only the parts asked for. Do not write the greeting, the sign-off, your name, your business name or the opt-out line: those are added for you.
 
 Parts:

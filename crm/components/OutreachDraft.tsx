@@ -5,15 +5,17 @@ import { ExternalLink } from "lucide-react";
 import { markOutreachSent } from "@/lib/actions";
 import { generateOutreachAction } from "@/lib/outreachActions";
 import { generateOfferOutreachAction } from "@/lib/outreachOfferActions";
+import { findRapportAction } from "@/lib/rapportActions";
 import AddToDealsButton from "./AddToDealsButton";
 
 type Draft = { subject: string; body: string };
 type Route = { label: string; href: string };
 type Kind = "first" | "followup" | "social";
+export type Ice = { text: string; kind: string; sourceUrl: string; sourceTitle: string };
 export type OfferChoice = { suggestionId: number; index: number; title: string; offerName: string | null; needsDpa: boolean };
 
 export default function OutreachDraft({ companyId, to, recipients, routes, blocker, offers }: {
-  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string; openers: string[] }[]; routes: Route[]; blocker: string | null; offers: OfferChoice[];
+  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string | null; ice: Ice[] }[]; routes: Route[]; blocker: string | null; offers: OfferChoice[];
 }) {
   const [kind, setKind] = useState<Kind>(to || routes.length === 0 ? "first" : "social");
   const [drafts, setDrafts] = useState<Record<Kind, Draft> | null>(null);   // nothing is written until you click Generate
@@ -23,10 +25,19 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
   const [usedOffer, setUsedOffer] = useState<OfferChoice | null>(null);
   const [generating, startGen] = useTransition();
   const [note, setNote] = useState<string | null>(null);
-  const [toId, setToId] = useState("");
+  // Start with a saved decision-maker (preferably one with an icebreaker saved), so the email is personal by default.
+  const first = recipients.find((r) => r.ice.length > 0) ?? recipients[0] ?? null;
+  const [toId, setToId] = useState(first ? String(first.id) : "");
+  const [iceKey, setIceKey] = useState<string>(first && first.ice.length > 0 ? "0" : "none");   // which icebreaker: an index, or "none"
+  const [found, setFound] = useState<Record<number, Ice[]>>({});   // icebreakers found just now, before the page reloads
+  const [finding, startFind] = useTransition();
+  const [findError, setFindError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const chosen = recipients.find((r) => String(r.id) === toId) ?? null;
-  const toEmail = chosen?.email ?? to;
+  const toEmail = chosen ? chosen.email : to;
+  const iceList: Ice[] = chosen ? found[chosen.id] ?? chosen.ice : [];
+  const pickPerson = (id: string) => { setToId(id); const r = recipients.find((x) => String(x.id) === id); setIceKey(r && (found[r.id] ?? r.ice).length > 0 ? "0" : "none"); setFindError(null); };
+  const findIce = () => { if (!chosen) return; setFindError(null); startFind(async () => { const r = await findRapportAction(chosen.id); if (r.error || !r.result) { setFindError(r.error ?? "The search failed."); return; } setFound((f) => ({ ...f, [chosen.id]: r.result!.points.map((p) => ({ text: p.opener, kind: p.kind, sourceUrl: p.source_url, sourceTitle: p.source_title })) })); setIceKey(r.result.points.length > 0 ? "0" : "none"); }); };
   if (blocker) {
     return (
       <div className="stack" style={{ gap: 6 }} role="alert">
@@ -41,7 +52,8 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
     setGenError(null);
     startGen(async () => {
       const offer = offerKey === "" ? null : offers[Number(offerKey)] ?? null;
-      const r = offer ? await generateOfferOutreachAction(companyId, offer.suggestionId, offer.index, chosen?.id ?? null) : await generateOutreachAction(companyId, chosen?.id ?? null);
+      const iceIndex = chosen && iceKey !== "none" && iceList[Number(iceKey)] ? Number(iceKey) : null;
+      const r = offer ? await generateOfferOutreachAction(companyId, offer.suggestionId, offer.index, chosen?.id ?? null, iceIndex) : await generateOutreachAction(companyId, chosen?.id ?? null, iceIndex);
       if (r.error || !r.drafts) { setGenError(r.error ?? "Could not write the drafts."); return; }
       setDrafts(r.drafts); setUsedOffer(offer); setTemplateNote(r.templateNote ?? null); setNote(null);
     });
@@ -50,9 +62,30 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
     return (
       <div className="stack" style={{ gap: 10 }}>
         {recipients.length > 0 ? (
-          <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>Write it for</span>
-            <select value={toId} onChange={(e) => setToId(e.target.value)} aria-label="Recipient"><option value="">The company{to ? `: ${to}` : ""}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
-        ) : <p className="muted" style={{ margin: 0 }}>No decision-makers saved yet. Find them first (Decision-makers above) so the message can be personal and start with their first name. You can still write a company-level draft now.</p>}
+          <div className="stack" style={{ gap: 8 }}>
+            <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>Write it for</span>
+              <select value={toId} onChange={(e) => pickPerson(e.target.value)} aria-label="Recipient"><option value="">The company{to ? `: ${to}` : ""} (no personal greeting)</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email ?? "no email (social message only)"}</option>)}</select></label>
+            {chosen && (
+              <fieldset className="stack" style={{ gap: 6, border: 0, padding: 0, margin: 0 }}>
+                <legend className="field-label">Icebreaker for {chosen.name.split(" ")[0]} (from their own published material)</legend>
+                {iceList.map((x, i) => (
+                  <label key={i} className="row" style={{ gap: 8, alignItems: "flex-start" }}>
+                    <input type="radio" name="ice" checked={iceKey === String(i)} onChange={() => setIceKey(String(i))} style={{ marginTop: 4 }} />
+                    <span><i>{x.text}</i> <a href={x.sourceUrl} target="_blank" rel="noreferrer" className="muted">source</a></span>
+                  </label>
+                ))}
+                <label className="row" style={{ gap: 8 }}><input type="radio" name="ice" checked={iceKey === "none"} onChange={() => setIceKey("none")} /><span>No icebreaker</span></label>
+                {iceList.length === 0 && (
+                  <div className="row" style={{ gap: 8 }}>
+                    <button type="button" className="secondary" onClick={findIce} disabled={finding}>{finding ? "Searching… (about 30 seconds)" : `Find something relatable about ${chosen.name.split(" ")[0]}`}</button>
+                    <span className="muted">Their own website and a few public pages. Uses search credits. No social media.</span>
+                  </div>
+                )}
+                {findError && <p className="error" role="alert">{findError}</p>}
+              </fieldset>
+            )}
+          </div>
+        ) : <p className="muted" style={{ margin: 0 }}>No decision-makers saved yet. Find them first (Decision-makers above) so the email can name them and start with something personal. You can still write a company-level draft now.</p>}
         <OfferPicker offers={offers} value={offerKey} onChange={setOfferKey} />
         <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : offerKey === "" ? "Generate draft" : "Write email for this offer"}</button><span className="muted">Nothing is written until you click. Nothing is ever sent from here.</span></div>
         {genError && <p className="error" role="alert">{genError}</p>}
@@ -65,7 +98,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
   const set = (patch: Partial<Draft>) => setDrafts({ ...drafts, [kind]: { ...d, ...patch } });
   // Puts a rapport opening line right after the greeting, so you can then trim the template's own opening sentence.
   const useOpener = (line: string) => { const parts = d.body.split("\n\n"); parts.splice(1, 0, line); set({ body: parts.join("\n\n") }); setNote("Opening line added after the greeting. Check the rest still reads well."); };
-  const openers = chosen?.openers ?? [];
+  const openers = iceList.map((x) => x.text);
   const copy = async (text: string, label: string) => { await navigator.clipboard.writeText(text); setNote(`${label} copied`); };
   const mailto = `mailto:${toEmail ?? ""}?subject=${encodeURIComponent(d.subject)}&body=${encodeURIComponent(d.body)}`;
   const missing = isSocial ? (routes.length === 0 ? "Add a company page or contact form first (Contact details above)." : null) : (!toEmail ? "Add a generic email on this company first, or reveal a decision-maker above." : null);
@@ -88,7 +121,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
         <div className="stack" style={{ gap: 6 }}>
           {recipients.length > 0 ? (
             <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>To</span>
-              <select value={toId} onChange={(e) => setToId(e.target.value)} aria-label="Recipient"><option value="">{to ? `Company: ${to}` : "Company (no generic email saved)"}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
+              <select value={toId} onChange={(e) => pickPerson(e.target.value)} aria-label="Recipient"><option value="">{to ? `Company: ${to}` : "Company (no generic email saved)"}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
           ) : <p className="muted" style={{ margin: 0 }}>To: {to ?? "no generic email saved yet"}</p>}
           <p className="muted" style={{ margin: 0 }}>Nothing is sent from here: copy it or open it in your mail app, then mark it sent.</p>
         </div>
