@@ -14,6 +14,7 @@ import InstagramDm from "@/components/InstagramDm";
 import ComplianceCard from "@/components/ComplianceCard";
 import OfferSuggestionCard from "@/components/OfferSuggestionCard";
 import DecisionMakers from "@/components/DecisionMakers";
+import PasteDecisionMakers from "@/components/PasteDecisionMakers";
 import { apolloStatusAction, contactClearOptOutAction, contactOptOutAction } from "@/lib/apolloActions";
 import { loadGate } from "@/lib/complianceGate";
 import StatusStepper from "@/components/StatusStepper";
@@ -80,8 +81,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               {next.href && <a href={next.href}>{next.href.startsWith("/") ? "Open" : "Take me there"} →</a>}
             </div>
           </div>
-          <OfferSuggestionCard companyId={id} name={company.name} />
-          <ComplianceCard company={company} gate={gate} />
           <details className="card" id="website" open={!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url)}>
             <summary>Contact details{(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) ? <span className="muted" style={{ fontWeight: 400 }}> · {[company.domain && "website", company.generic_email && "email", company.linkedin_url && "LinkedIn", company.instagram_url && "Instagram", company.facebook_url && "Facebook", company.contact_url && "contact page"].filter(Boolean).join(", ")}</span> : <span className="muted" style={{ fontWeight: 400 }}> · no way to reach them yet</span>}</summary>
             <div style={{ marginTop: 14 }}>
@@ -96,6 +95,26 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </div>
           </details>
 
+          <details className="card" id="decision-makers">
+            <summary>Decision-makers (Apollo) <span className="badge tone-warn" style={{ marginLeft: 6 }}>emails use credits</span>{apollo.saved > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {apollo.saved} saved</span>}</summary>
+            <div style={{ marginTop: 14 }}><DecisionMakers companyId={id} status={apollo} /></div>
+          </details>
+          <details className="card" id="paste-decision-makers">
+            <summary>Add decision-makers by pasting{contacts.length > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {contacts.length} contact{contacts.length === 1 ? "" : "s"} saved</span>}</summary>
+            <div style={{ marginTop: 14 }}>
+              <PasteDecisionMakers companyId={id} domain={company.domain ?? null} blocked={gate.sendable ? null : `People are only added for verified active limited companies that can be contacted. ${gate.reasons.join(" ")}`.trim()} />
+            </div>
+          </details>
+          <ComplianceCard company={company} gate={gate} />
+          <details className="card" id="outreach" open={!!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) && !blocker}>
+            <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
+            <div style={{ marginTop: 14 }}>
+              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
+                routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
+              {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
+            </div>
+          </details>
+
           <section className="card">
             <h2>Log activity</h2>
             <ToastForm action={logContact} success="Activity logged" reset className="row">
@@ -105,19 +124,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               <button>Log</button>
             </ToastForm>
           </section>
-
-          <details className="card" id="decision-makers">
-            <summary>Decision-makers (Apollo) <span className="badge tone-warn" style={{ marginLeft: 6 }}>emails use credits</span>{apollo.saved > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {apollo.saved} saved</span>}</summary>
-            <div style={{ marginTop: 14 }}><DecisionMakers companyId={id} status={apollo} /></div>
-          </details>
-          <details className="card" id="outreach" open={!!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) && !blocker}>
-            <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
-            <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
-                routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
-              {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
-            </div>
-          </details>
 
           <section className="card">
             <h2>Activity</h2>
@@ -134,6 +140,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               ))}</ul>
             )}
           </section>
+
+          <OfferSuggestionCard companyId={id} name={company.name} />
         </div>
 
         <div className="stack">
