@@ -3,22 +3,24 @@
 import { useState, useTransition } from "react";
 import { ExternalLink } from "lucide-react";
 import { markOutreachSent } from "@/lib/actions";
+import { generateOutreachAction } from "@/lib/outreachActions";
 
 type Draft = { subject: string; body: string };
 type Route = { label: string; href: string };
 type Kind = "first" | "followup" | "social";
 
-export default function OutreachDraft({ companyId, to, recipients, first, followUp, social, routes, blocker }: {
-  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string }[]; first: Draft; followUp: Draft; social: Draft; routes: Route[]; blocker: string | null;
+export default function OutreachDraft({ companyId, to, recipients, routes, blocker }: {
+  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string }[]; routes: Route[]; blocker: string | null;
 }) {
   const [kind, setKind] = useState<Kind>(to || routes.length === 0 ? "first" : "social");
-  const [drafts, setDrafts] = useState<Record<Kind, Draft>>({ first, followup: followUp, social });
+  const [drafts, setDrafts] = useState<Record<Kind, Draft> | null>(null);   // nothing is written until you click Generate
+  const [genError, setGenError] = useState<string | null>(null);
+  const [generating, startGen] = useTransition();
   const [note, setNote] = useState<string | null>(null);
   const [toId, setToId] = useState("");
   const [pending, start] = useTransition();
   const chosen = recipients.find((r) => String(r.id) === toId) ?? null;
   const toEmail = chosen?.email ?? to;
-  const d = drafts[kind];
   if (blocker) {
     return (
       <div className="stack" style={{ gap: 6 }} role="alert">
@@ -28,6 +30,28 @@ export default function OutreachDraft({ companyId, to, recipients, first, follow
       </div>
     );
   }
+  const generate = () => {
+    if (drafts && !window.confirm("Write new drafts? This replaces the ones below, including any edits you made.")) return;
+    setGenError(null);
+    startGen(async () => {
+      const r = await generateOutreachAction(companyId, chosen?.id ?? null);
+      if (r.error || !r.drafts) { setGenError(r.error ?? "Could not write the drafts."); return; }
+      setDrafts(r.drafts); setNote(null);
+    });
+  };
+  if (!drafts) {
+    return (
+      <div className="stack" style={{ gap: 10 }}>
+        {recipients.length > 0 ? (
+          <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>Write it for</span>
+            <select value={toId} onChange={(e) => setToId(e.target.value)} aria-label="Recipient"><option value="">The company{to ? `: ${to}` : ""}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
+        ) : <p className="muted" style={{ margin: 0 }}>No decision-makers saved yet. Find them first (Decision-makers above) so the message can be personal and start with their first name. You can still write a company-level draft now.</p>}
+        <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : "Generate draft"}</button><span className="muted">Nothing is written until you click. Nothing is ever sent from here.</span></div>
+        {genError && <p className="error" role="alert">{genError}</p>}
+      </div>
+    );
+  }
+  const d = drafts[kind];
   const isSocial = kind === "social";
   const unfilled = d.subject.match(/\{\{.*?\}\}/g) ?? d.body.match(/\{\{.*?\}\}/g);
   const set = (patch: Partial<Draft>) => setDrafts({ ...drafts, [kind]: { ...d, ...patch } });
@@ -64,6 +88,7 @@ export default function OutreachDraft({ companyId, to, recipients, first, follow
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {!isSocial && <button type="button" className="secondary" onClick={() => copy(d.subject, "Subject")}>Copy subject</button>}
         <button type="button" className="secondary" onClick={() => copy(d.body, "Message")}>Copy {isSocial ? "message" : "body"}</button>
+        <button type="button" className="secondary" onClick={generate} disabled={generating}>{generating ? "Writing…" : "Write again"}</button>
         {!isSocial && <a href={mailto} aria-disabled={!toEmail}><button type="button" className="secondary" disabled={!toEmail}>Open in mail app</button></a>}
         <button type="button" disabled={pending || !!why} title={why ?? ""}
           onClick={() => start(async () => {
@@ -73,6 +98,7 @@ export default function OutreachDraft({ companyId, to, recipients, first, follow
       </div>
       {why && <p className="muted">Mark as sent is off: {why}</p>}
       {note && <p className="muted">{note}</p>}
+      {genError && <p className="error" role="alert">{genError}</p>}
     </div>
   );
 }

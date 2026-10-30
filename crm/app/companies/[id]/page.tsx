@@ -5,7 +5,6 @@ import { Check, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { query } from "@/lib/db";
 import { addContact, addDeal, addTask, completeTask, findEmailAction, findWebsiteOneAction, logContact, saveNotes, setWebsite } from "@/lib/actions";
 import { googleSearchUrl } from "@/lib/websites";
-import { outreachDrafts } from "@/lib/outreach";
 import { gbp } from "@/lib/quote";
 import { ago, dateOnly, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
@@ -44,7 +43,6 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
     query<any>(`SELECT * FROM activities WHERE company_id = $1 AND type <> 'places_lookup' ORDER BY occurred_at DESC LIMIT 50`, [id]),
     query<any>(`SELECT id, kind, value, note FROM company_contact_methods WHERE company_id = $1 ORDER BY id`, [id]),
   ]);
-  const drafts = await outreachDrafts(company.display_name);
   const usage = await creditUsage();
   const gate = await loadGate(id);
   if (!gate) notFound();
@@ -112,10 +110,10 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             </div>
           </details>
           <ComplianceCard company={company} gate={gate} />
-          <details className="card" id="outreach" open={!!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) && !blocker}>
+          <details className="card" id="outreach">
             <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
             <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} first={drafts.first} followUp={drafts.followUp} social={drafts.social} blocker={blocker}
+              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} blocker={blocker}
                 routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
               {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
             </div>

@@ -26,11 +26,13 @@ async function loomUrl(): Promise<string | null> {
   } catch { return null; }
 }
 
-export async function outreachDrafts(companyName: string): Promise<{ first: Draft; followUp: Draft; social: Draft }> {
+/** firstName: greet a named decision-maker ("Hi Alex") instead of the company ("Hi Example team"). */
+export async function outreachDrafts(companyName: string, opts: { firstName?: string | null } = {}): Promise<{ first: Draft; followUp: Draft; social: Draft }> {
   const md = await readFile(path.join(ROOT, "prompts/outreach-email.md"), "utf8");
   const loom = await loomUrl();
   const fill = (s: string) => {
-    let out = s.replaceAll("{{agency}}", shortName(companyName));
+    let out = opts.firstName ? s.replaceAll("Hi {{agency}} team", `Hi ${opts.firstName}`) : s;
+    out = out.replaceAll("{{agency}}", shortName(companyName));
     if (process.env.SENDER_NAME) out = out.replaceAll("{{your name}}", process.env.SENDER_NAME);
     if (process.env.BUSINESS_NAME) out = out.replaceAll("{{your business}}", process.env.BUSINESS_NAME);
     if (loom) out = out.replaceAll("{{Loom link}}", loom);
