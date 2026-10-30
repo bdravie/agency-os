@@ -9,6 +9,7 @@ import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
+import { buildPack } from "./upworkPack";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
@@ -242,6 +243,23 @@ export async function createProposal(_prev: string | null, form: FormData): Prom
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }
   redirect(`/proposals/${id}`);
+}
+
+/** Click-only: writes the cover letter, Loom script and workflow diagram for one saved proposal. Nothing is sent. */
+export async function generatePackAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "id");
+  const [p] = await query<{ job_text: string }>(`SELECT job_text FROM proposals WHERE id = $1`, [id]);
+  if (!p) return "Proposal not found.";
+  try {
+    const pack = await buildPack(p.job_text);
+    await query(`UPDATE proposals SET pack = $2, pack_at = now() WHERE id = $1`, [id, JSON.stringify(pack)]);
+    await logActivity("proposal_pack", { channel: "upwork", body: `Pitch pack for proposal #${id}` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  revalidatePath(`/proposals/${id}`);
+  return null;
 }
 
 const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"];

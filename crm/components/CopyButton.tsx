@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function CopyButton({ targetId }: { targetId: string }) {
+export default function CopyButton({ targetId, label = "Copy draft" }: { targetId: string; label?: string }) {
   const [done, setDone] = useState(false);
   return (
     <button type="button" className="secondary" onClick={async () => {
@@ -11,6 +11,6 @@ export default function CopyButton({ targetId }: { targetId: string }) {
       await navigator.clipboard.writeText(el.value);
       setDone(true);
       setTimeout(() => setDone(false), 1500);
-    }}>{done ? "Copied ✓" : "Copy draft"}</button>
+    }}>{done ? "Copied ✓" : label}</button>
   );
 }

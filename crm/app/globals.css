@@ -469,3 +469,40 @@ tr.held td { color: var(--muted); }
 /* Objection responses */
 .response-box { margin-top: 8px; padding: 10px 12px; background: var(--good-soft); border-radius: var(--radius-sm); }
 .response-box .field-label { color: var(--good); }
+
+/* ---------- Deals as stacked tiers (one horizontal band per stage) ---------- */
+.tiers { display: flex; flex-direction: column; gap: 14px; }
+.tier { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); transition: border-color var(--ease), background var(--ease); }
+.tier.over { border-color: var(--accent); background: var(--surface-2); }
+.tier-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+.tier-toggle { min-height: 24px; padding: 2px; background: transparent; border: 0; color: var(--muted); }
+.tier-pill { padding: 3px 14px; border-radius: 6px; font-size: 13px; font-weight: 650; color: #0b1020; }
+.tier-head .count { min-width: 22px; text-align: center; padding: 0 7px; font-size: 12px; font-weight: 600; color: var(--text-2); background: var(--surface-2); border-radius: 999px; }
+.tier-hint { color: var(--muted); font-size: 12.5px; }
+.tier-total { margin-left: auto; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.tier-body { padding: 0 14px 12px; }
+.tier-cols, .tier-row { display: grid; grid-template-columns: minmax(200px, 2.4fr) minmax(120px, 1.4fr) 90px 100px 80px minmax(200px, auto); gap: 12px; align-items: center; }
+.tier-cols { padding: 4px 10px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line-soft); }
+.tier-row { padding: 9px 10px; border-bottom: 1px solid var(--line-soft); cursor: grab; }
+.tier-row:last-child { border-bottom: 0; }
+.tier-row:hover { background: var(--bg); }
+.tier-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.tier-row.active { background: var(--bg); box-shadow: inset 2px 0 0 var(--accent); }
+.tier-title { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tier-company { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.tier-num { font-size: 13px; font-variant-numeric: tabular-nums; }
+.tier-actions { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+.tier-actions button { min-height: 26px; padding: 2px 8px; font-size: 12px; }
+.tier-done { display: inline-flex; align-items: center; gap: 4px; background: var(--good-soft); color: var(--good); border: 1px solid rgba(61, 220, 151, 0.4); }
+@media (max-width: 900px) { .tier-cols { display: none; } .tier-row { grid-template-columns: 1fr auto; } .tier-company, .tier-num { display: none; } }
+
+/* Status pill and its "Select an option" list (deals board) */
+.status-wrap { position: relative; display: inline-block; }
+.status-pill { min-height: 26px; padding: 2px 14px; border: 0; border-radius: 6px; font-size: 12.5px; font-weight: 650; color: #0b1020; cursor: pointer; }
+.status-pill:hover { filter: brightness(1.1); }
+.status-menu { position: absolute; z-index: 30; right: 0; top: calc(100% + 6px); width: 240px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--radius); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
+.status-menu-title { margin: 0; font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.status-options { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.status-option { width: 100%; min-height: 34px; border: 0; border-radius: 6px; font-size: 13.5px; font-weight: 650; color: #0b1020; cursor: pointer; text-align: center; }
+.status-option:hover, .status-option:focus-visible { filter: brightness(1.12); outline: 2px solid var(--text); outline-offset: 1px; }
+.status-option.current { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7); }

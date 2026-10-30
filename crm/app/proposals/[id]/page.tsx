@@ -5,6 +5,7 @@ import { query } from "@/lib/db";
 import { saveProposal } from "@/lib/actions";
 import CopyButton from "@/components/CopyButton";
 import { Badge, PageHeader } from "@/components/ui";
+import PackPanel from "@/components/PackPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
           <p style={{ whiteSpace: "pre-wrap" }}>{p.job_text}</p>
         </section>
       </div>
+      <PackPanel id={id} pack={p.pack} packAt={p.pack_at ? String(p.pack_at) : null} />
     </>
   );
 }

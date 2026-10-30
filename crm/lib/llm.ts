@@ -24,6 +24,9 @@ export const suggestModel = () => resolve(process.env.SUGGEST_MODEL?.trim() || "
 /** The model for Instagram DM drafts: set DM_MODEL in .env (an alias or a full model id). Defaults to Haiku, since these are short. */
 export const dmModel = () => resolve(process.env.DM_MODEL?.trim() || "haiku");
 
+/** The model for Upwork pitch packs: set UPWORK_MODEL in .env (an alias or a full model id). Defaults to Sonnet. */
+export const upworkModel = () => resolve(process.env.UPWORK_MODEL?.trim() || "sonnet");
+
 export async function ask(prompt: string, model: ModelChoice = "sonnet", maxTokens = 1500): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
   g._anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
