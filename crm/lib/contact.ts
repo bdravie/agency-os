@@ -1,4 +1,4 @@
-import { normaliseDomain } from "./csv";
+import { normaliseDomain } from "./csv.ts";
 import { normaliseTiktok } from "./contactMethods.ts";
 
 // Company-level contact routes only. No personal LinkedIn profiles, no named people's emails.
