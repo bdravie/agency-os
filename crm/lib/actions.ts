@@ -10,6 +10,7 @@ import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal, scoreFit } from "./proposal";
 import { buildPack } from "./upworkPack";
+import { proposalName, titleFromJob } from "./proposalName";
 import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
 import { findGenericEmail, safeDomain } from "./websites";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
@@ -233,12 +234,14 @@ export async function createProposal(_prev: string | null, form: FormData): Prom
       return `Fit score ${score}/10: ${reason} Tick "Draft anyway" to write it regardless.`;
     }
     const draft = await draftProposal(job);
+    const title = str(form, "job_title") ?? titleFromJob(job);
+    const company = str(form, "company_name");
     const rows = await query<{ id: number }>(
-      `INSERT INTO proposals (job_title, job_url, job_text, draft, fit_score, status) VALUES ($1,$2,$3,$4,$5,'Draft') RETURNING id`,
-      [str(form, "job_title"), str(form, "job_url"), job, draft, score],
+      `INSERT INTO proposals (job_title, company_name, job_url, job_text, draft, fit_score, status) VALUES ($1,$2,$3,$4,$5,$6,'Draft') RETURNING id`,
+      [title, company, str(form, "job_url"), job, draft, score],
     );
     id = rows[0].id;
-    await logActivity("proposal_drafted", { channel: "upwork", body: str(form, "job_title") ?? `Proposal #${id}` });
+    await logActivity("proposal_drafted", { channel: "upwork", body: proposalName({ id, job_title: title, company_name: company }) });
   } catch (err) {
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }

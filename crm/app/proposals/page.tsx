@@ -3,6 +3,7 @@ import { FileSignature, Plus } from "lucide-react";
 import { query } from "@/lib/db";
 import { dateOnly } from "@/lib/format";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
+import { proposalName } from "@/lib/proposalName";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proposals" };
@@ -12,7 +13,7 @@ const fitTone = (n: number | null) => (n === null ? "neutral" : n >= 8 ? "good" 
 export default async function Proposals({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status = "" } = await searchParams;
   const rows = await query<any>(
-    `SELECT id, job_title, fit_score, status, created_at, connects_used FROM proposals
+    `SELECT id, job_title, company_name, fit_score, status, created_at, connects_used FROM proposals
       WHERE ($1 = '' OR status = $1) ORDER BY created_at DESC LIMIT 200`, [status]);
   return (
     <>
@@ -35,7 +36,7 @@ export default async function Proposals({ searchParams }: { searchParams: Promis
             <tbody>
               {rows.map((p: any) => (
                 <tr key={p.id}>
-                  <td><Link href={`/proposals/${p.id}`} style={{ fontWeight: 600 }}>{p.job_title || `Proposal #${p.id}`}</Link></td>
+                  <td><Link href={`/proposals/${p.id}`} style={{ fontWeight: 600 }}>{proposalName(p)}</Link></td>
                   <td>{p.fit_score !== null && <span className={`badge tone-${fitTone(p.fit_score)}`}>{p.fit_score}/10</span>}</td>
                   <td><Badge value={p.status} /></td>
                   <td className="num">{p.connects_used}</td>

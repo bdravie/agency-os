@@ -6,6 +6,7 @@ import { saveProposal } from "@/lib/actions";
 import CopyButton from "@/components/CopyButton";
 import { Badge, PageHeader } from "@/components/ui";
 import PackPanel from "@/components/PackPanel";
+import { proposalName } from "@/lib/proposalName";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
     <>
       <PageHeader
         back={{ href: "/proposals", label: "Proposals" }}
-        title={p.job_title || `Proposal #${p.id}`}
+        title={proposalName(p)}
         description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{p.job_url && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Job post <ExternalLink size={13} aria-hidden /></a>}</span>}
       />
       <div className="grid">
