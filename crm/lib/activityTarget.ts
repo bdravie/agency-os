@@ -16,7 +16,7 @@ const COMPANY_SECTION: Record<string, string> = {
   audit_created: "audit", audit_report_drafted: "audit", audit_pdf_saved: "audit",
   company_researched: "offer", offer_suggested: "offer",
   status_changed: "status",
-  lead_added: "top", company_added: "top", sourcer_added: "top", csv_import: "top",
+  names_updated: "top", lead_added: "top", company_added: "top", sourcer_added: "top", csv_import: "top",
 };
 const OTHER_PAGE: [RegExp, string][] = [
   [/^proposal_/, "/proposals"], [/^content_/, "/content"], [/^enablement_/, "/enablement"], [/^outcome_/, "/outcomes"],

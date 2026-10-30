@@ -11,6 +11,7 @@ import { ago, dateOnly, when } from "@/lib/format";
 import ActionForm from "@/components/ActionForm";
 import OutreachDraft from "@/components/OutreachDraft";
 import InstagramDm from "@/components/InstagramDm";
+import EditNamesButton from "@/components/EditNamesButton";
 import ComplianceCard from "@/components/ComplianceCard";
 import OfferSuggestionCard from "@/components/OfferSuggestionCard";
 import DecisionMakers from "@/components/DecisionMakers";
@@ -43,7 +44,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
     query<any>(`SELECT * FROM activities WHERE company_id = $1 AND type <> 'places_lookup' ORDER BY occurred_at DESC LIMIT 50`, [id]),
     query<any>(`SELECT id, kind, value, note FROM company_contact_methods WHERE company_id = $1 ORDER BY id`, [id]),
   ]);
-  const drafts = await outreachDrafts(company.name);
+  const drafts = await outreachDrafts(company.display_name);
   const usage = await creditUsage();
   const gate = await loadGate(id);
   if (!gate) notFound();
@@ -59,10 +60,12 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
       <div id="top" />
       <PageHeader
         back={{ href: "/companies", label: "Companies" }}
-        title={company.name}
+        title={company.display_name}
+        actions={<EditNamesButton company={{ id, name: company.name, trading_name: company.trading_name ?? null, address: company.address ?? null, postcode: company.postcode ?? null }} />}
         description={
           <span className="row" style={{ gap: 10 }}>
             <Badge value={company.status} />
+            {company.trading_name && <span className="muted">registered as {company.name}</span>}
             {company.niche && <span>{company.niche}</span>}
             {!gate.sendable && <Badge value={company.opted_out ? "Opted out" : company.compliance_status === "unchecked" ? "Not verified" : "Blocked"} />}
             {company.domain && <a href={`https://${company.domain}`} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}><Globe size={14} aria-hidden />{company.domain}</a>}

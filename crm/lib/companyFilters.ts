@@ -38,7 +38,7 @@ const ORDERS: Record<string, string> = {
   suitable: "suitability DESC, fit_score DESC NULLS LAST, created_at DESC",
   revenue: "est_revenue_gbp DESC NULLS LAST, suitability DESC",
   rating: "maps_rating DESC NULLS LAST, maps_reviews DESC NULLS LAST, suitability DESC",
-  name: "lower(name), id",
+  name: "lower(display_name), id",
 };
 
 /** Letters, numbers, spaces and a few separators only, so a typed area can't act as a wildcard. */

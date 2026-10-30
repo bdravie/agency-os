@@ -31,7 +31,7 @@ async function nichePitch(niche: string | null): Promise<string | null> {
 const band = (n: number | null) => (n === null ? null : n >= 1_000_000 ? `about £${(n / 1_000_000).toFixed(1)}m` : `about £${Math.round(n / 1000)}k`);
 
 export async function buildFacts(companyId: number, r: Research): Promise<{ text: string; offerNames: string[]; findingIds: string[] }> {
-  const [c] = await query<any>(`SELECT name, niche, postcode, company_type, to_char(incorporated_on, 'YYYY') AS inc, accounts_type, employees, est_revenue_gbp::float AS est, fit_notes FROM companies WHERE id = $1`, [companyId]);
+  const [c] = await query<any>(`SELECT display_name AS name, niche, postcode, company_type, to_char(incorporated_on, 'YYYY') AS inc, accounts_type, employees, est_revenue_gbp::float AS est, fit_notes FROM companies WHERE id = $1`, [companyId]);
   const offers = await query<{ name: string; outcome: string | null; niche: string | null }>(`SELECT name, outcome, niche FROM offers WHERE active ORDER BY sort_order, id`);
   const pitch = await nichePitch(c.niche);
   const s = r.site;

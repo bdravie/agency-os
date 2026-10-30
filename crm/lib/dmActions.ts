@@ -34,7 +34,7 @@ export async function draftInstagramDmAction(companyId: number): Promise<DmResul
     if (!c?.instagram_url) return { error: "Save this company's Instagram page first (Contact details)." };
     const research = await latestResearch(companyId);
     if (!research) return { error: "Run the research first (it's free). The message is built from what it found on their website." };
-    const [co] = await query<{ name: string }>(`SELECT name FROM companies WHERE id = $1`, [companyId]);
+    const [co] = await query<{ name: string }>(`SELECT display_name AS name FROM companies WHERE id = $1`, [companyId]);
     const [sug] = await query<{ result: any }>(`SELECT result FROM offer_suggestions WHERE company_id = $1 ORDER BY id DESC LIMIT 1`, [companyId]);
     const rules = await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts", "instagram-dm.md"), "utf8");
     const facts = await buildFacts(companyId, research);

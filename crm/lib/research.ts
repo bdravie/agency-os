@@ -81,7 +81,7 @@ export async function companyChangedSince(companyId: number, r: Research): Promi
 }
 
 export async function runResearch(companyId: number, opts: { web: boolean }): Promise<Research> {
-  const [c] = await query<any>(`SELECT c.id, c.name, c.domain, c.postcode, c.linkedin_url, c.instagram_url, c.facebook_url, c.generic_email IS NOT NULL AND btrim(c.generic_email) <> '' AS has_email,
+  const [c] = await query<any>(`SELECT c.id, c.display_name AS name, c.domain, c.postcode, c.linkedin_url, c.instagram_url, c.facebook_url, c.generic_email IS NOT NULL AND btrim(c.generic_email) <> '' AS has_email,
     (SELECT count(*) FROM contacts k WHERE k.company_id = c.id AND k.email IS NOT NULL AND btrim(k.email) <> '' AND NOT coalesce(k.opted_out, false))::int AS contact_emails, g.opted_out, g.suppressed FROM companies c JOIN lead_gate g ON g.company_id = c.id WHERE c.id = $1`, [companyId]);
   if (!c) throw new Error("Company not found.");
   if (c.opted_out || c.suppressed) throw new Error("This company has opted out or is on your suppression list, so no outreach research is done.");

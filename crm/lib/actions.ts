@@ -427,7 +427,7 @@ async function placesFor(ids: number[]): Promise<{ found: number; missed: number
   for (const id of ids) {
     const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'places_lookup' AND occurred_at::date = current_date`);
     if (Number(n) >= dailyCap()) return { found, missed, stopped: `Daily cap of ${dailyCap()} lookups reached.` };
-    const [c] = await query<{ id: number; name: string; postcode: string | null; phone: string | null }>(`SELECT id, name, postcode, phone FROM companies WHERE id = $1 AND domain IS NULL`, [id]);
+    const [c] = await query<{ id: number; name: string; postcode: string | null; phone: string | null }>(`SELECT id, display_name AS name, postcode, phone FROM companies WHERE id = $1 AND domain IS NULL`, [id]);
     if (!c) continue;
     let hit = null;
     try {
@@ -741,7 +741,7 @@ export async function suggestPlacesAction(companyId: number): Promise<{ error?: 
   await requireLogin();
   const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'places_lookup' AND occurred_at::date = current_date`);
   if (Number(n) >= dailyCap()) return { error: `Daily cap of ${dailyCap()} Google lookups reached. Try again tomorrow, or use the free search links.` };
-  const [c] = await query<{ name: string; postcode: string | null }>(`SELECT name, postcode FROM companies WHERE id = $1`, [companyId]);
+  const [c] = await query<{ name: string; postcode: string | null }>(`SELECT display_name AS name, postcode FROM companies WHERE id = $1`, [companyId]);
   if (!c) return { error: "Company not found." };
   try {
     const hit = await lookupWebsite(c);

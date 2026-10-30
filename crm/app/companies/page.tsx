@@ -38,7 +38,7 @@ const views = (min: number): { key: string; label: string; where: string }[] => 
 
 const BASE = `
   WITH c AS (
-    SELECT co.id, co.name, co.domain, co.generic_email, co.niche, co.status, co.is_ltd, co.created_at,
+    SELECT co.id, co.display_name AS name, co.name AS legal_name, co.domain, co.generic_email, co.niche, co.status, co.is_ltd, co.created_at,
            co.compliance_status, co.company_type, co.company_status, co.opted_out, co.opted_out_at, g.sendable, g.suppressed,
            co.filing_ok, co.fit_score, co.est_revenue_gbp::float AS est_revenue_gbp, co.est_revenue_basis, co.employees, co.accounts_type,
            co.source, co.phone, co.city, co.postcode, co.address, co.linkedin_url, co.instagram_url, co.facebook_url, co.contact_url, co.maps_rating::float AS maps_rating, co.maps_reviews,
@@ -59,7 +59,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   const [rows, niches, counts] = await Promise.all([
     query<any>(
       `${BASE} SELECT * FROM c
-        WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)${list.where.map((w) => ` AND ${w}`).join("")}
+        WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR trading_name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)${list.where.map((w) => ` AND ${w}`).join("")}
         ORDER BY ${list.order} LIMIT $3`, [q, niche, limit + 1, ...list.params]),
     query<{ niche: string }>(`SELECT DISTINCT niche FROM companies WHERE niche IS NOT NULL ORDER BY 1`),
     query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c${forCounts.where.length ? ` WHERE ${forCounts.where.join(" AND ")}` : ""}`, forCounts.params),
@@ -118,7 +118,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
                 const n = nextStep({ ...c, gate: { sendable: c.sendable, unchecked: c.compliance_status === "unchecked", reasons } });
                 return (
                   <tr key={c.id} className={c.fresh ? "row-new" : undefined}>
-                    <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link>{c.fresh && <> <Pill label="New today" tone="blue" /></>}<div className="muted">{[c.niche, c.city ?? c.postcode?.split(" ")[0]].filter(Boolean).join(" · ")}</div></td>
+                    <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link>{c.legal_name !== c.name && <span className="muted" style={{ fontWeight: 400 }}> · registered as {c.legal_name}</span>}{c.fresh && <> <Pill label="New today" tone="blue" /></>}<div className="muted">{[c.niche, c.city ?? c.postcode?.split(" ")[0]].filter(Boolean).join(" · ")}</div></td>
                     <td><span title={explainSuitability(c).join("\n")}><Pill label={`${c.tier}${c.tier === "Skip" ? "" : ` · ${c.suitability}`}`} tone={TIER_TONE[c.tier] ?? "neutral"} /></span></td>
                     <td className="muted" title={(c.est_revenue_basis ?? "No size signal in the filed accounts").replace(/GBP /g, "£")}>{c.filing_ok === false ? "–" : c.est_revenue_gbp ? `≈ ${shortMoney(c.est_revenue_gbp)}` : "Unknown"}</td>
                     <td><Badge value={c.status} /></td>

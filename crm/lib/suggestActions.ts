@@ -65,7 +65,7 @@ export async function addSuggestionAsDealAction(suggestionId: number, index: num
   const s = r?.result?.suggestions?.[Math.min(2, Math.max(0, Math.floor(index) || 0))];
   if (!r || !s) return { error: "Suggestion not found." };
   const companyId = Number(r.company_id);
-  const [c] = await query<any>(`SELECT name, generic_email, instagram_url, linkedin_url, facebook_url, contact_url, phone FROM companies WHERE id = $1`, [companyId]);
+  const [c] = await query<any>(`SELECT display_name AS name, generic_email, instagram_url, linkedin_url, facebook_url, contact_url, phone FROM companies WHERE id = $1`, [companyId]);
   if (!c) return { error: "Company not found." };
   const [dup] = await query(`SELECT 1 FROM deals WHERE company_id = $1 AND lower(title) = lower($2) LIMIT 1`, [companyId, s.title]);
   if (dup) return { error: "A deal with this title is already on the Deals tab for this company." };

@@ -13,7 +13,7 @@ test("recently added and most suitable sort as expected", () => {
   assert.match(buildListQuery({}, 1).order, /^created_at DESC/);
   assert.match(buildListQuery({ sort: "followups" }, 1).order, /followup_due/);
   assert.match(buildListQuery({ sort: "suitable" }, 1).order, /^suitability DESC/);
-  assert.match(buildListQuery({ sort: "name" }, 1).order, /lower\(name\)/);
+  assert.match(buildListQuery({ sort: "name" }, 1).order, /lower\(display_name\)/);
 });
 
 test("every sort and filter choice in the menus has a working query", () => {
