@@ -59,7 +59,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
   const [rows, niches, counts] = await Promise.all([
     query<any>(
       `${BASE} SELECT * FROM c
-        WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR trading_name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)${list.where.map((w) => ` AND ${w}`).join("")}
+        WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR legal_name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)${list.where.map((w) => ` AND ${w}`).join("")}
         ORDER BY ${list.order} LIMIT $3`, [q, niche, limit + 1, ...list.params]),
     query<{ niche: string }>(`SELECT DISTINCT niche FROM companies WHERE niche IS NOT NULL ORDER BY 1`),
     query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c${forCounts.where.length ? ` WHERE ${forCounts.where.join(" AND ")}` : ""}`, forCounts.params),
