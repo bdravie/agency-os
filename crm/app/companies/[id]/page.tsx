@@ -15,6 +15,8 @@ import ComplianceCard from "@/components/ComplianceCard";
 import OfferSuggestionCard from "@/components/OfferSuggestionCard";
 import DecisionMakers from "@/components/DecisionMakers";
 import PasteDecisionMakers from "@/components/PasteDecisionMakers";
+import ContactRapport from "@/components/ContactRapport";
+import { latestRapportFor } from "@/lib/rapport";
 import { apolloStatusAction, contactClearOptOutAction, contactOptOutAction } from "@/lib/apolloActions";
 import { loadGate } from "@/lib/complianceGate";
 import StatusStepper from "@/components/StatusStepper";
@@ -48,6 +50,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!gate) notFound();
   const blocker = gate.sendable ? null : gate.reasons.join(" ");
   const apollo = await apolloStatusAction(id);
+  const rapport = await latestRapportFor(contacts.map((c: any) => Number(c.id)));
   const recipients = await query<any>(`SELECT ct.id, ct.name, ct.role, ct.email FROM contacts ct JOIN contact_gate cg ON cg.contact_id = ct.id WHERE ct.company_id = $1 AND cg.sendable ORDER BY ct.name`, [id]);
 
   const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
@@ -113,7 +116,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           <details className="card" id="outreach">
             <summary>Outreach email{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
             <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email }))} blocker={blocker}
+              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, openers: (rapport.get(Number(r.id))?.points ?? []).map((p) => p.opener) }))} blocker={blocker}
                 routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
               {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
             </div>
@@ -216,6 +219,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                     ? <ToastForm action={contactClearOptOutAction} success="Opt-out cleared" confirm="Only clear this if it was recorded by mistake. Clear it?"><input type="hidden" name="id" value={c.id} /><button className="link">Recorded by mistake?</button></ToastForm>
                     : <ToastForm action={contactOptOutAction} success="Marked as opted out and suppressed" confirm={`Mark ${c.name} as opted out? They will be blocked everywhere and their address added to the suppression list.`}><input type="hidden" name="id" value={c.id} /><button className="link">They opted out</button></ToastForm>}</div>
                 <span className="muted">via {c.consent_basis}</span>
+                {!c.opted_out && gate.sendable && /\S+\s+\S+/.test(c.name) && <ContactRapport contactId={Number(c.id)} name={c.name} initial={rapport.get(Number(c.id)) ?? null} />}
               </li>
             ))}</ul>
             <details style={{ marginTop: 10 }}><summary>Add a contact</summary>

@@ -5,6 +5,7 @@ import { activityTarget as t } from "../lib/activityTarget.ts";
 test("company page: each activity points at the section it changed", () => {
   assert.deepEqual(t({ type: "contact_added", contact_id: 15 }, "company"), { id: "contact-15", fallback: "contacts" });
   assert.deepEqual(t({ type: "contact_added" }, "company"), { id: "contacts", fallback: "contacts" });
+  assert.deepEqual(t({ type: "rapport_found", contact_id: 15 }, "company"), { id: "contact-15", fallback: "contacts" });
   assert.deepEqual(t({ type: "stage_changed", deal_id: 3 }, "company"), { id: "deal-3", fallback: "deals" });
   assert.deepEqual(t({ type: "contact_details_updated" }, "company"), { id: "website" });
   assert.deepEqual(t({ type: "ch_health_run" }, "company"), { id: "filings" });

@@ -37,7 +37,7 @@ const DRAWER_SECTION: Record<string, string> = {
 function companyTarget(a: ActivityRef): Target {
   const t = a.type;
   if (t === "deal_deleted") return { href: "/deals/deleted" };
-  if (t.startsWith("contact_") && t !== "contact_details_updated") return { id: a.contact_id ? `contact-${a.contact_id}` : "contacts", fallback: "contacts" };
+  if ((t.startsWith("contact_") && t !== "contact_details_updated") || t === "rapport_found") return { id: a.contact_id ? `contact-${a.contact_id}` : "contacts", fallback: "contacts" };
   if (/^(deal_created|stage_changed|deal_offer_added|quote_)/.test(t)) return { id: a.deal_id ? `deal-${a.deal_id}` : "deals", fallback: "deals" };
   if (COMPANY_SECTION[t]) return { id: COMPANY_SECTION[t] };
   const other = OTHER_PAGE.find(([re]) => re.test(t));
