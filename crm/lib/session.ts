@@ -34,7 +34,7 @@ export async function verifyToken(token: string | undefined): Promise<boolean> {
 export const cookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production" && process.env.LOCAL_HTTP !== "1",   // LOCAL_HTTP=1: the app is served on http://127.0.0.1, where Safari refuses secure-only cookies
   path: "/",
   maxAge: MAX_AGE_S,
 };

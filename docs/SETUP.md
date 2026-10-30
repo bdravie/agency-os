@@ -164,3 +164,13 @@ Add a line here whenever something breaks and you find the cause.
 | Audit refuses my text | By design the intake refuses email addresses and phone numbers. Use a role or team ("Office manager"), not a person. |
 | Error messages missing in a production build | Next.js hides messages thrown by server actions in production. The audit actions return `{ error }` instead, and `ToastForm` shows it. Prefer that pattern for new actions. |
 | Restore failed with a duplicate key on `stage_history` | Fixed: `agency.restore` now switches user triggers off while loading and on afterwards (a restored deal used to fire the stage-history trigger and collide with the backup's own rows). It is covered by `tests/test_restore.py`. If you ever restore by another route, disable triggers first. |
+
+## Run the CRM in the background (macOS launchd)
+
+The CRM can start itself at login and stay running, so `http://127.0.0.1:3000` is always there. It uses the production build.
+
+- Install: `cd crm && npm run build`, then `cp scripts/com.agencyos.crm.plist ~/Library/LaunchAgents/` and `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.agencyos.crm.plist`. Paths in the file are for this Mac; edit them if the project moves.
+- After any code change: `cd crm && npm run build`, then `launchctl kickstart -k gui/$(id -u)/com.agencyos.crm`.
+- Stop it: `launchctl bootout gui/$(id -u)/com.agencyos.crm`. Log: `~/Library/Logs/agency-os/crm.log`.
+- `LOCAL_HTTP=1` is set in the file because Safari refuses secure-only cookies on plain http. Do not set it if the app is ever served over https.
+- Use a normal browser window (a private one forgets the login). Chrome: Install page as app. Safari: File, Add to Dock.
