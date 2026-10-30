@@ -31,12 +31,12 @@ export async function saveOffer(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
   const billing = str(form, "billing");
-  if (billing !== null && !isBilling(billing)) throw new Error("Pick a billing type.");
+  if (billing !== null && !isBilling(billing)) return { error: "Pick a billing type." };
   const min = str(form, "price_min"), max = str(form, "price_max");
-  if ((min === null) !== (max === null)) throw new Error("Set both ends of the price range, or leave both empty.");
-  if (min !== null && Number(min) > Number(max)) throw new Error("The lowest price is above the highest price.");
+  if ((min === null) !== (max === null)) return { error: "Set both ends of the price range, or leave both empty." };
+  if (min !== null && Number(min) > Number(max)) return { error: "The lowest price is above the highest price." };
   const duration = str(form, "duration") === null ? null : Math.round(num(form, "duration"));
-  if (duration !== null && duration <= 0) throw new Error("Duration must be at least 1 day.");
+  if (duration !== null && duration <= 0) return { error: "Duration must be at least 1 day." };
   // One default price for products (it is the monthly fee for a retainer); older packages keep separate setup and monthly prices.
   const dflt = str(form, "default_price") === null ? null : num(form, "default_price");
   const setup = billing ? (billing === "monthly" ? 0 : dflt ?? num(form, "setup")) : num(form, "setup");
@@ -55,7 +55,7 @@ export async function addOffer(form: FormData) {
   const name = str(form, "name");
   if (!name) return;
   const billing = str(form, "billing");
-  if (billing !== null && !isBilling(billing)) throw new Error("Pick a billing type.");
+  if (billing !== null && !isBilling(billing)) return { error: "Pick a billing type." };
   const price = num(form, "default_price");
   await query(
     `INSERT INTO offers (name, niche, outcome, setup_price_gbp, monthly_price_gbp, billing, sort_order) VALUES ($1,$2,$3,$4,$5,$6,50) ON CONFLICT (name) DO NOTHING`,
@@ -69,8 +69,8 @@ export async function addDealOffer(form: FormData) {
   await requireLogin();
   const dealId = num(form, "deal_id"), offerId = num(form, "offer_id");
   const [o] = await query<any>(`SELECT id, name, billing, setup_price_gbp, monthly_price_gbp, default_duration_days, deliverables FROM offers WHERE id = $1 AND active`, [offerId]);
-  if (!o) throw new Error("Choose an offer to add.");
-  if (!isBilling(o.billing)) throw new Error("That offer has no billing type yet. Set one on the Offers page first.");
+  if (!o) return { error: "Choose an offer to add." };
+  if (!isBilling(o.billing)) return { error: "That offer has no billing type yet. Set one on the Offers page first." };
   const [d] = await query<{ company_id: number | null }>(`SELECT company_id FROM deals WHERE id = $1`, [dealId]);
   if (!d) throw new Error("Deal not found.");
   const price = Number(o.billing === "monthly" ? o.monthly_price_gbp : o.setup_price_gbp);
@@ -89,16 +89,16 @@ export async function updateDealOffer(form: FormData) {
   if (!line) throw new Error("Line not found.");
   const price = Math.max(0, num(form, "price"));
   const duration = str(form, "duration") === null ? null : Math.round(num(form, "duration"));
-  if (duration !== null && duration <= 0) throw new Error("Duration must be at least 1 day.");
+  if (duration !== null && duration <= 0) return { error: "Duration must be at least 1 day." };
   const status = str(form, "status") ?? "planned";
-  if (!["planned", "in_progress", "delivered"].includes(status)) throw new Error("Unknown status.");
+  if (!["planned", "in_progress", "delivered"].includes(status)) return { error: "Unknown status." };
 
   // Credit from an earlier line on the same deal (for example the audit fee against the build). Monthly lines never carry credit.
   let creditFrom: number | null = null, credit = 0;
   const fromId = str(form, "credit_from_id") === null ? null : num(form, "credit_from_id");
   if (fromId && line.billing !== "monthly") {
     const [src] = await query<any>(`SELECT id, price_gbp, billing FROM deal_offers WHERE id = $1 AND deal_id = $2 AND id <> $3`, [fromId, line.deal_id, id]);
-    if (!src || src.billing === "monthly") throw new Error("Choose a one-off line on this deal to credit from.");
+    if (!src || src.billing === "monthly") return { error: "Choose a one-off line on this deal to credit from." };
     creditFrom = src.id;
     const wanted = str(form, "credit") === null ? Number(src.price_gbp) : num(form, "credit"); // blank means the full fee
     credit = clampCredit(wanted, Number(src.price_gbp), price);

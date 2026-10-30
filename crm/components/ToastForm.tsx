@@ -21,7 +21,12 @@ export default function ToastForm({ action, success, reset, onDone, confirm, chi
           if (r && typeof r === "object" && typeof r.error === "string") { toast(r.error, "bad"); return; } // actions can return { error } instead of throwing
           toast(success); if (reset) ref.current?.reset(); onDone?.();
         }
-        catch (err) { toast(`Could not save: ${err instanceof Error ? err.message : String(err)}`, "bad"); }
+        catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const code = (err as { digest?: string })?.digest;
+          // In the production build the server hides the real message; the code lets it be looked up in the CRM log.
+          toast(/Server Components render/i.test(msg) ? `Something went wrong on the server${code ? ` (code ${code})` : ""}. Nothing was saved. Send me the code and I'll find the cause.` : `Could not save: ${msg}`, "bad");
+        }
       }}
     >
       {children}

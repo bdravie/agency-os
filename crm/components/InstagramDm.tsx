@@ -41,7 +41,7 @@ export default function InstagramDm({ companyId, instagramUrl, cap }: { companyI
             <button type="button" className="secondary" onClick={() => copy(first, "First message")}>Copy first message</button>
             {follow && <button type="button" className="secondary" onClick={() => copy(follow, "Follow-up")}>Copy follow-up</button>}
             <button type="button" disabled={marking} onClick={() => startMark(async () => {
-              try { await markOutreachSent(companyId, "social", ""); setNote("Logged as sent, and a follow-up task is set for 4 days"); }
+              try { const r = await markOutreachSent(companyId, "social", ""); setNote(r && r.error ? r.error : "Logged as sent, and a follow-up task is set for 4 days"); }
               catch (err) { setNote(err instanceof Error ? err.message : String(err)); }
             })}>Mark first DM as sent</button>
           </div>

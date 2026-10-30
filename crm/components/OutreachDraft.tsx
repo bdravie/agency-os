@@ -143,7 +143,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
         {!isSocial && <a href={mailto} aria-disabled={!toEmail}><button type="button" className="secondary" disabled={!toEmail}>Open in mail app</button></a>}
         <button type="button" disabled={pending || !!why} title={why ?? ""}
           onClick={() => start(async () => {
-            try { await markOutreachSent(companyId, kind, d.subject, chosen?.id); setNote("Logged as sent"); }
+            try { const r = await markOutreachSent(companyId, kind, d.subject, chosen?.id); setNote(r && r.error ? r.error : "Logged as sent"); }
             catch (err) { setNote(err instanceof Error ? err.message : String(err)); }
           })}>Mark as sent</button>
       </div>

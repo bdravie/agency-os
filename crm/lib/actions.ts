@@ -474,14 +474,14 @@ export async function findWebsiteOneAction(_prev: string | null, form: FormData)
 /** The app never sends email. This only records that YOU sent it, and queues the follow-up. */
 export async function markOutreachSent(companyId: number, kind: "first" | "followup" | "social", subject: string, contactId?: number) {
   await requireLogin();
-  await assertSendable(companyId);   // verified active limited company, not opted out, not suppressed: checked first, every time
+  try { await assertSendable(companyId); } catch (e) { return { error: e instanceof Error ? e.message : "Blocked." }; }   // verified active limited company, not opted out, not suppressed: checked first, every time
   const [c] = await query<{ name: string; status: string }>(`SELECT name, status FROM companies WHERE id = $1`, [companyId]);
   if (!c) throw new Error("Company not found");
   let person: { id: number; name: string } | null = null;
   if (contactId) {   // sending to a named person: their own opt-out and suppression are checked too, on top of the company's
     const [ct] = await query<{ id: number; name: string; sendable: boolean }>(`SELECT ct.id, ct.name, cg.sendable FROM contacts ct JOIN contact_gate cg ON cg.contact_id = ct.id WHERE ct.id = $1 AND ct.company_id = $2`, [contactId, companyId]);
-    if (!ct) throw new Error("That contact isn't at this company.");
-    if (!ct.sendable) throw new Error(`Blocked: ${ct.name} has opted out, is suppressed, or has no email address.`);
+    if (!ct) return { error: "That contact isn't at this company." };
+    if (!ct.sendable) return { error: `Blocked: ${ct.name} has opted out, is suppressed, or has no email address.` };
     person = { id: Number(ct.id), name: ct.name };
   }
   if (kind === "social") await logActivity("dm_logged", { company_id: companyId, channel: "dm", body: "Social message sent (company page or contact form)" });
@@ -646,9 +646,9 @@ export async function updateDeal(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
   const title = str(form, "title");
-  if (!title) throw new Error("A deal needs a title.");
+  if (!title) return { error: "A deal needs a title." };
   const close = str(form, "expected_close");
-  if (close && !/^\d{4}-\d{2}-\d{2}$/.test(close)) throw new Error("Use a valid date.");
+  if (close && !/^\d{4}-\d{2}-\d{2}$/.test(close)) return { error: "Use a valid date." };
   // With offer lines, the values come from the lines (see recomputeDeal); typed values only apply to deals without any.
   const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM deal_offers WHERE deal_id = $1`, [id]);
   const keep = Number(n) > 0;
@@ -710,11 +710,11 @@ export async function saveContactDetails(form: FormData) {
   const li = normaliseSocial("linkedin", str(form, "linkedin_url")), ig = normaliseSocial("instagram", str(form, "instagram_url"));
   const fb = normaliseSocial("facebook", str(form, "facebook_url")), cu = normaliseSocial("contact", str(form, "contact_url"));
   const problem = [site, email, li, ig, fb, cu].map((r) => r.error).find(Boolean);
-  if (problem) throw new Error(problem);
-  if (site.value && !safeDomain(site.value)) throw new Error("That website isn't allowed.");
+  if (problem) return { error: problem };
+  if (site.value && !safeDomain(site.value)) return { error: "That website isn't allowed." };
   const blocked = await query(
     `SELECT 1 FROM suppression WHERE ($1::text IS NOT NULL AND lower(domain) = $1) OR ($2::text IS NOT NULL AND lower(email) = $2)`, [site.value, email.value]);
-  if (blocked.length) throw new Error("That website or email is on your suppression list. Don't contact it.");
+  if (blocked.length) return { error: "That website or email is on your suppression list. Don't contact it." };
   const phone = str(form, "phone")?.slice(0, 40) ?? null;
   const verifiedIn = str(form, "domain_verified");
   const verified = site.value ? (site.value === old.domain ? undefined : ["company number", "name"].includes(verifiedIn ?? "") ? verifiedIn : "manual") : null;
@@ -725,7 +725,7 @@ export async function saveContactDetails(form: FormData) {
       [id, site.value, email.value, phone, li.value, ig.value, fb.value, cu.value, verified !== undefined, verified ?? null]);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("companies_domain_uniq")) throw new Error("Another company already has that website. It may be a duplicate.");
+    if (msg.includes("companies_domain_uniq")) return { error: "Another company already has that website. It may be a duplicate." };
     throw new Error(msg);
   }
   const changed = [["website", old.domain, site.value], ["email", old.generic_email, email.value], ["phone", old.phone, phone], ["LinkedIn", old.linkedin_url, li.value],
