@@ -174,9 +174,9 @@ export async function confirmDeal(input: { dealId?: number | null; companyId?: n
     ? await query<{ id: number; billing: string | null; deliverables: unknown; default_duration_days: number | null }>(
         `SELECT id, billing, deliverables, default_duration_days FROM offers WHERE id = ANY($1::bigint[]) AND active AND NOT is_bundle`, [offerIds])
     : [];
-  const cleaned = cleanLines(input.lines, new Map(catalogue.filter((o) => o.billing).map((o) => [o.id, o.billing as string])));
+  const cleaned = cleanLines(input.lines, new Map(catalogue.filter((o) => o.billing).map((o) => [Number(o.id), o.billing as string])));
   if ("error" in cleaned) return cleaned;
-  const byId = new Map(catalogue.map((o) => [o.id, o]));
+  const byId = new Map(catalogue.map((o) => [Number(o.id), o]));
 
   let dealId = Number(input.dealId) || 0, companyId: number | null = null;
   if (dealId) {
