@@ -1,0 +1,16 @@
+# Your general rates, used by the proposal "Plan and price" panel. Prices in GBP.
+# These are starting figures: edit them to your real rates. The AI estimates hours for each
+# milestone; the code does the pricing from the numbers below, so nothing is hard-coded.
+
+hourly_rate_gbp: 45        # your normal build rate
+hours_per_day: 6           # productive build hours in a working day (the rest is admin and calls)
+min_project_gbp: 150       # never quote below this, however small the job looks
+contingency_pct: 15        # buffer added for unclear scope and revisions
+upwork_fee_pct: 10         # Upwork's service fee, taken from what the client pays
+round_to_gbp: 5            # prices are rounded up to the nearest multiple of this
+
+# A harder milestone costs more per hour (more risk, more thinking). Easy = 1 means no change.
+ease_multiplier:
+  easy: 1.0
+  medium: 1.0
+  hard: 1.25

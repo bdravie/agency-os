@@ -8,7 +8,8 @@ import { assertSendable } from "./complianceGate";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
-import { draftProposal, scoreFit } from "./proposal";
+import { draftProposal } from "./proposal";
+import { analyseFit, buildPlan } from "./proposalPlan";
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
@@ -256,16 +257,17 @@ export async function createProposal(_prev: string | null, form: FormData): Prom
   if (job.length > 20000) return "That job post is too long.";
   let id: number;
   try {
-    const [score, reason] = await scoreFit(job);
+    const fit = await analyseFit(job);
+    const score = fit.score;
     if (score < 6 && form.get("force") !== "on") {
-      return `Fit score ${score}/10: ${reason} Tick "Draft anyway" to write it regardless.`;
+      return `Fit score ${score}/10: ${fit.summary} Risks: ${fit.risks.join(" ")} Tick "Draft anyway" to write it regardless.`;
     }
     const draft = await draftProposal(job);
     const title = str(form, "job_title") ?? titleFromJob(job);
     const company = str(form, "company_name");
     const rows = await query<{ id: number }>(
-      `INSERT INTO proposals (job_title, company_name, job_url, job_text, draft, fit_score, status) VALUES ($1,$2,$3,$4,$5,$6,'Draft') RETURNING id`,
-      [title, company, str(form, "job_url"), job, draft, score],
+      `INSERT INTO proposals (job_title, company_name, job_url, job_text, draft, fit_score, fit_analysis, status) VALUES ($1,$2,$3,$4,$5,$6,$7,'Draft') RETURNING id`,
+      [title, company, str(form, "job_url"), job, draft, score, JSON.stringify(fit)],
     );
     id = rows[0].id;
     await logActivity("proposal_drafted", { channel: "upwork", body: proposalName({ id, job_title: title, company_name: company }) });
@@ -285,6 +287,41 @@ export async function generatePackAction(_prev: string | null, form: FormData): 
     const pack = await buildPack(p.job_text);
     await query(`UPDATE proposals SET pack = $2, pack_at = now() WHERE id = $1`, [id, JSON.stringify(pack)]);
     await logActivity("proposal_pack", { channel: "upwork", body: `Pitch pack for proposal #${id}` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  revalidatePath(`/proposals/${id}`);
+  return null;
+}
+
+/** Click-only: explains the fit score of a saved proposal (factors, benefits, risks). Also refreshes the score, since it is the same judgement. */
+export async function analyseFitAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "id");
+  const [p] = await query<{ job_text: string }>(`SELECT job_text FROM proposals WHERE id = $1`, [id]);
+  if (!p) return "Proposal not found.";
+  try {
+    const fit = await analyseFit(p.job_text);
+    await query(`UPDATE proposals SET fit_score = $2, fit_analysis = $3 WHERE id = $1`, [id, fit.score, JSON.stringify(fit)]);
+    await logActivity("proposal_fit", { channel: "upwork", body: `Fit analysis for proposal #${id}: ${fit.score}/10` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  revalidatePath("/proposals");
+  revalidatePath(`/proposals/${id}`);
+  return null;
+}
+
+/** Click-only: breaks one saved proposal into milestones with ease and hours. The price is calculated from config/rates.yaml when shown. */
+export async function generatePlanAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "id");
+  const [p] = await query<{ job_text: string }>(`SELECT job_text FROM proposals WHERE id = $1`, [id]);
+  if (!p) return "Proposal not found.";
+  try {
+    const plan = await buildPlan(p.job_text);
+    await query(`UPDATE proposals SET plan = $2, plan_at = now() WHERE id = $1`, [id, JSON.stringify(plan)]);
+    await logActivity("proposal_plan", { channel: "upwork", body: `Plan and price for proposal #${id}` });
   } catch (err) {
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }

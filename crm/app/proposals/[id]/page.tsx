@@ -6,6 +6,9 @@ import { saveProposal } from "@/lib/actions";
 import CopyButton from "@/components/CopyButton";
 import { Badge, PageHeader } from "@/components/ui";
 import PackPanel from "@/components/PackPanel";
+import FitPanel from "@/components/FitPanel";
+import PlanPanel from "@/components/PlanPanel";
+import { loadRates } from "@/lib/proposalPlan";
 import { proposalName } from "@/lib/proposalName";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +18,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
   if (!Number.isInteger(id)) notFound();
   const [p] = await query<any>(`SELECT * FROM proposals WHERE id = $1`, [id]);
   if (!p) notFound();
+  const rates = await loadRates();
   return (
     <>
       <PageHeader
@@ -22,6 +26,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
         title={proposalName(p)}
         description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{p.job_url && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Job post <ExternalLink size={13} aria-hidden /></a>}</span>}
       />
+      <FitPanel id={id} score={p.fit_score} fit={p.fit_analysis} />
       <div className="grid">
         <ToastForm action={saveProposal} success="Proposal saved" className="card stack" style={{ gap: 10 }}>
           <input type="hidden" name="id" value={id} />
@@ -41,6 +46,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
           <p style={{ whiteSpace: "pre-wrap" }}>{p.job_text}</p>
         </section>
       </div>
+      <PlanPanel id={id} plan={p.plan} planAt={p.plan_at ? String(p.plan_at) : null} rates={rates} />
       <PackPanel id={id} pack={p.pack} packAt={p.pack_at ? String(p.pack_at) : null} />
     </>
   );

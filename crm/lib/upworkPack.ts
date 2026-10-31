@@ -37,7 +37,7 @@ const read = (file: string) => readFile(path.join(ROOT, file), "utf8");
 const stripComments = (s: string) => s.replace(/<!--[\s\S]*?-->/g, "").trim();
 
 /** Bullet lines from portfolio/about-me.md, or "" if the owner has not written any (the section is then left out). */
-async function aboutMe(): Promise<string> {
+export async function aboutMe(): Promise<string> {
   return stripComments(await read("portfolio/about-me.md").catch(() => "")).split("\n").filter((l) => l.trim().startsWith("- ")).join("\n");
 }
 

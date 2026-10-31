@@ -517,3 +517,8 @@ button.danger:hover, .btn.danger:hover { color: var(--bad); border-color: var(--
 @keyframes flash-section { 0%, 55% { box-shadow: 0 0 0 3px var(--accent); background: var(--accent-soft); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .flash { animation: flash-section 2.2s ease-out; border-radius: var(--radius); scroll-margin-top: 90px; }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; box-shadow: 0 0 0 3px var(--accent); } }
+
+/* Proposal fit analysis and plan panels */
+.fx-list li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.fx-list li .badge { flex: none; min-width: 148px; justify-content: center; }
+.fx-bullets { list-style: disc; padding-left: 18px; margin: 4px 0; } .fx-bullets li { padding: 2px 0; }
