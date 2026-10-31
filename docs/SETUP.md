@@ -41,6 +41,21 @@ Put these in `.env`:
 | `DEMO_MODE` | `true` while building/filming, `false` for real data |
 | `SENDER_NAME`, `BUSINESS_NAME` | Your real name and business name (used in email footers) |
 
+## 2b. Sending from the CRM and the reply Inbox (Google mailboxes)
+
+One-off setup, about 10 minutes. Nothing is sent until you press Send on a draft.
+
+1. https://console.cloud.google.com > create a project > APIs & Services > Library > enable the **Gmail API**.
+2. OAuth consent screen. Use **Internal** if all the mailboxes are in one Google Workspace. If they are in different Workspaces, use **External** and press **Publish app** (an app left in *Testing* has its access cancelled by Google every 7 days). Add the scopes `gmail.send` and `gmail.readonly`. Google will show an "unverified app" warning for your own use; that is expected.
+3. Credentials > Create credentials > OAuth client ID > **Web application**. Authorised redirect URI, exactly: `http://127.0.0.1:3000/api/google/callback`.
+4. Put the client ID and secret in `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (optional `GOOGLE_REDIRECT_URI` if the address differs), then restart the CRM: `launchctl kickstart -k gui/$(id -u)/com.agencyos.crm`.
+5. CRM > Mailboxes > Connect a Google mailbox, once per mailbox. Tick every box on Google's screen. New mailboxes start at 10 emails a day: raise the limit only as Instantly's warm-up progresses.
+
+Notes:
+- The saved Google access is encrypted with a key made from `SESSION_SECRET`. If you ever change `SESSION_SECRET`, connect the mailboxes again.
+- Replies show in Inbox while the CRM is open in a browser tab (checked every minute, only conversations the CRM started). For Mac notifications with no tab open, install the optional checker: see the comment at the top of `scripts/com.agencyos.replies.plist`.
+- Bounces and unsubscribes stay on Instantly: copy them into the Suppression page by hand.
+
 ## 3. Accounts and API keys, in the order you need them
 
 | When | Service | Sign up | `.env` key | Cost |

@@ -10,7 +10,7 @@ const COMPANY_SECTION: Record<string, string> = {
   contact_details_updated: "website", website_found: "website", email_found: "website", site_checked: "website", places_lookup: "website", search_lookup: "website",
   ch_health_run: "filings", companies_house_run: "filings",
   compliance_checked: "compliance", opted_out: "compliance", opt_out_cleared: "compliance", suppression_added: "compliance", suppression_removed: "compliance",
-  email_logged: "outreach", dm_logged: "outreach", dm_drafted: "outreach", sms_logged: "outreach",
+  email_logged: "outreach", email_reply: "outreach", dm_logged: "outreach", dm_drafted: "outreach", sms_logged: "outreach",
   note_logged: "log-activity",
   call_logged: "calls", call_analysed: "calls",
   audit_created: "audit", audit_report_drafted: "audit", audit_pdf_saved: "audit",

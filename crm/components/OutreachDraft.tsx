@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ExternalLink, Send } from "lucide-react";
 import { markOutreachSent } from "@/lib/actions";
+import { sendEmailAction } from "@/lib/sendActions";
 import { generateOutreachAction } from "@/lib/outreachActions";
 import { generateOfferOutreachAction } from "@/lib/outreachOfferActions";
 import { findRapportAction } from "@/lib/rapportActions";
@@ -12,10 +15,11 @@ type Draft = { subject: string; body: string };
 type Route = { label: string; href: string };
 type Kind = "first" | "followup" | "social";
 export type Ice = { text: string; kind: string; sourceUrl: string; sourceTitle: string };
+export type MailboxChoice = { id: number; email: string; remaining: number };
 export type OfferChoice = { suggestionId: number; index: number; title: string; offerName: string | null; needsDpa: boolean };
 
-export default function OutreachDraft({ companyId, to, recipients, routes, blocker, offers }: {
-  companyId: number; to: string | null; recipients: { id: number; name: string; role: string | null; email: string | null; ice: Ice[] }[]; routes: Route[]; blocker: string | null; offers: OfferChoice[];
+export default function OutreachDraft({ companyId, to, recipients, routes, blocker, offers, mailboxes }: {
+  companyId: number; mailboxes: MailboxChoice[]; to: string | null; recipients: { id: number; name: string; role: string | null; email: string | null; ice: Ice[] }[]; routes: Route[]; blocker: string | null; offers: OfferChoice[];
 }) {
   const [kind, setKind] = useState<Kind>(to || routes.length === 0 ? "first" : "social");
   const [drafts, setDrafts] = useState<Record<Kind, Draft> | null>(null);   // nothing is written until you click Generate
@@ -33,6 +37,9 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
   const [finding, startFind] = useTransition();
   const [findError, setFindError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const router = useRouter();
+  const [mailboxId, setMailboxId] = useState<string>(() => String(mailboxes.find((m) => m.remaining > 0)?.id ?? mailboxes[0]?.id ?? ""));
+  const [sending, startSend] = useTransition();
   const chosen = recipients.find((r) => String(r.id) === toId) ?? null;
   const toEmail = chosen ? chosen.email : to;
   const iceList: Ice[] = chosen ? found[chosen.id] ?? chosen.ice : [];
@@ -87,7 +94,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
           </div>
         ) : <p className="muted" style={{ margin: 0 }}>No decision-makers saved yet. Find them first (Decision-makers above) so the email can name them and start with something personal. You can still write a company-level draft now.</p>}
         <OfferPicker offers={offers} value={offerKey} onChange={setOfferKey} />
-        <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : offerKey === "" ? "Generate draft" : "Write email for this offer"}</button><span className="muted">Nothing is written until you click. Nothing is ever sent from here.</span></div>
+        <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : offerKey === "" ? "Generate draft" : "Write email for this offer"}</button><span className="muted">Nothing is written until you click. Nothing is sent until you press Send on a draft.</span></div>
         {genError && <p className="error" role="alert">{genError}</p>}
       </div>
     );
@@ -123,7 +130,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
             <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>To</span>
               <select value={toId} onChange={(e) => pickPerson(e.target.value)} aria-label="Recipient"><option value="">{to ? `Company: ${to}` : "Company (no generic email saved)"}</option>{recipients.map((r) => <option key={r.id} value={r.id}>{r.name}{r.role ? `, ${r.role}` : ""}: {r.email}</option>)}</select></label>
           ) : <p className="muted" style={{ margin: 0 }}>To: {to ?? "no generic email saved yet"}</p>}
-          <p className="muted" style={{ margin: 0 }}>Nothing is sent from here: copy it or open it in your mail app, then mark it sent.</p>
+          <p className="muted" style={{ margin: 0 }}>Send it below from a connected mailbox, or copy it / open it in your mail app and mark it sent.</p>
         </div>
       )}
       {!isSocial && <input value={d.subject} onChange={(e) => set({ subject: e.target.value })} aria-label="Subject" />}
@@ -147,6 +154,37 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
             catch (err) { setNote(err instanceof Error ? err.message : String(err)); }
           })}>Mark as sent</button>
       </div>
+      {!isSocial && (
+        <div className="stack" style={{ gap: 6, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+          {mailboxes.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>Want to send from here? <Link href="/mailboxes">Connect a Google mailbox</Link>. Otherwise copy it or open it in your mail app, then Mark as sent.</p>
+          ) : (() => {
+            const box = mailboxes.find((m) => String(m.id) === mailboxId);
+            const cantSend = why ?? (!box ? "Choose a mailbox." : box.remaining === 0 ? `${box.email} has reached today's limit.` : null);
+            return (
+              <>
+                <div className="row" style={{ gap: 8 }}>
+                  <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>Send from</span>
+                    <select value={mailboxId} onChange={(e) => setMailboxId(e.target.value)} aria-label="Mailbox to send from">{mailboxes.map((m) => <option key={m.id} value={m.id}>{m.email} ({m.remaining} left today)</option>)}</select></label>
+                  <button type="button" disabled={sending || !!cantSend} title={cantSend ?? ""}
+                    onClick={() => {
+                      if (!box || !toEmail) return;
+                      if (!window.confirm(`Send this ${kind === "first" ? "first email" : "follow-up"} now?\n\nTo: ${toEmail}${chosen ? ` (${chosen.name})` : ""}\nFrom: ${box.email}\nSubject: ${d.subject}\n\nIt goes out immediately and cannot be recalled.`)) return;
+                      startSend(async () => {
+                        try {
+                          const r = await sendEmailAction({ companyId, contactId: chosen?.id ?? null, kind: kind === "followup" ? "followup" : "first", subject: d.subject, body: d.body, mailboxId: box.id });
+                          setNote(r.error ?? `Sent to ${r.to} from ${r.mailbox}.${r.warning ? ` ${r.warning}` : " Logged, and a follow-up task is set."}`);
+                          if (r.ok) router.refresh();
+                        } catch (err) { setNote(err instanceof Error ? err.message : "Could not send. Nothing was sent."); }
+                      });
+                    }}><Send size={14} aria-hidden /> {sending ? "Sending…" : "Send now"}</button>
+                </div>
+                <span className="muted">One email, sent only when you click. Replies appear in the Inbox.</span>
+              </>
+            );
+          })()}
+        </div>
+      )}
       {why && <p className="muted">Mark as sent is off: {why}</p>}
       {note && <p className="muted">{note}</p>}
       {genError && <p className="error" role="alert">{genError}</p>}

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Optional: checks for email replies every 5 minutes and shows a Mac notification, even when no CRM tab is open.
+     Not installed automatically. To turn it on:
+       cp scripts/com.agencyos.replies.plist ~/Library/LaunchAgents/
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.agencyos.replies.plist
+     To turn it off: launchctl bootout gui/$(id -u)/com.agencyos.replies -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.agencyos.replies</string>
+  <key>WorkingDirectory</key><string>/Users/brad/Documents/agency-os/crm</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/brad/.local/node/bin/node</string>
+    <string>node_modules/tsx/dist/cli.mjs</string>
+    <string>--env-file=../.env</string>
+    <string>scripts/checkReplies.mts</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/Users/brad/.local/node/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>StartInterval</key><integer>300</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/brad/Library/Logs/agency-os/replies.log</string>
+  <key>StandardErrorPath</key><string>/Users/brad/Library/Logs/agency-os/replies.log</string>
+</dict>
+</plist>

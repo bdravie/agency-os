@@ -15,5 +15,5 @@ export function ActivityIcon({ type, size = 15 }: { type: string; size?: number 
 }
 
 /** "email_logged" -> "Email logged" */
-const LABELS: Record<string, string> = { ch_health_run: "Companies House check", dm_logged: "Social message sent", email_logged: "Email logged", deal_offer_added: "Offer added to deal", client_created: "Client created", places_lookup: "Google lookup", search_lookup: "Web search" };
+const LABELS: Record<string, string> = { ch_health_run: "Companies House check", dm_logged: "Social message sent", email_logged: "Email logged", deal_offer_added: "Offer added to deal", email_reply: "Email reply received", client_created: "Client created", places_lookup: "Google lookup", search_lookup: "Web search" };
 export const activityLabel = (type: string) => LABELS[type] ?? type.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());

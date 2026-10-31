@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import CommandPalette from "./CommandPalette";
 import { ToastProvider } from "./Toast";
+import { ReplyFeedProvider } from "./ReplyFeed";
 import HashScroll from "./HashScroll";
 
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
@@ -28,6 +29,7 @@ export default function AppShell({ children, demo, signOut }: { children: React.
 
   return (
     <ToastProvider>
+    <ReplyFeedProvider>
     <div className="app">
       <a href="#main" className="skip">Skip to content</a>
       <div className="topbar">
@@ -43,6 +45,7 @@ export default function AppShell({ children, demo, signOut }: { children: React.
       <main id="main" className="main"><HashScroll />{children}</main>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
+    </ReplyFeedProvider>
     </ToastProvider>
   );
 }

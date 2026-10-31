@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Search } from "lucide-react";
 import { NAV_GROUPS } from "./nav-items";
+import { useReplyFeed } from "./ReplyFeed";
 
 export default function Sidebar({ demo, signOut, onSearch }: { demo: boolean; signOut: () => Promise<void>; onSearch: () => void }) {
   const pathname = usePathname();
+  const { unread } = useReplyFeed();
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/"));
   return (
     <div className="sidebar-inner">
@@ -20,7 +22,7 @@ export default function Sidebar({ demo, signOut, onSearch }: { demo: boolean; si
             <div className="nav-title">{g.title}</div>
             {g.items.map(({ href, label, icon: Icon }) => (
               <Link key={href} href={href} className={`nav-link${active(href) ? " active" : ""}`} aria-current={active(href) ? "page" : undefined}>
-                <Icon size={17} aria-hidden /> {label}
+                <Icon size={17} aria-hidden /> {label}{href === "/inbox" && unread > 0 && <span className="badge tone-bad" style={{ marginLeft: "auto" }} aria-label={`${unread} unread`}>{unread}</span>}
               </Link>
             ))}
           </div>

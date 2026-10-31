@@ -1,10 +1,11 @@
-import { Building2, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Radar, Phone, ShieldBan, TrendingUp, Funnel, FileSignature, FileText, Kanban, Package, Sun, Users, Video, type LucideIcon } from "lucide-react";
+import { Building2, Inbox, Mail, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Radar, Phone, ShieldBan, TrendingUp, Funnel, FileSignature, FileText, Kanban, Package, Sun, Users, Video, type LucideIcon } from "lucide-react";
 
 // One place that defines where everything lives. Grouped by what you are doing.
 export type NavItem = { href: string; label: string; icon: LucideIcon; hint: string };
 export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: "Work", items: [
     { href: "/", label: "Today", icon: Sun, hint: "What needs doing now" },
+    { href: "/inbox", label: "Inbox", icon: Inbox, hint: "Replies to the emails you sent" },
     { href: "/tasks", label: "Tasks", icon: CheckSquare, hint: "Everything to do" },
   ] },
   { title: "Pipeline", items: [
@@ -28,6 +29,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   ] },
   { title: "Setup", items: [
     { href: "/offers", label: "Offers", icon: Package, hint: "Your catalogue and prices" },
+    { href: "/mailboxes", label: "Mailboxes", icon: Mail, hint: "Connect Google mailboxes to send from" },
     { href: "/suppression", label: "Suppression", icon: ShieldBan, hint: "Never-contact list" },
   ] },
 ];

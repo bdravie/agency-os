@@ -41,6 +41,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const [company] = await query<any>(`SELECT * FROM companies WHERE id = $1`, [id]);
   if (!company) notFound();
   const catalogue = await loadBuilderCatalogue();
+  const mailboxes = (await query<any>(
+    `SELECT m.id, m.email, GREATEST(0, m.daily_cap - (SELECT count(*)::int FROM sent_emails s WHERE s.mailbox_id = m.id AND s.status IN ('sent','sending') AND s.created_at >= (date_trunc('day', now() AT TIME ZONE 'Europe/London') AT TIME ZONE 'Europe/London')))::int AS remaining
+       FROM mailboxes m WHERE m.active AND m.refresh_token_enc IS NOT NULL ORDER BY m.id`)).map((m: any) => ({ id: Number(m.id), email: m.email as string, remaining: m.remaining as number }));
   const [contacts, deals, tasks, activity, methods] = await Promise.all([
     query<any>(`SELECT * FROM contacts WHERE company_id = $1 ORDER BY created_at`, [id]),
     query<any>(`SELECT * FROM deals WHERE company_id = $1 ORDER BY created_at DESC`, [id]),
@@ -134,7 +137,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           <details className="card" id="outreach">
             <summary>Outreach email · last step{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
             <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, ice: (rapport.get(Number(r.id))?.points ?? []).map((p) => ({ text: p.opener, kind: p.kind, sourceUrl: p.source_url, sourceTitle: p.source_title })) }))} blocker={blocker} offers={offerChoices}
+              <OutreachDraft companyId={id} mailboxes={mailboxes} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, ice: (rapport.get(Number(r.id))?.points ?? []).map((p) => ({ text: p.opener, kind: p.kind, sourceUrl: p.source_url, sourceTitle: p.source_title })) }))} blocker={blocker} offers={offerChoices}
                 routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
               {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
             </div>
