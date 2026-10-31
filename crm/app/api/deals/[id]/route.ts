@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     query<any>(`SELECT id, status, total_setup_gbp::float AS setup, total_monthly_gbp::float AS monthly, created_at FROM quotes WHERE deal_id = $1 ORDER BY created_at DESC`, [id]),
     query<any>(`SELECT id, type, body, occurred_at FROM activities WHERE deal_id = $1 OR (company_id = $2 AND $2 IS NOT NULL) ORDER BY occurred_at DESC LIMIT 8`, [id, deal.company_id]),
     deal.contact_id ? query<any>(`SELECT name, role, email, phone FROM contacts WHERE id = $1`, [deal.contact_id]) : Promise.resolve([]),
-    query<any>(`SELECT l.id, o.name, l.billing, l.price_gbp::float AS price, l.credit_gbp::float AS credit, l.status, l.checklist FROM deal_offers l JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 ORDER BY l.id`, [id]),
+    query<any>(`SELECT l.id, COALESCE(o.name, l.custom_name) AS name, l.bundle_name, l.billing, l.price_gbp::float AS price, l.credit_gbp::float AS credit, l.status, l.checklist FROM deal_offers l LEFT JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 ORDER BY l.id`, [id]),
   ]);
   return Response.json({ deal, tasks, quotes, activity, offers, contact: contact[0] ?? null });
 }

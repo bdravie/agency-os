@@ -23,6 +23,8 @@ import StatusStepper from "@/components/StatusStepper";
 import ContactDetailsForm from "@/components/ContactDetailsForm";
 import AuditsCard from "@/components/AuditsCard";
 import CallsCard from "@/components/CallsCard";
+import DealBuilder from "@/components/DealBuilder";
+import { loadBuilderCatalogue } from "@/lib/dealBuilderData";
 import { creditUsage } from "@/lib/usage";
 import { nextStep } from "@/lib/nextStep";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
@@ -38,6 +40,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!Number.isInteger(id)) notFound();
   const [company] = await query<any>(`SELECT * FROM companies WHERE id = $1`, [id]);
   if (!company) notFound();
+  const catalogue = await loadBuilderCatalogue();
   const [contacts, deals, tasks, activity, methods] = await Promise.all([
     query<any>(`SELECT * FROM contacts WHERE company_id = $1 ORDER BY created_at`, [id]),
     query<any>(`SELECT * FROM deals WHERE company_id = $1 ORDER BY created_at DESC`, [id]),
@@ -202,6 +205,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 <div className="row-between"><span className="muted">{gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span><Link href={`/quotes/new?deal=${d.id}`}>Create quote</Link></div>
               </li>
             ))}</ul>
+            <details style={{ marginTop: 10 }}><summary>Build a deal from packages and services</summary>
+              <div style={{ marginTop: 10 }}><DealBuilder companyId={id} packages={catalogue.packages} services={catalogue.services} /></div>
+            </details>
             <details style={{ marginTop: 10 }}><summary>Add a deal</summary>
               <ToastForm action={addDeal} success="Deal added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
                 <input type="hidden" name="company_id" value={id} />

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { query, tx } from "./db";
 import { requireLogin } from "./auth";
 import { BILLING, checklistFrom, clampCredit, parseDeliverables, totals, type Billing, type CheckItem } from "./dealOffers";
+import { cleanLines, suggestTitle } from "./dealBuilder";
 import { logActivity } from "./activity";
 
 const str = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
@@ -65,23 +66,6 @@ export async function addOffer(form: FormData) {
 
 // ---- Offers on a deal ----
 
-export async function addDealOffer(form: FormData) {
-  await requireLogin();
-  const dealId = num(form, "deal_id"), offerId = num(form, "offer_id");
-  const [o] = await query<any>(`SELECT id, name, billing, setup_price_gbp, monthly_price_gbp, default_duration_days, deliverables FROM offers WHERE id = $1 AND active`, [offerId]);
-  if (!o) return { error: "Choose an offer to add." };
-  if (!isBilling(o.billing)) return { error: "That offer has no billing type yet. Set one on the Offers page first." };
-  const [d] = await query<{ company_id: number | null }>(`SELECT company_id FROM deals WHERE id = $1`, [dealId]);
-  if (!d) throw new Error("Deal not found.");
-  const price = Number(o.billing === "monthly" ? o.monthly_price_gbp : o.setup_price_gbp);
-  await query(
-    `INSERT INTO deal_offers (deal_id, offer_id, billing, price_gbp, duration_days, checklist) VALUES ($1,$2,$3,$4,$5,$6::jsonb)`,
-    [dealId, offerId, o.billing, price, o.default_duration_days, JSON.stringify(checklistFrom(o.deliverables))]);
-  await recomputeDeal(dealId);
-  await logActivity("deal_offer_added", { company_id: d.company_id, deal_id: dealId, body: `${o.name} added (${price})` });
-  refresh(dealId);
-}
-
 export async function updateDealOffer(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
@@ -135,4 +119,101 @@ export async function removeDealOffer(form: FormData) {
   if (dealId === null) return;
   await recomputeDeal(dealId);
   refresh(dealId);
+}
+
+// ---- Packages (a named set of services) ----
+
+async function validComponents(ids: number[]): Promise<{ ids: number[] } | { error: string }> {
+  const unique = [...new Set(ids.filter((n) => Number.isInteger(n) && n > 0))];
+  if (unique.length === 0) return { error: "Tick at least one service for this package." };
+  const found = await query<{ id: number }>(`SELECT id FROM offers WHERE id = ANY($1::bigint[]) AND billing IS NOT NULL AND NOT is_bundle`, [unique]);
+  if (found.length !== unique.length) return { error: "A package can only contain services with a billing type." };
+  return { ids: unique };
+}
+
+export async function saveBundle(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  const name = str(form, "name");
+  if (!name) return { error: "Give the package a name." };
+  const parts = await validComponents(form.getAll("component").map(Number));
+  if ("error" in parts) return parts;
+  const clash = await query(`SELECT 1 FROM offers WHERE lower(name) = lower($1) AND id <> $2`, [name, id]);
+  if (clash.length) return { error: "Another offer already has that name." };
+  await tx(async (c) => {
+    const { rowCount } = await c.query(`UPDATE offers SET name = $2, outcome = $3, active = $4 WHERE id = $1 AND is_bundle`, [id, name, str(form, "outcome"), form.get("active") === "on"]);
+    if (!rowCount) throw new Error("Package not found.");
+    await c.query(`DELETE FROM offer_components WHERE bundle_id = $1`, [id]);
+    await c.query(`INSERT INTO offer_components (bundle_id, component_id) SELECT $1, unnest($2::bigint[])`, [id, parts.ids]);
+  });
+  revalidatePath("/offers");
+}
+
+export async function addBundle(form: FormData) {
+  await requireLogin();
+  const name = str(form, "name");
+  if (!name) return { error: "Give the package a name." };
+  const parts = await validComponents(form.getAll("component").map(Number));
+  if ("error" in parts) return parts;
+  if ((await query(`SELECT 1 FROM offers WHERE lower(name) = lower($1)`, [name])).length) return { error: "Another offer already has that name." };
+  await tx(async (c) => {
+    const { rows: [b] } = await c.query(`INSERT INTO offers (name, outcome, niche, is_bundle, sort_order) VALUES ($1,$2,'any',true,10) RETURNING id`, [name, str(form, "outcome")]);
+    await c.query(`INSERT INTO offer_components (bundle_id, component_id) SELECT $1, unnest($2::bigint[])`, [b.id, parts.ids]);
+  });
+  revalidatePath("/offers");
+}
+
+// ---- Building a deal from services, packages and custom services ----
+
+/** Confirms a deal built in the deal builder. With a dealId the lines are added to that deal; otherwise a new deal (stage New) is made for the company.
+ *  Everything is saved together or not at all, and the one-off and monthly values are set from the lines. */
+export async function confirmDeal(input: { dealId?: number | null; companyId?: number | null; title?: string; lines: unknown }): Promise<{ id?: number; error?: string }> {
+  await requireLogin();
+  const offerIds = Array.isArray(input.lines) ? (input.lines as { offerId?: unknown }[]).map((l) => Number(l.offerId)).filter((n) => Number.isInteger(n) && n > 0) : [];
+  const catalogue = offerIds.length
+    ? await query<{ id: number; billing: string | null; deliverables: unknown; default_duration_days: number | null }>(
+        `SELECT id, billing, deliverables, default_duration_days FROM offers WHERE id = ANY($1::bigint[]) AND active AND NOT is_bundle`, [offerIds])
+    : [];
+  const cleaned = cleanLines(input.lines, new Map(catalogue.filter((o) => o.billing).map((o) => [o.id, o.billing as string])));
+  if ("error" in cleaned) return cleaned;
+  const byId = new Map(catalogue.map((o) => [o.id, o]));
+
+  let dealId = Number(input.dealId) || 0, companyId: number | null = null;
+  if (dealId) {
+    const [d] = await query<{ company_id: number | null }>(`SELECT company_id FROM deals WHERE id = $1`, [dealId]);
+    if (!d) return { error: "That deal no longer exists." };
+    companyId = d.company_id;
+  } else {
+    companyId = Number(input.companyId) || 0;
+    if (!companyId || !(await query(`SELECT 1 FROM companies WHERE id = $1`, [companyId])).length) return { error: "Pick a company for this deal." };
+  }
+  const title = (input.title ?? "").trim().slice(0, 120)
+    || suggestTitle(cleaned.lines.map((l) => ({ name: l.customName ?? "", bundleName: l.bundleName })));
+
+  dealId = await tx(async (c) => {
+    if (!dealId) {
+      const { rows: [d] } = await c.query(
+        `INSERT INTO deals (company_id, title, source, channel)
+         VALUES ($1,$2,'deal_builder',(SELECT CASE type WHEN 'email_logged' THEN 'email' ELSE 'social_dm' END FROM activities WHERE company_id = $1 AND type IN ('email_logged','dm_logged') ORDER BY occurred_at LIMIT 1)) RETURNING id`,
+        [companyId, title || "New deal"]);
+      dealId = d.id as number;
+    }
+    for (const l of cleaned.lines) {
+      const o = l.offerId ? byId.get(l.offerId) : undefined;
+      await c.query(
+        `INSERT INTO deal_offers (deal_id, offer_id, custom_name, bundle_name, billing, price_gbp, duration_days, checklist) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb)`,
+        [dealId, l.offerId, l.customName, l.bundleName, l.billing, l.price, l.durationDays ?? o?.default_duration_days ?? null, JSON.stringify(checklistFrom(o?.deliverables))]);
+    }
+    const { rows } = await c.query(`SELECT billing, price_gbp AS price, credit_gbp AS credit FROM deal_offers WHERE deal_id = $1`, [dealId]);
+    const t = totals(rows.map((r) => ({ billing: r.billing as Billing, price: Number(r.price), credit: Number(r.credit) })));
+    await c.query(`UPDATE deals SET setup_value_gbp = $2, monthly_value_gbp = $3 WHERE id = $1`, [dealId, t.oneOff, t.monthly]);
+    return dealId;
+  });
+
+  const added = input.dealId ? "added to the deal" : "deal created";
+  await logActivity(input.dealId ? "deal_offer_added" : "deal_created", { company_id: companyId, deal_id: dealId, body: `${title || "Services"}: ${cleaned.lines.length} line(s) ${added}` });
+  if (companyId) revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/deals"); revalidatePath("/"); revalidatePath("/funnel");
+  refresh(dealId);
+  return { id: dealId };
 }

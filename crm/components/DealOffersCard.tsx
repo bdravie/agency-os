@@ -1,5 +1,7 @@
 import { query } from "@/lib/db";
-import { addDealOffer, removeDealOffer, updateDealOffer } from "@/lib/offerActions";
+import { removeDealOffer, updateDealOffer } from "@/lib/offerActions";
+import { loadBuilderCatalogue } from "@/lib/dealBuilderData";
+import DealBuilder from "./DealBuilder";
 import { billingShort, lineNet, maxCredit, progress, rangeState, totals, type CheckItem } from "@/lib/dealOffers";
 import { gbp } from "@/lib/quote";
 import ChecklistToggle from "./ChecklistToggle";
@@ -9,30 +11,25 @@ import { Package } from "lucide-react";
 
 // The offers a deal carries: each line has its own agreed price, a checklist, and (for a build) an optional audit credit.
 export default async function DealOffersCard({ dealId }: { dealId: number }) {
-  const [lines, available] = await Promise.all([
+  const [lines, catalogue] = await Promise.all([
     query<any>(
       `SELECT l.id, l.billing, l.price_gbp::float AS price, l.credit_gbp::float AS credit, l.credit_from_id, l.duration_days, l.status, l.checklist,
-              o.name, o.price_min_gbp::float AS min, o.price_max_gbp::float AS max
-         FROM deal_offers l JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 ORDER BY l.id`, [dealId]),
-    query<any>(`SELECT id, name, billing FROM offers WHERE active AND billing IS NOT NULL ORDER BY sort_order, name`),
+              COALESCE(o.name, l.custom_name) AS name, l.offer_id, l.bundle_name, o.price_min_gbp::float AS min, o.price_max_gbp::float AS max
+         FROM deal_offers l LEFT JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 ORDER BY l.id`, [dealId]),
+    loadBuilderCatalogue(),
   ]);
   const t = totals(lines.map((l: any) => ({ billing: l.billing, price: l.price, credit: l.credit })));
 
   return (
     <section className="card" id="offers">
-      <div className="row-between"><h2 style={{ margin: 0 }}>Offers &amp; fees</h2>
-        <ToastForm action={addDealOffer} success="Offer added" className="row">
-          <input type="hidden" name="deal_id" value={dealId} />
-          <select name="offer_id" aria-label="Offer to add" defaultValue="">
-            <option value="" disabled>Add an offer…</option>
-            {available.map((o: any) => <option key={o.id} value={o.id}>{o.name} ({billingShort(o.billing).toLowerCase()})</option>)}
-          </select>
-          <button className="secondary">Add</button>
-        </ToastForm>
-      </div>
+      <h2 style={{ margin: 0 }}>Offers &amp; fees</h2>
+      <details style={{ marginTop: 10 }} open={lines.length === 0}>
+        <summary>Add packages or services</summary>
+        <div style={{ marginTop: 10 }}><DealBuilder dealId={dealId} packages={catalogue.packages} services={catalogue.services} /></div>
+      </details>
 
       {lines.length === 0 ? (
-        <EmptyState title="No offers on this deal yet" icon={<Package size={22} />}>Add an audit, a build, a workshop or a retainer. Their prices set the deal&apos;s one-off and monthly values.</EmptyState>
+        <EmptyState title="No offers on this deal yet" icon={<Package size={22} />}>Add a package (for example SEO or Website), a single service, or a custom service. Their prices set the deal&apos;s one-off and monthly values.</EmptyState>
       ) : (
         <>
           <div className="fees" aria-label="Deal totals">
@@ -50,7 +47,7 @@ export default async function DealOffersCard({ dealId }: { dealId: number }) {
               return (
                 <div key={l.id} className="offer-line">
                   <div className="row-between">
-                    <span className="row" style={{ gap: 8 }}><b>{l.name}</b><span className="badge tone-neutral">{billingShort(l.billing)}</span></span>
+                    <span className="row" style={{ gap: 8 }}><b>{l.name}</b><span className="badge tone-neutral">{billingShort(l.billing)}</span>{l.offer_id === null && <span className="badge tone-neutral">Custom</span>}{l.bundle_name && <span className="muted">{l.bundle_name}</span>}</span>
                     <span className="muted">{pr.total ? `${pr.done}/${pr.total} delivered` : "no checklist"}</span>
                   </div>
                   <ToastForm key={`${l.id}:${l.price}:${l.duration_days}:${l.status}:${l.credit_from_id}:${l.credit}`} action={updateDealOffer} success="Saved" className="line-form">

@@ -1,6 +1,6 @@
 import { Package } from "lucide-react";
 import { query } from "@/lib/db";
-import { addOffer, saveOffer } from "@/lib/offerActions";
+import { addBundle, addOffer, saveBundle, saveOffer } from "@/lib/offerActions";
 import { BILLING, billingShort } from "@/lib/dealOffers";
 import { gbp } from "@/lib/quote";
 import ToastForm from "@/components/ToastForm";
@@ -11,19 +11,61 @@ export const metadata = { title: "Offers" };
 
 export default async function Offers() {
   const all = await query<any>(`SELECT * FROM offers ORDER BY (billing IS NULL), sort_order, active DESC, niche NULLS LAST, name`);
-  const products = all.filter((o: any) => o.billing);
-  const packages = all.filter((o: any) => !o.billing);
+  const bundles = all.filter((o: any) => o.is_bundle);
+  const products = all.filter((o: any) => o.billing && !o.is_bundle);
+  const packages = all.filter((o: any) => !o.billing && !o.is_bundle);
+  const links = await query<{ bundle_id: number; component_id: number }>(`SELECT bundle_id, component_id FROM offer_components`);
 
   return (
     <>
       <PageHeader
         title="Offers"
-        description="What you sell. The core offers can be added to a deal, with their own price, a deliverables checklist and credits between them (for example an audit fee credited against the build)."
+        description="What you sell. Services are priced individually; packages group the services needed to deliver one offer (SEO, website, chatbot…). Both can be added to a deal, where every price can be changed."
       />
 
-      <h2 style={{ margin: "4px 0 10px" }}>Core offers</h2>
+      <h2 style={{ margin: "4px 0 4px" }}>Packages</h2>
+      <p className="muted" style={{ marginTop: 0 }}>A package has no price of its own: its price is the sum of its services below. Adding one to a deal adds each service as its own line.</p>
+      <div className="stack">
+        {bundles.map((b: any) => {
+          const inside = new Set(links.filter((l) => l.bundle_id === b.id).map((l) => l.component_id));
+          const sum = products.filter((p: any) => inside.has(p.id));
+          const oneOff = sum.filter((p: any) => p.billing !== "monthly").reduce((n: number, p: any) => n + Number(p.setup_price_gbp), 0);
+          const monthly = sum.filter((p: any) => p.billing === "monthly").reduce((n: number, p: any) => n + Number(p.monthly_price_gbp), 0);
+          return (
+            <ToastForm key={`${b.id}:${[...inside].join(",")}`} action={saveBundle} success="Package saved" className="card offer-product">
+              <input type="hidden" name="id" value={b.id} />
+              <div className="offer-head">
+                <div><b style={{ fontSize: 16 }}>{b.name}</b><div className="muted">{gbp(oneOff)} one-off · {gbp(monthly)}/mo at default prices</div></div>
+                <label className="row muted" style={{ flexDirection: "row", gap: 6 }}><input type="checkbox" name="active" defaultChecked={b.active} /> Active</label>
+              </div>
+              <div className="offer-grid">
+                <label>Name<input name="name" defaultValue={b.name} /></label>
+                <label className="span3">Outcome in one sentence<input name="outcome" defaultValue={b.outcome ?? ""} /></label>
+                <div className="span4"><div className="field-label">Services in this package</div>
+                  <div className="row" style={{ gap: 14 }}>{products.map((p: any) => (
+                    <label key={p.id} className="row" style={{ flexDirection: "row", gap: 6 }}><input type="checkbox" name="component" value={p.id} defaultChecked={inside.has(p.id)} /> {p.name}</label>
+                  ))}</div>
+                </div>
+              </div>
+              <div className="row"><button>Save</button></div>
+            </ToastForm>
+          );
+        })}
+        <details className="card">
+          <summary>Add a package</summary>
+          <ToastForm action={addBundle} success="Package added" reset className="stack" style={{ marginTop: 12, gap: 8 }}>
+            <div className="row"><input name="name" placeholder="Package name" required aria-label="Package name" /><input name="outcome" placeholder="Outcome" aria-label="Outcome" style={{ flex: 1, minWidth: 200 }} /></div>
+            <div className="row" style={{ gap: 14 }}>{products.map((p: any) => (
+              <label key={p.id} className="row" style={{ flexDirection: "row", gap: 6 }}><input type="checkbox" name="component" value={p.id} /> {p.name}</label>
+            ))}</div>
+            <button style={{ alignSelf: "flex-start" }}>Add package</button>
+          </ToastForm>
+        </details>
+      </div>
+
+      <h2 style={{ margin: "26px 0 10px" }}>Services</h2>
       {products.length === 0 ? (
-        <div className="card"><EmptyState title="No core offers yet" icon={<Package size={22} />}>Run <code>uv run python -m agency.seed_offers</code> to add the four starting offers.</EmptyState></div>
+        <div className="card"><EmptyState title="No services yet" icon={<Package size={22} />}>Run <code>uv run python -m agency.seed_offers</code> or <code>npx tsx --env-file=../.env scripts/seedOffers.mts</code> (from crm/) to add the starting offers.</EmptyState></div>
       ) : (
         <div className="stack">
           {products.map((o: any) => {

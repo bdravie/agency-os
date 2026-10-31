@@ -156,8 +156,8 @@ async function ensureClient(dealId: number) {
   if (!d?.company_id) return;
   await query(`UPDATE companies SET status = 'Client' WHERE id = $1 AND status <> 'Client'`, [d.company_id]);
   if ((await query(`SELECT 1 FROM client_services WHERE deal_id = $1`, [dealId])).length) return; // already created (for example from an accepted quote)
-  const lines = await query<{ offer_id: number; price: string; name: string }>(
-    `SELECT l.offer_id, l.price_gbp AS price, o.name FROM deal_offers l JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 AND l.billing = 'monthly'`, [dealId]);
+  const lines = await query<{ offer_id: number | null; price: string; name: string }>(
+    `SELECT l.offer_id, l.price_gbp AS price, COALESCE(o.name, l.custom_name) AS name FROM deal_offers l LEFT JOIN offers o ON o.id = l.offer_id WHERE l.deal_id = $1 AND l.billing = 'monthly'`, [dealId]);
   const items = lines.length ? lines.map((l) => ({ offer_id: l.offer_id, monthly: Number(l.price), name: l.name }))
     : Number(d.monthly) > 0 ? [{ offer_id: d.offer_id, monthly: Number(d.monthly), name: d.title }] : [];
   for (const i of items) {
@@ -538,7 +538,8 @@ export async function createQuote(form: FormData) {
      VALUES ($1,$2,$3,$4,$5,'Draft',$6,$7,$8, current_date + 14) RETURNING id`,
     [dealId, items[0].offer_id, JSON.stringify(items), t.setup, t.monthly, str(form, "scope"), str(form, "timeline"), discount],
   );
-  await query(`UPDATE deals SET setup_value_gbp = $2, monthly_value_gbp = $3 WHERE id = $1`, [dealId, t.setup, t.monthly]);
+  // A quote can only carry catalogue offers, so a deal with custom services keeps the values worked out from its lines.
+  await query(`UPDATE deals SET setup_value_gbp = $2, monthly_value_gbp = $3 WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM deal_offers WHERE deal_id = $1 AND offer_id IS NULL)`, [dealId, t.setup, t.monthly]);
   await logActivity("quote_created", { company_id: deal.company_id, deal_id: dealId, body: `Quote #${rows[0].id}: ${gbp(t.setup)} setup + ${gbp(t.monthly)}/mo` });
   redirect(`/quotes/${rows[0].id}`);
 }

@@ -1,6 +1,9 @@
 """Seed the offers table from config/offers.yaml. Insert-only: an offer that already exists is never overwritten,
 so prices and checklists you have edited in the CRM are safe.
 
+Packages (offers with `includes:`) are skipped here: on a Mac without uv, or to link a package to its services, use
+`npx tsx --env-file=../.env scripts/seedOffers.mts` from crm/.
+
 Usage: uv run python -m agency.seed_offers [--dry-run]
 """
 
@@ -21,6 +24,8 @@ def validate(o: dict[str, Any]) -> list[str]:
     problems: list[str] = []
     if not o.get("name"):
         return ["missing name"]
+    if "includes" in o:
+        return []  # a package: checked and seeded by the CRM's seeder (crm/scripts/seedOffers.mts)
     b = o.get("billing")
     if b is not None and b not in BILLING:
         problems.append(f"billing must be one of {sorted(BILLING)}")
@@ -44,7 +49,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Seed offers from config/offers.yaml (insert-only).")
     p.add_argument("--dry-run", action="store_true")
     a = p.parse_args()
-    items = offers()
+    items = [o for o in offers() if "includes" not in o]  # packages are seeded by crm/scripts/seedOffers.mts
     bad = {o.get("name", "?"): validate(o) for o in items if validate(o)}
     if bad:
         raise SystemExit("Fix config/offers.yaml first:\n" + "\n".join(f"  {n}: {', '.join(v)}" for n, v in bad.items()))

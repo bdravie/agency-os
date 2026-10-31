@@ -145,3 +145,207 @@ offers:
       - "Monitoring and alerts checked weekly"
       - "Monthly summary email in plain English"
       - "Response within 1 working day"
+
+  # --- Agency services and packages (added 2026-11-02).
+  # Prices come from published 2026 London/UK agency pricing pages (agency blogs and cost studies, so indicative, not audited).
+  # Nothing public filters by "agencies turning over £50k+ a month", so these are mid-market London bands: the default sits
+  # in the middle of the band, the range is the low-to-high spread seen. Change any of them here or on the Offers page,
+  # and per deal on the deal itself.
+  # Sources (all 2026): SEO - whito.co.uk UK SEO pricing study (median £799/mo), visionary-marketing.co.uk (avg £2,847/mo), limelightdigital.co.uk
+  # (£1k-3k typical), whitehat-seo.co.uk (London £1.5k-6k, audits £500-1,500). Websites - spotdev.co.uk, webpopdesign.com, expertsure.com
+  # (London from £8k, £3k-30k+ range, £100-500/mo hosting and support). Chatbots - softomatesolutions.com, expertsure.com (£5k-20k SME,
+  # £200-1,500/mo platforms; agency retainers are poorly documented, so £400 is my estimate). PPC - advertizingly.com, outerboxdesign.com,
+  # whitehat-seo.co.uk (£750-4,500/mo, setup £250-500). Social - whito.co.uk social study, bizhub365.com (London £1k-6k/mo).
+  # Automation - goodspeed.studio, aiagencyplus.com, expertsure.com (existing Audit/Build/Retainer prices already fit these bands).
+  # A package has `includes:` (service names) and no price of its own: its price is the sum of its services.
+  - name: "Website design & build"
+    billing: setup
+    sort_order: 50
+    niche: any
+    outcome: "A fast, mobile-friendly website that explains the business and turns visitors into enquiries"
+    price_min_gbp: 3000
+    price_max_gbp: 20000
+    setup_price_gbp: 7500
+    monthly_price_gbp: 0
+    default_duration_days: 42
+    deliverables:
+      - "Discovery call and written sitemap signed off"
+      - "Design mock-ups for the main pages, one round of changes"
+      - "Build on the agreed platform, mobile-friendly and fast"
+      - "Enquiry form and analytics set up and tested"
+      - "Basic on-page SEO: titles, descriptions, headings, image text"
+      - "Go-live, handover walkthrough (Loom) and 30 days of fixes"
+
+  - name: "Website hosting & maintenance"
+    billing: monthly
+    sort_order: 51
+    niche: any
+    outcome: "The website kept online, secure, backed up and up to date"
+    price_min_gbp: 100
+    price_max_gbp: 500
+    setup_price_gbp: 0
+    monthly_price_gbp: 250
+    default_duration_days: 90        # minimum term
+    deliverables:
+      - "Hosting, SSL certificate and daily backups"
+      - "Software and plugin updates each month"
+      - "Uptime monitoring with alerts"
+      - "Small content changes within an agreed monthly allowance"
+      - "Monthly summary email in plain English"
+
+  - name: "SEO audit & strategy"
+    billing: one_off
+    sort_order: 60
+    niche: any
+    outcome: "A clear picture of why the site is not ranking and a plan to fix it"
+    price_min_gbp: 500
+    price_max_gbp: 4000
+    setup_price_gbp: 1200
+    monthly_price_gbp: 0
+    default_duration_days: 10
+    deliverables:
+      - "Technical crawl of the site: speed, indexing, broken links, mobile"
+      - "Keyword research for the services and areas the business wants work in"
+      - "Review of the main pages and the competitors ranking above them"
+      - "Google Business Profile and local listings check"
+      - "Prioritised action plan and a 6-month roadmap"
+      - "Walkthrough call"
+
+  - name: "SEO retainer"
+    billing: monthly
+    sort_order: 61
+    niche: any
+    outcome: "Steady monthly work that moves the site up the search results and brings in enquiries"
+    price_min_gbp: 800
+    price_max_gbp: 5000
+    setup_price_gbp: 0
+    monthly_price_gbp: 2000
+    default_duration_days: 180       # SEO needs about six months before results are fair to judge
+    deliverables:
+      - "On-page fixes from the roadmap, agreed each month"
+      - "New or improved content each month (amount agreed up front)"
+      - "Local SEO: Google Business Profile posts and citations"
+      - "Link building from relevant, genuine sources"
+      - "Monthly rankings, traffic and enquiries report with a plain-English summary"
+
+  - name: "Ad account setup"
+    billing: one_off
+    sort_order: 70
+    niche: any
+    outcome: "Google Ads account built properly: tracking, structure and first campaigns ready to switch on"
+    price_min_gbp: 250
+    price_max_gbp: 1000
+    setup_price_gbp: 400
+    monthly_price_gbp: 0
+    default_duration_days: 5
+    deliverables:
+      - "Conversion tracking for calls and enquiry forms"
+      - "Account structure, keywords and negative keywords"
+      - "Ad copy and extensions written and approved"
+      - "Landing page check with suggested changes"
+      - "Agreed monthly ad budget and target cost per enquiry"
+
+  - name: "PPC management"
+    billing: monthly
+    sort_order: 71
+    niche: any
+    outcome: "Ads kept working: budget spent where enquiries come from, wasted clicks cut"
+    price_min_gbp: 750
+    price_max_gbp: 4500
+    setup_price_gbp: 0
+    monthly_price_gbp: 1500
+    default_duration_days: 90        # minimum term. Ad spend is paid by the client directly and is not included.
+    deliverables:
+      - "Weekly check of spend, search terms and bids"
+      - "Monthly ad copy and landing page tests"
+      - "Negative keyword clean-up"
+      - "Monthly report: spend, enquiries and cost per enquiry"
+      - "Monthly review call"
+
+  - name: "Social media management"
+    billing: monthly
+    sort_order: 80
+    niche: any
+    outcome: "Regular, on-brand posts across the platforms that matter, without the owner having to think about it"
+    price_min_gbp: 800
+    price_max_gbp: 5000
+    setup_price_gbp: 0
+    monthly_price_gbp: 2000
+    default_duration_days: 90        # minimum term. Paid social and ad spend are extra.
+    deliverables:
+      - "Monthly content calendar agreed with the client"
+      - "Agreed number of posts a month, written, designed and scheduled"
+      - "Posting to the agreed platforms (Facebook, Instagram, LinkedIn, Google)"
+      - "Monthly report on reach and enquiries"
+      - "Monthly review call"
+
+  - name: "AI chatbot build"
+    billing: setup
+    sort_order: 90
+    niche: any
+    outcome: "A chatbot on the website that answers common questions from the business's own information and passes real enquiries to a person"
+    price_min_gbp: 3000
+    price_max_gbp: 25000
+    setup_price_gbp: 8000
+    monthly_price_gbp: 0
+    default_duration_days: 28
+    deliverables:
+      - "Data processing agreement signed before anything is built (the chatbot will talk to the client's customers)"
+      - "List of questions the bot should answer, and what it must hand over to a person"
+      - "Answers built only from the client's approved information"
+      - "Installed on the website and tested on real questions"
+      - "Hand-over to a person by email or phone for anything it cannot answer"
+      - "Handover walkthrough (Loom) and 30 days of fixes"
+
+  - name: "AI chatbot hosting & optimisation"
+    billing: monthly
+    sort_order: 91
+    niche: any
+    outcome: "The chatbot kept running, accurate and improving"
+    price_min_gbp: 200
+    price_max_gbp: 1500
+    setup_price_gbp: 0
+    monthly_price_gbp: 400
+    default_duration_days: 90        # minimum term. Platform and AI usage are included up to an agreed limit.
+    deliverables:
+      - "Platform and AI usage costs covered up to an agreed limit"
+      - "Monthly review of questions it could not answer, with fixes"
+      - "Answers updated when the business changes (prices, hours, services)"
+      - "Monthly summary of conversations handled and enquiries passed on"
+
+  # --- Packages: each adds all of its services to a deal, and every price can still be changed on the deal.
+  - name: "Website package"
+    includes: ["Website design & build", "Website hosting & maintenance"]
+    sort_order: 5
+    niche: any
+    outcome: "A new website, built and then looked after"
+
+  - name: "SEO package"
+    includes: ["SEO audit & strategy", "SEO retainer"]
+    sort_order: 6
+    niche: any
+    outcome: "Find out what is holding the site back, then fix it month by month"
+
+  - name: "Website and SEO launch"
+    includes: ["Website design & build", "Website hosting & maintenance", "SEO audit & strategy", "SEO retainer"]
+    sort_order: 7
+    niche: any
+    outcome: "A new website built to rank, with SEO running from day one"
+
+  - name: "Paid ads package"
+    includes: ["Ad account setup", "PPC management"]
+    sort_order: 8
+    niche: any
+    outcome: "Google Ads set up properly, then managed every month"
+
+  - name: "AI chatbot package"
+    includes: ["AI chatbot build", "AI chatbot hosting & optimisation"]
+    sort_order: 9
+    niche: any
+    outcome: "A website chatbot, built and then kept accurate"
+
+  - name: "AI automation package"
+    includes: ["AI Opportunity Audit", "Build", "Optimise Retainer"]
+    sort_order: 4
+    niche: any
+    outcome: "Find the best automation, build it, then keep improving it"
