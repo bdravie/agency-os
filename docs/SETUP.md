@@ -45,7 +45,7 @@ Put these in `.env`:
 
 One-off setup, about 10 minutes. Nothing is sent until you press Send on a draft.
 
-1. https://console.cloud.google.com > create a project > APIs & Services > Library > enable the **Gmail API**.
+1. gmgm > create a project > APIs & Services > Library > enable the **Gmail API**.
 2. OAuth consent screen. Use **Internal** if all the mailboxes are in one Google Workspace. If they are in different Workspaces, use **External** and press **Publish app** (an app left in *Testing* has its access cancelled by Google every 7 days). Add the scopes `gmail.send` and `gmail.readonly`. Google will show an "unverified app" warning for your own use; that is expected.
 3. Credentials > Create credentials > OAuth client ID > **Web application**. Authorised redirect URI, exactly: `http://127.0.0.1:3000/api/google/callback`.
 4. Put the client ID and secret in `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (optional `GOOGLE_REDIRECT_URI` if the address differs), then restart the CRM: `launchctl kickstart -k gui/$(id -u)/com.agencyos.crm`.
