@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarDays, Copy, ExternalLink, X } from "lucide-react";
 import { scheduleContent, writeScriptAction } from "@/lib/actions";
 import { ago } from "@/lib/format";
-import { CONTENT_META, CONTENT_STATUSES, type ContentStatus } from "@/lib/stages";
+import { ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, type ContentStatus } from "@/lib/stages";
 import ActionForm from "./ActionForm";
 import ToastForm from "./ToastForm";
 import { useToast } from "./Toast";
@@ -34,7 +34,7 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
   }, [onClose]);
 
   const current = (status ?? item?.status ?? "Idea") as ContentStatus;
-  const meta = CONTENT_META[current];
+  const meta = CONTENT_META[current] ?? ARCHIVED_META;
   const copy = async (text: string, label: string) => { await navigator.clipboard.writeText(text); toast(`${label} copied`); };
 
   return (

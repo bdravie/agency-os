@@ -1,8 +1,10 @@
 # Social video guide
 
-## Niche (edit this line)
+## Niche
 
-I build AI automations for [marketing agencies / creators and coaches / Shopify brands] in the UK.
+I build AI automations for {{NICHE}} in the UK.
+
+Show business data only: jobs, quotes, takings, reviews, booking totals and admin. Never show or mention a client's customers' or patients' personal details, and never name a real client or business.
 
 ## Hook formulas (first 3 seconds, under 12 words)
 

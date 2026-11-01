@@ -6,6 +6,7 @@ import { loadRevenue } from "@/lib/revenue";
 import { loadOutcomes, needsAttention } from "@/lib/outcomeData";
 import { dueForSession, loadTraining } from "@/lib/enablementData";
 import { completeTask } from "@/lib/actions";
+import { loadContentConfig } from "@/lib/content";
 import { gbp } from "@/lib/quote";
 import { ago, when } from "@/lib/format";
 import { activityLabel } from "@/components/activity";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -35,7 +36,19 @@ export default async function Today() {
     query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'email_logged' AND occurred_at > now() - interval '7 days'`),
     loadOutcomes(),
     loadTraining(),
+    // Weeks start on Monday, in UK time.
+    query<{ posted_week: string; filmed: string; ideas: string }>(
+      `SELECT count(*) FILTER (WHERE status = 'Posted' AND (posted_at AT TIME ZONE 'Europe/London') >= date_trunc('week', now() AT TIME ZONE 'Europe/London')) AS posted_week,
+              count(*) FILTER (WHERE status = 'Filmed') AS filmed,
+              count(*) FILTER (WHERE status = 'Idea') AS ideas
+         FROM content_items`),
+    query<any>(
+      `SELECT id, idea, scheduled_for::text AS day, status FROM content_items
+        WHERE scheduled_for < (now() AT TIME ZONE 'Europe/London')::date AND status NOT IN ('Posted','Archived')
+        ORDER BY scheduled_for LIMIT 5`),
+    loadContentConfig(),
   ]);
+  const postedWeek = Number(contentStats[0].posted_week);
   const noSession = dueForSession(training);
   const atRisk = outcomes.filter(needsAttention);
 
@@ -91,6 +104,20 @@ export default async function Today() {
                 </li>
               ))}</ul>
             )}
+          </section>
+
+          <section className="card" aria-labelledby="content-h">
+            <div className="row-between"><h2 id="content-h">Content</h2><Link href="/content" className="muted">Open content</Link></div>
+            <ul>
+              <li className="row-between"><span>Posts this week</span><span className={`badge tone-${postedWeek >= contentConfig.posts_per_week ? "good" : "neutral"}`}>{postedWeek} of {contentConfig.posts_per_week}</span></li>
+              <li className="row-between"><span>Filmed, not posted</span><span className={`badge tone-${Number(contentStats[0].filmed) ? "warn" : "neutral"}`}>{contentStats[0].filmed}</span></li>
+              <li className="row-between"><span>Scripts overdue</span><span className={`badge tone-${contentOverdue.length ? "bad" : "neutral"}`}>{contentOverdue.length}</span></li>
+            </ul>
+            {contentOverdue.map((c: any) => (
+              <p key={c.id} className="muted" style={{ marginTop: 6 }}>
+                <Link href={`/content/${c.id}`}>{c.idea.length > 80 ? c.idea.slice(0, 77) + "…" : c.idea}</Link> was due {new Date(c.day + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+              </p>
+            ))}
           </section>
 
           <section className="card" aria-labelledby="follow-h">

@@ -49,4 +49,7 @@ export const CONTENT_META: Record<ContentStatus, { label: string; hint: string; 
   Filmed: { label: "Filmed", hint: "Recorded, not posted yet", next: "Edit it, schedule it and post it.", colour: "var(--warn)" },
   Posted: { label: "Posted", hint: "Published", next: "Watch for comments with your keyword.", colour: "var(--good)" },
 };
-export const contentLabel = (s: string) => CONTENT_META[s as ContentStatus]?.label ?? s;
+/** Archived ideas are kept but hidden from the board unless "Show archived" is on. It is not a stage you move through. */
+export const ARCHIVED = "Archived";
+export const ARCHIVED_META = { label: "Archived", hint: "Set aside, not deleted", next: "Restore it to Ideas if you want it back.", colour: "var(--muted)" };
+export const contentLabel = (s: string) => (s === ARCHIVED ? ARCHIVED_META.label : CONTENT_META[s as ContentStatus]?.label ?? s);

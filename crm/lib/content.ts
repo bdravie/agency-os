@@ -1,18 +1,30 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { parse } from "yaml";
 import { askStructured } from "./llm";
+import { audienceText, fillNiche, parseContentConfig, type ContentConfig } from "./contentConfigMath";
 
 const ROOT = path.resolve(process.cwd(), "..");
 const S = { type: "string" } as const;
 const prompt = (name: string) => readFile(path.join(ROOT, "prompts", name), "utf8");
 
+/** The `content:` settings in config/niches.yaml (posts per week, idea limit, who the videos are for). */
+export async function loadContentConfig(): Promise<ContentConfig> {
+  const y = parse(await readFile(path.join(ROOT, "config/niches.yaml"), "utf8"));
+  return parseContentConfig(y?.content, y?.defaults?.focus_niches);
+}
+
+/** prompts/video-ideas.md with {{NICHE}} filled from the content settings. Every content prompt starts from this guide. */
+async function guide(): Promise<string> {
+  return fillNiche(await prompt("video-ideas.md"), audienceText(await loadContentConfig()));
+}
+
 export type Idea = { idea: string; format?: string; hook?: string };
 
 export async function generateIdeas(audience: string | null, existing: string[]): Promise<Idea[]> {
-  const guide = await prompt("video-ideas.md");
   const task = await prompt("content-ideas.md");
   const text =
-    `${guide}\n\n${audience ? `AUDIENCE FOR THIS BATCH: ${audience}\n\n` : ""}${task}\n\nEXISTING:\n${existing.map((e) => `- ${e}`).join("\n") || "(none)"}\n\nGenerate 20 ideas.`;
+    `${await guide()}\n\n${audience ? `AUDIENCE FOR THIS BATCH: ${audience}\n\n` : ""}${task}\n\nEXISTING:\n${existing.map((e) => `- ${e}`).join("\n") || "(none)"}\n\nGenerate 20 ideas.`;
   const { ideas } = await askStructured<{ ideas: Idea[] }>(text, {
     type: "object", required: ["ideas"],
     properties: { ideas: { type: "array", items: { type: "object", required: ["idea", "format", "hook"], properties: { idea: S, format: S, hook: S } } } },
@@ -23,7 +35,7 @@ export async function generateIdeas(audience: string | null, existing: string[])
 export type Script = { hooks: string[]; favourite_hook: string; script: string; on_screen_text: string[]; caption: string; keyword: string };
 
 export async function writeScript(idea: string): Promise<Script> {
-  const text = `${await prompt("video-ideas.md")}\n\n${await prompt("video-script.md")}\n\nIDEA: ${idea}`;
+  const text = `${await guide()}\n\n${await prompt("video-script.md")}\n\nIDEA: ${idea}`;
   return askStructured<Script>(text, {
     type: "object", required: ["hooks", "favourite_hook", "script", "on_screen_text", "caption", "keyword"],
     properties: { hooks: { type: "array", items: S }, favourite_hook: S, script: S, on_screen_text: { type: "array", items: S }, caption: S, keyword: S },
@@ -45,7 +57,7 @@ export type Repurposed = {
 };
 
 export async function repurpose(transcript: string): Promise<Repurposed> {
-  const text = `${await prompt("video-ideas.md")}\n\n${await prompt("repurpose.md")}\n\nTRANSCRIPT:\n${transcript.slice(0, 30000)}`;
+  const text = `${await guide()}\n\n${await prompt("repurpose.md")}\n\nTRANSCRIPT:\n${transcript.slice(0, 30000)}`;
   return askStructured<Repurposed>(text, {
     type: "object", required: ["short_videos", "linkedin_posts", "newsletter"],
     properties: {

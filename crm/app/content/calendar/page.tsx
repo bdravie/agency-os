@@ -17,7 +17,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
 
   const [scheduled, unscheduled] = await Promise.all([
-    query<any>(`SELECT id, idea, status, scheduled_for::text AS day FROM content_items WHERE scheduled_for BETWEEN $1 AND $2 ORDER BY id`, [iso(days[0]), iso(days[6])]),
+    query<any>(`SELECT id, idea, status, scheduled_for::text AS day FROM content_items WHERE scheduled_for BETWEEN $1 AND $2 AND status <> 'Archived' ORDER BY id`, [iso(days[0]), iso(days[6])]),
     query<any>(`SELECT id, idea, status FROM content_items WHERE scheduled_for IS NULL AND status IN ('Idea','Scripted','Filmed') ORDER BY (status = 'Scripted') DESC, id DESC LIMIT 30`),
   ]);
 

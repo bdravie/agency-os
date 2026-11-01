@@ -26,6 +26,13 @@ defaults:
     - Reading
   focus_niches: [hvac, roofing, pest_control]   # your current focus, used as CRM defaults
 
+# Content engine settings (the Content tab). Read by the CRM; the Python lead tools ignore this block.
+content:
+  posts_per_week: 4              # target shown on Today
+  max_open_ideas: 15             # "Generate ideas" is blocked while more than this many ideas are waiting
+  content_niche: [trades, dental, aesthetics]   # niche keys below that the videos are made for (trades and clinics)
+  content_audience: "trades businesses (plumbers, heating engineers, roofers, electricians) and clinics (dental practices and aesthetics clinics)"   # how the video guide names them; if blank it is built from the keys
+
 niches:
   # --- Focus niches: home services. Many are sole traders: only Ltd/LLP/PLC get email,
   # --- everyone else is reached through social and content.

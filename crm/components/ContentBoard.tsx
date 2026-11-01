@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Plus, Search } from "lucide-react";
-import { moveContent } from "@/lib/actions";
-import { CONTENT_META, CONTENT_STATUSES, contentLabel, type ContentStatus } from "@/lib/stages";
+import { Archive, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { archiveContent, deleteContent, moveContent, restoreContent } from "@/lib/actions";
+import { ARCHIVED, ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, contentLabel, type ContentStatus } from "@/lib/stages";
 import { useToast } from "./Toast";
 import ContentDrawer from "./ContentDrawer";
 import NewIdeaDialog from "./NewIdeaDialog";
@@ -22,10 +22,35 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
   const [openId, setOpenId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState("");
-  const [, start] = useTransition();
+  const [showArchived, setShowArchived] = useState(false);
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [busy, start] = useTransition();
 
   useEffect(() => setItems(initial), [initial]);
   const needle = filter.trim().toLowerCase();
+  const matches = (i: Item) => !needle || `${i.idea} ${i.format ?? ""} ${i.keyword ?? ""}`.toLowerCase().includes(needle);
+  const archivedCount = items.filter((i) => i.status === ARCHIVED).length;
+  const pickedItems = items.filter((i) => picked.has(i.id));
+  const pickedIdeas = pickedItems.filter((i) => i.status === "Idea");
+  const pickedArchived = pickedItems.filter((i) => i.status === ARCHIVED);
+  const visibleIdeas = items.filter((i) => i.status === "Idea" && matches(i));
+  const clear = () => { setPicked(new Set()); setConfirmDelete(false); };
+  const toggle = (id: number) => setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleAll = (list: Item[]) => setPicked((p) => (list.every((i) => p.has(i.id)) ? new Set([...p].filter((id) => !list.some((i) => i.id === id))) : new Set([...p, ...list.map((i) => i.id)])));
+
+  function bulk(kind: "archive" | "restore" | "delete", only?: number[]) {
+    const list = kind === "archive" ? pickedIdeas : kind === "restore" ? pickedArchived : pickedItems.filter((i) => i.status === "Idea" || i.status === ARCHIVED);
+    const ids = only ?? list.map((i) => i.id);
+    start(async () => {
+      try {
+        const n = await (kind === "archive" ? archiveContent(ids) : kind === "restore" ? restoreContent(ids) : deleteContent(ids));
+        toast(`${kind === "archive" ? "Archived" : kind === "restore" ? "Restored" : "Deleted"} ${n} ${n === 1 ? "idea" : "ideas"}`);
+        clear();
+        router.refresh();
+      } catch (err) { toast(`Could not do that: ${err instanceof Error ? err.message : err}`, "bad"); }
+    });
+  }
 
   function move(id: number, status: string) {
     const item = items.find((i) => i.id === id);
@@ -45,21 +70,50 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
           <Search size={15} aria-hidden />
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter ideas…" aria-label="Filter ideas" />
         </div>
+        <label className="muted row" style={{ gap: 6 }}>
+          <input type="checkbox" checked={showArchived} onChange={(e) => { setShowArchived(e.target.checked); clear(); }} /> Show archived ({archivedCount})
+        </label>
         <button type="button" onClick={() => setCreating(true)}><Plus size={16} aria-hidden /> New idea</button>
       </div>
 
-      <div className="board scroll-cols" style={{ gridTemplateColumns: "repeat(4, minmax(220px, 1fr))" }}>
-        {CONTENT_STATUSES.map((status, idx) => {
-          const meta = CONTENT_META[status as ContentStatus];
-          const col = items.filter((i) => i.status === status && (!needle || `${i.idea} ${i.format ?? ""} ${i.keyword ?? ""}`.toLowerCase().includes(needle)));
+      {picked.size > 0 && (
+        <div className="card row" role="region" aria-label="Selected ideas" style={{ gap: 8, marginBottom: 12, padding: "8px 12px", flexWrap: "wrap" }}>
+          <b>{picked.size} selected</b>
+          {pickedIdeas.length > 0 && <button type="button" className="secondary" disabled={busy} onClick={() => bulk("archive")}><Archive size={15} aria-hidden /> Archive {pickedIdeas.length}</button>}
+          {pickedArchived.length > 0 && <button type="button" className="secondary" disabled={busy} onClick={() => bulk("restore")}><RotateCcw size={15} aria-hidden /> Restore {pickedArchived.length}</button>}
+          {!confirmDelete && <button type="button" className="secondary" disabled={busy || pickedIdeas.length + pickedArchived.length === 0} onClick={() => setConfirmDelete(true)}><Trash2 size={15} aria-hidden /> Delete…</button>}
+          {confirmDelete && (
+            <span className="row" style={{ gap: 8 }} role="alertdialog" aria-label="Confirm delete">
+              <span>Delete {pickedIdeas.length + pickedArchived.length} {pickedIdeas.length + pickedArchived.length === 1 ? "idea" : "ideas"} for good? This cannot be undone.</span>
+              <button type="button" disabled={busy} onClick={() => bulk("delete")}>Yes, delete</button>
+              <button type="button" className="secondary" onClick={() => setConfirmDelete(false)}>Cancel</button>
+            </span>
+          )}
+          {pickedItems.length > pickedIdeas.length + pickedArchived.length && !confirmDelete && <span className="muted">Scripted, filmed and posted items can't be archived or deleted here.</span>}
+          <button type="button" className="secondary" onClick={clear} style={{ marginLeft: "auto" }}>Clear</button>
+        </div>
+      )}
+
+      <div className="board scroll-cols" style={{ gridTemplateColumns: `repeat(${showArchived ? 5 : 4}, minmax(220px, 1fr))` }}>
+        {[...CONTENT_STATUSES, ...(showArchived ? [ARCHIVED] : [])].map((status, idx) => {
+          const isArchive = status === ARCHIVED;
+          const meta = isArchive ? ARCHIVED_META : CONTENT_META[status as ContentStatus];
+          const col = items.filter((i) => i.status === status && matches(i));
+          const selectable = status === "Idea" || isArchive;
           return (
             <section
               key={status} aria-label={`${meta.label}, ${col.length} items`} className={`lane${over === status ? " over" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setOver(status); }}
+              onDragOver={isArchive ? undefined : (e) => { e.preventDefault(); setOver(status); }}
               onDragLeave={() => setOver(null)}
-              onDrop={(e) => { e.preventDefault(); setOver(null); move(Number(e.dataTransfer.getData("text/plain")), status); }}
+              onDrop={isArchive ? undefined : (e) => { e.preventDefault(); setOver(null); move(Number(e.dataTransfer.getData("text/plain")), status); }}
             >
               <LaneTab colour={meta.colour} label={meta.label} count={col.length} hint={meta.hint} />
+              {selectable && col.length > 0 && (
+                <label className="muted row" style={{ gap: 6, padding: "0 4px 6px" }}>
+                  <input type="checkbox" checked={col.every((i) => picked.has(i.id))} onChange={() => toggleAll(isArchive ? col : visibleIdeas)} aria-label={`Select all ${col.length} in ${meta.label}`} />
+                  Select all {col.length}
+                </label>
+              )}
               <div className="lane-body">
                 {col.length === 0 && <div className="drop-hint">{needle ? "No matches" : "Drop an item here"}</div>}
                 {col.map((i) => (
@@ -70,13 +124,20 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenId(i.id); } }}
                     onDragStart={(e) => e.dataTransfer.setData("text/plain", String(i.id))}
                   >
-                    <div className="deal-top"><b>{i.idea}</b></div>
+                    <div className="deal-top">
+                      {selectable && <input type="checkbox" checked={picked.has(i.id)} onChange={() => toggle(i.id)} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} aria-label={`Select: ${i.idea}`} />}
+                      <b>{i.idea}</b>
+                    </div>
                     {(i.format || i.keyword) && <div className="muted">{[i.format, i.keyword && `keyword ${i.keyword}`].filter(Boolean).join(" · ")}</div>}
                     <div className="deal-foot">
                       {i.day ? <span className="age"><CalendarDays size={12} aria-hidden /> {shortDate(i.day)}</span> : <span className="age">Not scheduled</span>}
                       <div className="deal-actions" onClick={(e) => e.stopPropagation()}>
+                        {isArchive ? (
+                          <button type="button" onClick={() => bulk("restore", [i.id])} aria-label="Restore to Ideas" title="Restore to Ideas"><RotateCcw size={14} /></button>
+                        ) : <>
                         <button type="button" disabled={idx === 0} onClick={() => move(i.id, CONTENT_STATUSES[idx - 1])} aria-label={`Move back to ${contentLabel(CONTENT_STATUSES[idx - 1] ?? "")}`} title={idx > 0 ? `Back to ${contentLabel(CONTENT_STATUSES[idx - 1])}` : ""}><ChevronLeft size={14} /></button>
                         <button type="button" disabled={idx === CONTENT_STATUSES.length - 1} onClick={() => move(i.id, CONTENT_STATUSES[idx + 1])} aria-label={`Move on to ${contentLabel(CONTENT_STATUSES[idx + 1] ?? "")}`} title={idx < CONTENT_STATUSES.length - 1 ? `On to ${contentLabel(CONTENT_STATUSES[idx + 1])}` : ""}><ChevronRight size={14} /></button>
+                        </>}
                         <a href={`/content/${i.id}`} target="_blank" rel="noreferrer" title="Open in a new tab" aria-label="Open in a new tab"><ExternalLink size={13} /></a>
                       </div>
                     </div>

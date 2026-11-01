@@ -13,7 +13,8 @@ import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposa
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
-import { generateIdeas, writeScript, formatScript, repurpose } from "./content";
+import { generateIdeas, loadContentConfig, writeScript, formatScript, repurpose } from "./content";
+import { backlogState } from "./contentConfigMath";
 import { findGenericEmail, safeDomain } from "./websites";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
 import { dailyCap, lookupWebsite } from "./places";
@@ -354,6 +355,9 @@ const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"];
 export async function generateIdeasAction(_prev: string | null, form: FormData): Promise<string | null> {
   await requireLogin();
   try {
+    const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM content_items WHERE status = 'Idea'`);
+    const gate = backlogState(Number(n), (await loadContentConfig()).max_open_ideas, form.get("override") === "1");
+    if (gate.blocked) return gate.message;
     const existing = (await query<{ idea: string }>(`SELECT idea FROM content_items ORDER BY created_at DESC LIMIT 40`)).map((r) => r.idea);
     const ideas = await generateIdeas(str(form, "audience"), existing);
     if (ideas.length === 0) return "No ideas came back. Try again.";
@@ -395,6 +399,41 @@ export async function moveContent(id: number, status: string) {
     [id, status],
   );
   revalidatePath("/content");
+}
+
+const contentIds = (ids: unknown): number[] =>
+  Array.isArray(ids) ? [...new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 200) : [];
+
+/** Set aside waiting ideas. Only ideas can be archived; nothing is deleted. Returns how many were archived. */
+export async function archiveContent(ids: number[]): Promise<number> {
+  await requireLogin();
+  const list = contentIds(ids);
+  if (!list.length) return 0;
+  const rows = await query<{ id: number }>(`UPDATE content_items SET status = 'Archived' WHERE id = ANY($1::bigint[]) AND status = 'Idea' RETURNING id`, [list]);
+  if (rows.length) await logActivity("content_archived", { body: `${rows.length} ideas archived` });
+  revalidatePath("/content");
+  return rows.length;
+}
+
+/** Put archived ideas back in the Ideas column. Returns how many were restored. */
+export async function restoreContent(ids: number[]): Promise<number> {
+  await requireLogin();
+  const list = contentIds(ids);
+  if (!list.length) return 0;
+  const rows = await query<{ id: number }>(`UPDATE content_items SET status = 'Idea' WHERE id = ANY($1::bigint[]) AND status = 'Archived' RETURNING id`, [list]);
+  revalidatePath("/content");
+  return rows.length;
+}
+
+/** Permanently delete ideas. Only waiting or archived ideas can go: anything scripted, filmed or posted is refused. The board asks for confirmation first. */
+export async function deleteContent(ids: number[]): Promise<number> {
+  await requireLogin();
+  const list = contentIds(ids);
+  if (!list.length) return 0;
+  const rows = await query<{ id: number }>(`DELETE FROM content_items WHERE id = ANY($1::bigint[]) AND status IN ('Idea','Archived') RETURNING id`, [list]);
+  if (rows.length) await logActivity("content_deleted", { body: `${rows.length} ideas deleted` });
+  revalidatePath("/content");
+  return rows.length;
 }
 
 export async function saveContent(form: FormData) {
