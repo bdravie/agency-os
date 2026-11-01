@@ -8,6 +8,8 @@ import { Badge, PageHeader } from "@/components/ui";
 import PackPanel from "@/components/PackPanel";
 import FitPanel from "@/components/FitPanel";
 import PlanPanel from "@/components/PlanPanel";
+import ImprovePanel from "@/components/ImprovePanel";
+import { priceMilestones } from "@/lib/proposalPlanMath";
 import { loadRates } from "@/lib/proposalPlan";
 import { proposalName } from "@/lib/proposalName";
 
@@ -19,6 +21,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
   const [p] = await query<any>(`SELECT * FROM proposals WHERE id = $1`, [id]);
   if (!p) notFound();
   const rates = await loadRates();
+  const jobPrice = p.plan?.milestones?.length ? priceMilestones(p.plan.milestones, rates).total : null;
   return (
     <>
       <PageHeader
@@ -27,6 +30,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
         description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{p.job_url && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Job post <ExternalLink size={13} aria-hidden /></a>}</span>}
       />
       <FitPanel id={id} score={p.fit_score} fit={p.fit_analysis} />
+      <ImprovePanel id={id} score={p.fit_score} improvements={p.improvements} at={p.improvements_at ? String(p.improvements_at) : null} hourly={rates.hourly_rate_gbp} jobPrice={jobPrice} />
       <div className="grid">
         <ToastForm action={saveProposal} success="Proposal saved" className="card stack" style={{ gap: 10 }}>
           <input type="hidden" name="id" value={id} />

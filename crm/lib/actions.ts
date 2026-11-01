@@ -9,7 +9,7 @@ import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal } from "./proposal";
-import { analyseFit, buildPlan } from "./proposalPlan";
+import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposalPlan";
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
@@ -322,6 +322,26 @@ export async function generatePlanAction(_prev: string | null, form: FormData): 
     const plan = await buildPlan(p.job_text);
     await query(`UPDATE proposals SET plan = $2, plan_at = now() WHERE id = $1`, [id, JSON.stringify(plan)]);
     await logActivity("proposal_plan", { channel: "upwork", body: `Plan and price for proposal #${id}` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  revalidatePath(`/proposals/${id}`);
+  return null;
+}
+
+/** Click-only: suggests what to learn, build, change or ask to lift this job's score, and whether it pays off long term. Nothing is sent. */
+export async function suggestImprovementsAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "id");
+  const [p] = await query<{ job_text: string; fit_score: number | null; fit_analysis: any }>(`SELECT job_text, fit_score, fit_analysis FROM proposals WHERE id = $1`, [id]);
+  if (!p) return "Proposal not found.";
+  try {
+    const others = await query<{ job_title: string | null; fit_score: number | null; fit_analysis: any }>(
+      `SELECT job_title, fit_score, fit_analysis FROM proposals WHERE id <> $1 ORDER BY created_at DESC LIMIT 30`, [id]);
+    const recent = others.map((o) => `- ${o.job_title ?? "Untitled"} (${o.fit_score ?? "?"}/10)${o.fit_analysis?.risks?.length ? ` risks: ${o.fit_analysis.risks.join(" | ")}` : ""}`).join("\n");
+    const result = await suggestImprovements(p.job_text, p.fit_score, p.fit_analysis, recent, await loadRates());
+    await query(`UPDATE proposals SET improvements = $2, improvements_at = now() WHERE id = $1`, [id, JSON.stringify(result)]);
+    await logActivity("proposal_improve", { channel: "upwork", body: `Improvement ideas for proposal #${id}` });
   } catch (err) {
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }
