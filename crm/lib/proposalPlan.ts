@@ -58,7 +58,7 @@ export async function loadRates(): Promise<Rates> {
 /** Score a job 1-10 and say why: the factors, the benefits and the risks of applying. Haiku, to keep the cost low. */
 export async function analyseFit(job: string): Promise<FitAnalysis> {
   const prompt = `${await read("prompts/proposal-analysis.md")}\n\n${await context()}\n\nJOB POST:\n${job}`;
-  const run = async () => cleanFit(await askStructured(prompt, FIT_SCHEMA, "haiku", 1500));
+  const run = async () => cleanFit(await askStructured(prompt, FIT_SCHEMA, "haiku", 4000));
   let r = await run();
   if (fitProblems(r).length) r = await run();
   const bad = fitProblems(r);
@@ -69,7 +69,7 @@ export async function analyseFit(job: string): Promise<FitAnalysis> {
 /** Break a job into milestones with ease and hours. The price is worked out in code from config/rates.yaml. */
 export async function buildPlan(job: string): Promise<Plan> {
   const prompt = `${await read("prompts/proposal-plan.md")}\n\n${await context()}\n\nJOB POST:\n${job}`;
-  const run = async () => cleanPlan(await askStructured(prompt, PLAN_SCHEMA, upworkModel(), 3000));
+  const run = async () => cleanPlan(await askStructured(prompt, PLAN_SCHEMA, upworkModel(), 4500));
   let r = await run();
   if (planProblems(r).length) r = await run();
   const bad = planProblems(r);
@@ -116,7 +116,7 @@ export async function suggestImprovements(job: string, score: number | null, fit
     `${await read("prompts/proposal-improve.md")}\n\n${await context()}\n\nPORTFOLIO:\n${/^## /m.test(portfolio) ? portfolio : "(No portfolio items yet.)"}\n\n` +
     `RATES: £${rates.hourly_rate_gbp}/hour, ${rates.hours_per_day} productive hours a day.\n\nFIT ANALYSIS:\n${fitText}\n\n` +
     `RECENT JOBS:\n${recentJobs || "(No other jobs saved yet, so say any long-term view is a judgement.)"}\n\nJOB POST:\n${job}`;
-  const run = async () => cleanImprovements(await askStructured(prompt, IMPROVE_SCHEMA, upworkModel(), 3000));
+  const run = async () => cleanImprovements(await askStructured(prompt, IMPROVE_SCHEMA, upworkModel(), 4500));
   let r = await run();
   if (improveProblems(r).length) r = await run();
   const bad = improveProblems(r);
