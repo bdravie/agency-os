@@ -15,7 +15,7 @@ export type Item = { id: number; idea: string; hook: string | null; format: stri
 
 const shortDate = (iso: string) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-export default function ContentBoard({ initial, platforms }: { initial: Item[]; platforms: string[] }) {
+export default function ContentBoard({ initial, platforms, niches }: { initial: Item[]; platforms: string[]; niches: string[] }) {
   const toast = useToast();
   const router = useRouter();
   const [items, setItems] = useState(initial);
@@ -74,7 +74,7 @@ export default function ContentBoard({ initial, platforms }: { initial: Item[]; 
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter ideas…" aria-label="Filter ideas" />
         </div>
         <label className="muted row" style={{ gap: 6 }}>
-          <input type="checkbox" checked={showArchived} onChange={(e) => { setShowArchived(e.target.checked); clear(); }} /> Show archived ({archivedCount})
+          <input type="checkbox" checked={showArchived} onChange={(e) => { setShowArchived(e.target.checked); clear(); }} /> Show archived and low scores ({archivedCount})
         </label>
         <button type="button" onClick={() => setCreating(true)}><Plus size={16} aria-hidden /> New idea</button>
       </div>
@@ -160,7 +160,7 @@ export default function ContentBoard({ initial, platforms }: { initial: Item[]; 
         const it = items.find((x) => x.id === posting);
         return it ? <PostedDialog itemId={it.id} idea={it.idea} hook={it.hook} platforms={platforms} onClose={() => setPosting(null)} onDone={() => { setPosting(null); router.refresh(); }} /> : null;
       })()}
-      {creating && <NewIdeaDialog onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); router.refresh(); setOpenId(id); }} />}
+      {creating && <NewIdeaDialog niches={niches} onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); router.refresh(); setOpenId(id); }} />}
     </>
   );
 }

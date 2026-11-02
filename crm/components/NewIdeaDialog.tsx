@@ -7,10 +7,11 @@ import { useToast } from "./Toast";
 
 const FORMATS = ["Show the build", "Build in public", "Teach / steal this", "Niche pain"];
 
-export default function NewIdeaDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: number) => void }) {
+export default function NewIdeaDialog({ niches, onClose, onCreated }: { niches: string[]; onClose: () => void; onCreated: (id: number) => void }) {
   const toast = useToast();
   const [idea, setIdea] = useState("");
   const [format, setFormat] = useState(FORMATS[0]);
+  const [niche, setNiche] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -25,7 +26,7 @@ export default function NewIdeaDialog({ onClose, onCreated }: { onClose: () => v
       <form className="card stack dialog" style={{ width: "min(520px, calc(100vw - 32px))" }} onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
-          const r = await createIdeaAction(idea, format);
+          const r = await createIdeaAction(idea, format, niche);
           if (r.error || !r.id) { setError(r.error ?? "Could not save the idea."); return; }
           toast("Idea added");
           onCreated(r.id);
@@ -39,6 +40,10 @@ export default function NewIdeaDialog({ onClose, onCreated }: { onClose: () => v
         <div>
           <div className="field-label">Type</div>
           <div className="pills">{FORMATS.map((f) => <button key={f} type="button" className={`pill${format === f ? " on" : ""}`} onClick={() => setFormat(f)}>{f}</button>)}</div>
+        </div>
+        <div>
+          <label className="field-label" htmlFor="ni-niche">Niche</label>
+          <select id="ni-niche" value={niche} onChange={(e) => setNiche(e.target.value)}><option value="">Not tagged</option>{niches.map((n) => <option key={n} value={n}>{n.replace(/_/g, " ")}</option>)}</select>
         </div>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="row"><button disabled={pending}>{pending ? "Saving…" : "Add idea"}</button><button type="button" className="secondary" onClick={onClose}>Cancel</button></div>

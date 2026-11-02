@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { audienceText, backlogState, fillNiche, parseContentConfig } from "../lib/contentConfigMath.ts";
+import { audienceText, backlogState, fillNiche, inNiche, nicheAudience, nicheLabel, parseContentConfig, pickNiche } from "../lib/contentConfigMath.ts";
 
 test("defaults: 4 posts, 15 ideas, first focus niche", () => {
   const c = parseContentConfig(undefined, ["hvac", "roofing"]);
@@ -33,4 +33,22 @@ test("the backlog blocks only when over the limit, and can be overridden", () =>
   assert.equal(backlogState(16, 15, false).blocked, true);
   assert.match(backlogState(39, 15, false).message, /39 ideas.*limit is 15.*archive/);
   assert.equal(backlogState(39, 15, true).blocked, false);
+});
+test("niche filter: labels, descriptions from the search terms, and which items show", () => {
+  assert.equal(nicheLabel("pest_control"), "Pest control");
+  const table = { trades: { search_terms: ["plumber", "roofer", "electrician", "heating engineer", "gardener"] }, dental: { search_terms: ["dentist"] } };
+  assert.equal(nicheAudience("trades", table), "trades businesses (plumber, roofer, electrician, heating engineer)");
+  assert.equal(nicheAudience("dental", table), "dental businesses (dentist)");
+  assert.equal(nicheAudience("unknown_one", table), "unknown one businesses");
+  assert.deepEqual(parseContentConfig({ content_niche: ["trades", "dental"] }, [], table).descriptions.dental, "dental businesses (dentist)");
+  const items = [{ id: 1, niche: "trades" }, { id: 2, niche: "dental" }, { id: 3, niche: null }, { id: 4 }];
+  assert.deepEqual(inNiche(items, "all").length, 4);
+  assert.deepEqual(inNiche(items, "dental").map((i) => i.id), [2]);
+  assert.deepEqual(inNiche(items, "untagged").map((i) => i.id), [3, 4]);
+});
+test("only a niche you work in (or untagged) can be asked for", () => {
+  assert.equal(pickNiche("dental", ["trades", "dental"]), "dental");
+  assert.equal(pickNiche("untagged", ["trades"]), "untagged");
+  assert.equal(pickNiche("gardening", ["trades"]), "all");
+  assert.equal(pickNiche(undefined, ["trades"]), "all");
 });

@@ -181,8 +181,10 @@
 > 5. Generate fewer ideas: change the button to "Generate 10".
 
 **Done when:**
-- [ ] New ideas arrive tagged and scored, mixed by pillar, and citing their source
-- [ ] A test proves company names from deals never appear in the digest
+- [x] New ideas arrive tagged and scored, mixed by pillar, and citing their source *(checked on your real data: exact 4/2/2/2 pillar mix, niche, pillar and hook type on every idea, source cited, low scores set aside)*
+- [x] A test proves company names from deals never appear in the digest *(`ideaEvidenceMath.test.mjs`; also checked against the 269 real names, domains and contacts in the CRM and your 3 real deals)*
+
+**Built 2 Nov 2026.** Generate 10 (was 20) from `crm/lib/ideaGeneration.ts`: evidence is your top 5 posts, up to 10 unused outlier structures, trends from the last 14 days not yet used, and gaps seen at 2 or more different businesses in the last 30 days (never one business's own gap, never a line naming a business, domain or contact). The AI (`CONTENT_MODEL`, default Haiku) must give the exact pillar mix, may cite an evidence item (kept only if it was really supplied) and may not state a money figure. Haiku then scores every idea 1 to 10 (`prompts/idea-score.md`); under 5 is saved already archived. Pipeline content writes 3 ideas from one deal, using only counts the code supplied ("2 of the 2 dental sites I researched"), and refuses anything naming a business, an @, a figure or an unsupplied number. **Niche filter:** Content and What's working take `?niche=`; Generate and New idea let you pick the niche.
 
 ---
 

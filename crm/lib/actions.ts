@@ -13,7 +13,9 @@ import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposa
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
-import { generateIdeas, loadContentConfig, writeScript, formatScript, repurpose } from "./content";
+import { loadContentConfig, writeScript, formatScript, repurpose } from "./content";
+import { generateEvidenceIdeas, pipelineIdeas, scoreNewIdeas } from "./ideaGeneration";
+import { scoredLow, type NewIdea } from "./ideaEvidenceMath";
 import { backlogState } from "./contentConfigMath";
 import { findGenericEmail, safeDomain } from "./websites";
 import { normaliseEmail, normaliseSocial, normaliseWebsite } from "./contact";
@@ -352,23 +354,61 @@ export async function suggestImprovementsAction(_prev: string | null, form: Form
 
 const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"];
 
+/** Saves new ideas on the board, tagged and (if scored) with their score. An idea scoring below 5 is saved already archived. Trend ideas mark their trend as used. */
+async function saveNewIdeas(ideas: NewIdea[], scores: ({ score: number; reason: string } | null)[]): Promise<{ added: number; archived: number }> {
+  let archived = 0;
+  for (const [k, i] of ideas.entries()) {
+    const sc = scores[k] ?? null;
+    const low = scoredLow(sc?.score ?? null);
+    if (low) archived++;
+    const rows = await query<{ id: string }>(
+      `INSERT INTO content_items (idea, hook, format, pillar, hook_type, niche, source, source_ref, idea_score, idea_score_reason, status, archived_at)
+       VALUES ($1,$2,$3,$3,$4,$5,$6,$7,$8,$9,$10, CASE WHEN $10 = 'Archived' THEN now() END) RETURNING id`,
+      [i.idea, i.hook, i.pillar, i.hook_type, i.niche, i.source, i.source_ref, sc?.score ?? null, sc?.reason ?? null, low ? "Archived" : "Idea"]);
+    const m = i.source === "trend" ? i.source_ref?.match(/^trend:(\d+)$/) : null;
+    if (m) await query(`UPDATE trend_signals SET used_in_content_id = $2 WHERE id = $1 AND used_in_content_id IS NULL`, [Number(m[1]), Number(rows[0].id)]);
+  }
+  return { added: ideas.length, archived };
+}
+
+/** Make 10 ideas from evidence (your best posts, outliers, trends, research patterns), for one niche or all of yours. Click-only. */
 export async function generateIdeasAction(_prev: string | null, form: FormData): Promise<string | null> {
   await requireLogin();
   try {
+    const config = await loadContentConfig();
     const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM content_items WHERE status = 'Idea'`);
-    const gate = backlogState(Number(n), (await loadContentConfig()).max_open_ideas, form.get("override") === "1");
+    const gate = backlogState(Number(n), config.max_open_ideas, form.get("override") === "1");
     if (gate.blocked) return gate.message;
+    const asked = str(form, "niche");
+    const niche = asked && config.niches.includes(asked) ? asked : null;
     const existing = (await query<{ idea: string }>(`SELECT idea FROM content_items ORDER BY created_at DESC LIMIT 40`)).map((r) => r.idea);
-    const ideas = await generateIdeas(str(form, "audience"), existing);
-    if (ideas.length === 0) return "No ideas came back. Try again.";
-    for (const i of ideas) {
-      await query(`INSERT INTO content_items (idea, hook, format, status) VALUES ($1,$2,$3,'Idea')`, [i.idea, i.hook ?? null, i.format ?? null]);
-    }
-    await logActivity("content_ideas_generated", { body: `${ideas.length} ideas` });
+    const r = await generateEvidenceIdeas({ niche, steer: str(form, "steer"), existing });
+    if (r.ideas.length === 0) return "No usable ideas came back. Try again.";
+    const scores = await scoreNewIdeas(r.ideas);
+    const saved = await saveNewIdeas(r.ideas, scores);
+    await logActivity("content_ideas_generated", { body: `${saved.added} ideas${niche ? ` for ${niche}` : ""}, ${saved.archived} set aside as low scoring` });
+    revalidatePath("/content");
+    return `✓ Added ${saved.added - saved.archived} ideas${saved.archived ? ` and set ${saved.archived} aside as low scoring (tick Show archived and low scores to see them)` : ""}.`;
   } catch (err) {
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }
-  redirect("/content");
+}
+
+/** Three ideas from one deal's research that describe the pattern and never name the business. Click-only. */
+export async function pipelineIdeasAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const dealId = num(form, "deal_id");
+  if (!dealId) return "Choose a deal first.";
+  try {
+    const r = await pipelineIdeas(dealId);
+    if (!r.ideas) return r.error ?? "Could not write the ideas.";
+    const saved = await saveNewIdeas(r.ideas, []);
+    await logActivity("content_ideas_generated", { body: `${saved.added} pipeline ideas (no business named)` });
+    revalidatePath("/content");
+    return `✓ Added ${saved.added} ideas. They describe the pattern and name no business.`;
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
 }
 
 export async function writeScriptAction(_prev: string | null, form: FormData): Promise<string | null> {
@@ -783,14 +823,14 @@ export async function logDealNote(form: FormData) {
 
 const IDEA_FORMATS = ["Show the build", "Build in public", "Teach / steal this", "Niche pain"];
 
-export async function createIdeaAction(idea: string, format: string): Promise<{ id?: number; error?: string }> {
+export async function createIdeaAction(idea: string, format: string, niche = ""): Promise<{ id?: number; error?: string }> {
   await requireLogin();
   const text = idea.trim();
   if (!text) return { error: "Write the idea first." };
   if (text.length > 300) return { error: "Keep the idea under 300 characters." };
   const rows = await query<{ id: number }>(
-    `INSERT INTO content_items (idea, format, status) VALUES ($1, $2, 'Idea') RETURNING id`,
-    [text, IDEA_FORMATS.includes(format) ? format : null]);
+    `INSERT INTO content_items (idea, format, pillar, niche, status) VALUES ($1, $2, $3, $4, 'Idea') RETURNING id`,
+    [text, IDEA_FORMATS.includes(format) ? format : null, IDEA_FORMATS.includes(format) ? format : null, (await loadContentConfig()).niches.includes(niche) ? niche : null]);
   await logActivity("content_idea_added", { body: text });
   revalidatePath("/content");
   return { id: rows[0].id };

@@ -36,7 +36,7 @@ export function copiedRun(source: string, candidate: string, n = 6): string | nu
 }
 
 /** Figures that would be a claim of a result: money amounts, percentages and multipliers such as "3x" or "10k". */
-const FIGURE = /[£$€]\s?\d|\d\s?%|\b\d+(?:\.\d+)?\s?x\b|\b\d[\d,.]*\s?(?:k|m)\b/i;
+export const FIGURE = /[£$€]\s?\d|\d\s?%|\b\d+(?:\.\d+)?\s?x\b|\b\d[\d,.]*\s?(?:k|m)\b/i;
 
 /** What is wrong with a breakdown, in plain words. Empty means it can be shown and saved. */
 export function breakdownProblems(b: Breakdown, source: { caption: string | null; transcript: string | null }, names: string[]): string[] {

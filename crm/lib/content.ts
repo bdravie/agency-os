@@ -12,25 +12,13 @@ const prompt = (name: string) => readFile(path.join(ROOT, "prompts", name), "utf
 /** The `content:` settings in config/niches.yaml (posts per week, idea limit, who the videos are for). */
 export async function loadContentConfig(): Promise<ContentConfig> {
   const y = parse(await readFile(path.join(ROOT, "config/niches.yaml"), "utf8"));
-  return parseContentConfig(y?.content, y?.defaults?.focus_niches);
+  return parseContentConfig(y?.content, y?.defaults?.focus_niches, y?.niches);
 }
 
 /** prompts/video-ideas.md with {{NICHE}} filled from the content settings. Every content prompt starts from this guide. */
-export async function guide(): Promise<string> {
-  return fillNiche(await withPositioning(await prompt("video-ideas.md")), audienceText(await loadContentConfig()));
-}
-
-export type Idea = { idea: string; format?: string; hook?: string };
-
-export async function generateIdeas(audience: string | null, existing: string[]): Promise<Idea[]> {
-  const task = await prompt("content-ideas.md");
-  const text =
-    `${await guide()}\n\n${audience ? `AUDIENCE FOR THIS BATCH: ${audience}\n\n` : ""}${task}\n\nEXISTING:\n${existing.map((e) => `- ${e}`).join("\n") || "(none)"}\n\nGenerate 20 ideas.`;
-  const { ideas } = await askStructured<{ ideas: Idea[] }>(text, {
-    type: "object", required: ["ideas"],
-    properties: { ideas: { type: "array", items: { type: "object", required: ["idea", "format", "hook"], properties: { idea: S, format: S, hook: S } } } },
-  }, "haiku", 6000);
-  return (ideas ?? []).filter((i) => typeof i.idea === "string" && i.idea.trim()).slice(0, 20);
+/** `audience` overrides the wording for one batch, for example one niche. */
+export async function guide(audience?: string): Promise<string> {
+  return fillNiche(await withPositioning(await prompt("video-ideas.md")), audience ?? audienceText(await loadContentConfig()));
 }
 
 export type Script = { hooks: string[]; favourite_hook: string; script: string; on_screen_text: string[]; caption: string; keyword: string };

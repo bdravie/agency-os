@@ -12,17 +12,18 @@ export type Insights = {
 };
 
 /** Everything on the What's working page. All numbers are worked out here, in code (insightsMath); the AI only words them. */
-export async function loadInsights(): Promise<Insights> {
+export async function loadInsights(niche = "all"): Promise<Insights> {
   const [posts, items, replyRows] = await Promise.all([
     loadPosts(),
     query<any>(`SELECT id, idea, pillar, hook_type, format, niche, length_s, idea_score, status, source FROM content_items`),
     query<{ id: string; n: string }>(`SELECT (meta->>'content_item_id') AS id, count(*) AS n FROM activities WHERE type = 'content_keyword_reply' AND meta ? 'content_item_id' GROUP BY 1`),
   ]);
   const byId = new Map<number, any>(items.map((i: any) => [Number(i.id), i]));
+  const keep = (n: string | null) => niche === "all" || (niche === "untagged" ? !n : n === niche);
   const scored: ScoredPost[] = posts.flatMap((p) => {
     const it = byId.get(p.content_item_id);
     const m72 = p.metrics.find((m) => m.bucket === 72);
-    if (!it || p.performance.status !== "ok" || !m72) return [];
+    if (!it || p.performance.status !== "ok" || !m72 || !keep(it.niche)) return [];
     return [{
       postId: p.id, contentId: p.content_item_id, platform: p.platform, multiple: p.performance.multiple, views72: Number(m72.views), postedAt: p.posted_at, url: p.url,
       idea: it.idea, source: it.source, hookUsed: p.hook_used, pillar: it.pillar, hookType: it.hook_type, format: it.format, niche: it.niche, lengthS: it.length_s,
@@ -47,7 +48,7 @@ export async function loadInsights(): Promise<Insights> {
     new Map([...byId].map(([id, it]) => [id, it.pillar ?? null])),
   );
   const next = rankIdeas(
-    items.filter((i: any) => i.status === "Idea").map((i: any) => ({ id: Number(i.id), idea: i.idea, idea_score: i.idea_score, pillar: i.pillar, hook_type: i.hook_type })),
+    items.filter((i: any) => i.status === "Idea" && keep(i.niche)).map((i: any) => ({ id: Number(i.id), idea: i.idea, idea_score: i.idea_score, pillar: i.pillar, hook_type: i.hook_type })),
     winner(pillars), winner(hooks),
   );
   return { scoredPosts: scored.length, totalPosts: posts.length, tables, top, bottom, funnel: f, next, text: digest(tables.filter((t) => t.groups.length), top, bottom, f) };

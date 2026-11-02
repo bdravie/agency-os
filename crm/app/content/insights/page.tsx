@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { loadInsights } from "@/lib/contentInsights";
+import { loadContentConfig } from "@/lib/content";
+import { inNiche, pickNiche } from "@/lib/contentConfigMath";
+import NicheFilter from "@/components/NicheFilter";
+import { query } from "@/lib/db";
 import { MIN_GROUP } from "@/lib/insightsMath";
 import { PLATFORM_LABEL, type Platform } from "@/lib/contentMath";
 import ExplainWeek from "@/components/ExplainWeek";
@@ -11,8 +15,12 @@ export const metadata = { title: "What's working" };
 
 const x = (n: number) => `${n.toFixed(1)}×`;
 
-export default async function Insights() {
-  const ins = await loadInsights();
+export default async function Insights({ searchParams }: { searchParams: Promise<{ niche?: string }> }) {
+  const config = await loadContentConfig();
+  const niche = pickNiche((await searchParams).niche, config.niches);
+  const ins = await loadInsights(niche);
+  const tagged = await query<{ niche: string | null }>(`SELECT DISTINCT p.content_item_id, c.niche FROM posts p JOIN content_items c ON c.id = p.content_item_id`);
+  const counts: Record<string, number> = { all: tagged.length, untagged: inNiche(tagged, "untagged").length, ...Object.fromEntries(config.niches.map((n) => [n, inNiche(tagged, n).length])) };
   const nothing = ins.scoredPosts === 0;
   return (
     <>
@@ -22,6 +30,7 @@ export default async function Insights() {
         description="How your posts did against your usual, so you film more of what works. 1× is your usual for that platform; every figure is a median. Groups with fewer than 3 posts are greyed out and never ranked."
       />
 
+      <NicheFilter base="/content/insights" niches={config.niches} current={niche} counts={counts} />
       <div className="stack">
         <ExplainWeek disabled={nothing} />
 
