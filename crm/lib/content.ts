@@ -16,7 +16,7 @@ export async function loadContentConfig(): Promise<ContentConfig> {
 }
 
 /** prompts/video-ideas.md with {{NICHE}} filled from the content settings. Every content prompt starts from this guide. */
-async function guide(): Promise<string> {
+export async function guide(): Promise<string> {
   return fillNiche(await withPositioning(await prompt("video-ideas.md")), audienceText(await loadContentConfig()));
 }
 

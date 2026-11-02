@@ -1,6 +1,6 @@
 import { query } from "./db";
 import { loadPosts } from "./contentPerformance";
-import { digest, dayPart, funnel, groupScores, lengthBand, rankIdeas, topBottom, weekdayOf, winner, type FunnelRow, type Group, type RankedIdea, type ScoredPost } from "./insightsMath";
+import { digest, dayPart, sourceLabel, funnel, groupScores, lengthBand, rankIdeas, topBottom, weekdayOf, winner, type FunnelRow, type Group, type RankedIdea, type ScoredPost } from "./insightsMath";
 
 export type Insights = {
   scoredPosts: number; totalPosts: number;
@@ -15,7 +15,7 @@ export type Insights = {
 export async function loadInsights(): Promise<Insights> {
   const [posts, items, replyRows] = await Promise.all([
     loadPosts(),
-    query<any>(`SELECT id, idea, pillar, hook_type, format, niche, length_s, idea_score, status FROM content_items`),
+    query<any>(`SELECT id, idea, pillar, hook_type, format, niche, length_s, idea_score, status, source FROM content_items`),
     query<{ id: string; n: string }>(`SELECT (meta->>'content_item_id') AS id, count(*) AS n FROM activities WHERE type = 'content_keyword_reply' AND meta ? 'content_item_id' GROUP BY 1`),
   ]);
   const byId = new Map<number, any>(items.map((i: any) => [Number(i.id), i]));
@@ -25,7 +25,7 @@ export async function loadInsights(): Promise<Insights> {
     if (!it || p.performance.status !== "ok" || !m72) return [];
     return [{
       postId: p.id, contentId: p.content_item_id, platform: p.platform, multiple: p.performance.multiple, views72: Number(m72.views), postedAt: p.posted_at, url: p.url,
-      idea: it.idea, hookUsed: p.hook_used, pillar: it.pillar, hookType: it.hook_type, format: it.format, niche: it.niche, lengthS: it.length_s,
+      idea: it.idea, source: it.source, hookUsed: p.hook_used, pillar: it.pillar, hookType: it.hook_type, format: it.format, niche: it.niche, lengthS: it.length_s,
     }];
   });
   const pillars = groupScores(scored, (p) => p.pillar);
@@ -35,6 +35,7 @@ export async function loadInsights(): Promise<Insights> {
     { title: "Format", groups: groupScores(scored, (p) => p.format) }, { title: "Niche", groups: groupScores(scored, (p) => p.niche) },
     { title: "Video length", groups: groupScores(scored, (p) => lengthBand(p.lengthS)) },
     { title: "Platform", groups: groupScores(scored, (p) => p.platform) },
+    { title: "Where the idea came from", groups: groupScores(scored, (p) => sourceLabel(p.source)) },
     { title: "Weekday posted", groups: groupScores(scored, (p) => weekdayOf(p.postedAt)) },
     { title: "Time of day posted", groups: groupScores(scored, (p) => dayPart(p.postedAt)) },
   ];

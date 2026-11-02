@@ -161,7 +161,9 @@
 > - Track later in C4 whether outlier-sourced ideas beat generated ones.
 
 **Done when:**
-- [ ] One click turns an outlier into 3 ideas on my board, with a link back to the original
+- [x] One click turns an outlier into 3 ideas on my board, with a link back to the original *(Break down on `/content/outliers`, then Add to Ideas on each of the three; each lands with `source = 'outlier'`, `source_ref` = the post link, and pillar, hook type and niche filled in)*
+
+**Built 2 Nov 2026.** Prompt `prompts/outlier-breakdown.md`, model `BREAKDOWN_MODEL` (default Sonnet), cap `BREAKDOWN_DAILY_CAP` (20 a day), checks in `crm/lib/breakdownMath.ts`. The rules are enforced in code, not just asked for: any six words in a row copied from the original caption or transcript, a money amount, percentage or multiplier, an `@` name or the creator's own name, a hook over 14 words, or fewer than 3 usable ideas sends the answer back once with the problems listed, and if it still fails nothing is saved. A pasted transcript has emails and phone numbers masked and is never stored. The breakdown is saved on `creator_posts.breakdown`. "Where the idea came from" on What's working compares outlier-sourced ideas with generated and hand-written ones once they have been posted.
 
 ---
 

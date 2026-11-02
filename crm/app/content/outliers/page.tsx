@@ -3,6 +3,7 @@ import { TrendingUp } from "lucide-react";
 import { query } from "@/lib/db";
 import { loadCreatorSettings } from "@/lib/creatorScrape";
 import OutlierActions from "@/components/OutlierActions";
+import BreakdownPanel from "@/components/BreakdownPanel";
 import { EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function Outliers({ searchParams }: { searchParams: Promise
   const s = await loadCreatorSettings();
   const posts = await query<any>(
     `SELECT p.id, p.platform, p.url, p.caption, p.posted_at, p.duration_s, p.views::text, p.likes::text, p.comments::text, p.saves::text, p.outlier_score::float8 AS score,
-            p.cta_keyword, p.hashtags, p.sound, p.post_type, c.handle, c.display_name, c.link_in_bio, c.why_i_follow
+            p.cta_keyword, p.hashtags, p.sound, p.post_type, p.breakdown, c.handle, c.display_name, c.link_in_bio, c.why_i_follow
        FROM creator_posts p JOIN creators c ON c.id = p.creator_id
       WHERE p.outlier_score >= $1 AND p.review = $2
       ORDER BY CASE WHEN $2 = 'new' THEN p.posted_at END DESC NULLS LAST, p.reviewed_at DESC NULLS LAST LIMIT 100`, [s.threshold, tab]);
@@ -56,6 +57,7 @@ export default async function Outliers({ searchParams }: { searchParams: Promise
                 {(p.hashtags ?? []).slice(0, 6).map((h: string) => <span key={h} className="badge tone-neutral">#{h}</span>)}
                 {p.link_in_bio && <span className="muted">Their link in bio: <a href={p.link_in_bio} target="_blank" rel="noreferrer">{p.link_in_bio.replace(/^https?:\/\//, "").slice(0, 36)}</a></span>}
               </div>
+              <BreakdownPanel postId={Number(p.id)} initial={p.breakdown ?? null} />
               <div className="row-between" style={{ gap: 12, flexWrap: "wrap" }}>
                 <a href={p.url} target="_blank" rel="noreferrer">Watch it</a>
                 <OutlierActions id={Number(p.id)} review={tab} />
