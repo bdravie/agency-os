@@ -39,6 +39,9 @@ Decided 2026-10-15: leave these off until closer to launch. **Anything that spen
 - [ ] **Stripe payment links in test mode** (milestone 5 stage C, not built yet)
   - Create a Stripe account, stay in Test mode, add the `sk_test_...` key as `STRIPE_SECRET_KEY`. Go live only after a full test-mode payment works.
 - [ ] **Paid turnover data** (optional, only if the free size estimate proves too rough): Endole or Creditsafe for A-tier companies only.
+- [ ] **Content automation (parked 2 Nov 2026: for now you post, enter numbers and send keyword replies by hand)** (plan: `docs/CONTENT_ENGINE_V2.md`)
+  - **Automatic post numbers (C2, items 3-4):** buy an Upload-Post plan, add `UPLOAD_POST_API_KEY`, read what it returns for each platform (and whether it can read Instagram posts made by hand), then build `src/agency/social/analytics.py` and its launchd job (every 6 hours, or daily if the plan limits it). LinkedIn stays manual.
+  - **Keyword comment to lead tracking (C3):** ManyChat Pro, `MANYCHAT_WEBHOOK_SECRET`, the `/api/webhooks/manychat` route and the one-line CLAUDE.md rule (the owner approves the wording first). Until then, keyword replies are counted by hand and leads/calls/£ are not attributed to a video.
 - [ ] **Later milestones that need paid accounts:** Cal.com and Cloudflare Tunnel (milestone 6), Apify (milestone 10), Upload-Post and ManyChat (milestone 12). See `docs/SETUP.md`.
 - [ ] **Before sending real outreach:** record the Loom, add its URL to `config/offers.yaml` (so email drafts fill it in), add it to `portfolio/portfolio.md`, and check the opt-out line and your sender details.
 

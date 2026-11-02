@@ -82,6 +82,7 @@
 
 **Decided 2 Nov 2026:** platforms are Instagram and LinkedIn (`content.platforms` in `config/niches.yaml`). LinkedIn is posted and measured by hand to avoid any risk to the account; Instagram numbers are also typed in for now. The app never posts anything.
 **Changed from the plan:** the × score compares a post with your other posts *on the same platform*, because an Instagram play and a LinkedIn impression are not the same thing. `post_metrics` has a `bucket` column (24 / 72 / 168) so each checkpoint is one row.
+**Parked on the pre-launch list in `BUILD_PLAN.md` (owner is happy to do this by hand for now, 2 Nov 2026):** C3 (ManyChat webhook) and the automatic numbers below.
 **Deferred (items 3 and 4 above):** `analytics.py` and its launchd job. `UPLOAD_POST_API_KEY` is empty, Upload-Post is a paid plan, and it is not known whether it can read posts made by hand in the Instagram app. Revisit once there is a key and the docs have been read.
 
 ---
