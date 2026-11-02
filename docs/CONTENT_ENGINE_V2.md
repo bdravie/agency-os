@@ -206,8 +206,11 @@
 >    Sonnet writes only the prose (`prompts/weekly-content-brief.md`). Save it to a `content_briefs` table (add a small migration) and show it at `/content/brief`, linked from Today.
 
 **Done when:**
-- [ ] The Monday brief appears on demo data
-- [ ] Every number in it matches the Insights page
+- [x] The Monday brief appears on demo data *(`/content/brief`; written on temporary data with the real model, which was then deleted)*
+- [x] Every number in it matches the Insights page *(the brief reads the same groups and "Film these" list that What's working shows; a test and a live check confirm they are identical)*
+
+**Built 2 Nov 2026.** Trends: `/content/trends` (manual list; links lose tracking codes; anything from the last 14 days that is unused feeds Generate 10 and the brief). Brief: `crm/lib/contentBrief.ts`, prompt `prompts/weekly-content-brief.md`, model `BRIEF_MODEL` (default Sonnet), saved in `content_briefs`, one per week. The AI sees one text digest of the numbers and its answer is refused (after one retry) if it uses a number that is not in it. Linked from the Content page and the Today card.
+**Not built, on purpose:** the Monday schedule (the brief is click-only, like everything else that spends money; a schedule would need the Python `weekly_report.py` or a secret-protected route), the Reddit reader and a search-interest source. Reddit needs an approved app and sign-in, and no supported, terms-compliant search-interest source has been confirmed, so both are left until the manual trend list proves useful (see the pre-launch list).
 
 ---
 

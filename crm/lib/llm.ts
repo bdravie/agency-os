@@ -33,6 +33,9 @@ export const contentModel = () => resolve(process.env.CONTENT_MODEL?.trim() || "
 /** The model for breaking down a creator's outlier post: set BREAKDOWN_MODEL in .env (an alias or a full model id). Defaults to Sonnet, since it has to judge structure and write original ideas. */
 export const breakdownModel = () => resolve(process.env.BREAKDOWN_MODEL?.trim() || "sonnet");
 
+/** The model for the weekly content brief: set BRIEF_MODEL in .env (an alias or a full model id). Defaults to Sonnet. */
+export const briefModel = () => resolve(process.env.BRIEF_MODEL?.trim() || "sonnet");
+
 /** The model for rapport research on decision-makers: set RAPPORT_MODEL in .env (an alias or a full model id). Defaults to Sonnet, since it must judge sources carefully. */
 export const rapportModel = () => resolve(process.env.RAPPORT_MODEL?.trim() || "sonnet");
 

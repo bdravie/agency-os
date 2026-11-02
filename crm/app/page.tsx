@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Today" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -47,6 +47,7 @@ export default async function Today() {
         WHERE scheduled_for < (now() AT TIME ZONE 'Europe/London')::date AND status NOT IN ('Posted','Archived')
         ORDER BY scheduled_for LIMIT 5`),
     loadContentConfig(),
+    query<{ has: boolean }>(`SELECT EXISTS (SELECT 1 FROM content_briefs WHERE week_start = (date_trunc('week', now() AT TIME ZONE 'Europe/London'))::date) AS has`),
   ]);
   const postedWeek = Number(contentStats[0].posted_week);
   const noSession = dueForSession(training);
@@ -113,6 +114,7 @@ export default async function Today() {
               <li className="row-between"><span>Filmed, not posted</span><span className={`badge tone-${Number(contentStats[0].filmed) ? "warn" : "neutral"}`}>{contentStats[0].filmed}</span></li>
               <li className="row-between"><span>Scripts overdue</span><span className={`badge tone-${contentOverdue.length ? "bad" : "neutral"}`}>{contentOverdue.length}</span></li>
             </ul>
+            <p className="muted" style={{ marginTop: 8 }}><Link href="/content/brief">{briefRow[0].has ? "This week's content brief is ready" : "Write this week's content brief"}</Link></p>
             {contentOverdue.map((c: any) => (
               <p key={c.id} className="muted" style={{ marginTop: 6 }}>
                 <Link href={`/content/${c.id}`}>{c.idea.length > 80 ? c.idea.slice(0, 77) + "…" : c.idea}</Link> was due {new Date(c.day + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
