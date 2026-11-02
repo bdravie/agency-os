@@ -1,0 +1,18 @@
+# Creator research settings (Content > Creators). Research only: public profile and post numbers for creators you add by hand.
+# Collected through Apify actors that need no login. Money limits are set in the env file
+# (CONTENT_APIFY_DAILY_BUDGET_USD and CONTENT_APIFY_MONTHLY_BUDGET_USD).
+
+posts_per_creator: 20        # latest posts fetched per check (the plan said 30; fewer is cheaper and 20 is enough for a median)
+min_age_hours: 48            # a post is only scored once it is this old, so a new post is not judged before it has had time
+min_posts_for_baseline: 8    # a creator needs this many old-enough posts before any post is called an outlier
+outlier_threshold: 3         # a post this many times the creator's median views is flagged
+max_active_creators: 25
+
+# The actors used. Prices are Apify's published pay-per-result prices at the lowest plan tier (checked 2 Nov 2026):
+# a safe upper bound for the cost shown before each run.
+# Their optional add-ons (comments, followers, transcripts, downloads) are always switched off in code.
+actors:
+  tiktok:            { actor: "clockworks~tiktok-profile-scraper", per_item_usd: 0.003 }
+  instagram_reels:   { actor: "apify~instagram-reel-scraper",      per_item_usd: 0.0026, start_usd: 0.001 }
+  instagram_profile: { actor: "apify~instagram-profile-scraper",   per_item_usd: 0.0026 }
+  youtube:           { actor: "streamers~youtube-scraper",         per_item_usd: 0.004 }

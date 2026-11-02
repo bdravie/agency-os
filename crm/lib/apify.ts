@@ -38,9 +38,12 @@ async function call(path: string, init: { method?: string; body?: unknown; bare?
 
 export type ApifyRun = { id: string; status: string; defaultDatasetId?: string; usageTotalUsd?: number; statusMessage?: string };
 
-export async function startRun(input: Record<string, unknown>, o: { maxChargeUsd: number; timeoutSecs: number }): Promise<ApifyRun> {
-  return call(`/v2/acts/${ACTOR}/runs?maxTotalChargeUsd=${o.maxChargeUsd}&timeout=${o.timeoutSecs}`, { method: "POST", body: input });
+/** Start any actor (written "username~actor-name"). Every run carries a hard spend cap and a time limit. */
+export async function startActor(actor: string, input: Record<string, unknown>, o: { maxChargeUsd: number; timeoutSecs: number }): Promise<ApifyRun> {
+  if (!/^[A-Za-z0-9_.-]+~[A-Za-z0-9_.-]+$/.test(actor)) throw new ApifyError("That actor name does not look right.");
+  return call(`/v2/acts/${actor}/runs?maxTotalChargeUsd=${o.maxChargeUsd}&timeout=${o.timeoutSecs}`, { method: "POST", body: input });
 }
+export const startRun = (input: Record<string, unknown>, o: { maxChargeUsd: number; timeoutSecs: number }): Promise<ApifyRun> => startActor(ACTOR, input, o);
 export const getRun = (id: string): Promise<ApifyRun> => call(`/v2/actor-runs/${encodeURIComponent(id)}`);
 export const abortRun = (id: string) => call(`/v2/actor-runs/${encodeURIComponent(id)}/abort`, { method: "POST" });
 export async function getItems(datasetId: string, limit: number): Promise<unknown[]> {

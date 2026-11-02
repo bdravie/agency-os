@@ -135,10 +135,14 @@
 > 6. Add an Outliers inbox (`/content/outliers`): newest flagged posts first, showing creator, × score, caption, and a link to watch it. Buttons: Break down (C6), Dismiss, Save to swipe file.
 
 **Done when:**
-- [ ] I can add 10 creators
-- [ ] One run stays within budget and prints its cost
-- [ ] Outliers appear ranked
-- [ ] No disallowed fields are stored (add a test on the field filter)
+- [x] I can add 10 creators *(up to 25 active, by handle or profile link, on `/content/creators`)*
+- [ ] One run stays within budget and prints its cost *(built and tested end to end against a stand-in Apify server, including the daily and monthly limits; a real run waits for `APIFY_TOKEN`)*
+- [x] Outliers appear ranked *(`/content/outliers`: newest first, each with its × score; best-scoring shown on the card)*
+- [x] No disallowed fields are stored *(allow-list in `creatorMath.ts`; tests feed in comments, commenter names, mentions and tagged people and check none reach the result or the database)*
+
+**Decided 2 Nov 2026 (owner approved, research only):** the rule is rewritten in `CLAUDE.md` ("Creator research"). It is looser than the plan's version where that helps the research (bio, link in bio, follower count, hashtags, sound, saves and a keyword found in the caption are now kept) and keeps the lines that protect other people (no comments, commenters, followers lists, DMs, mentions or private accounts), which the goal does not need.
+**Changed from the plan:** 20 posts per check instead of 30 (cheaper; enough for a median); a creator needs 8 old-enough posts before anything is called an outlier; LinkedIn creators are saved but never checked automatically; checks are click-only, so `creators.py` and its schedule were not built. **Actors** (in `config/creators.yaml`): TikTok `clockworks~tiktok-profile-scraper`, Instagram `apify~instagram-reel-scraper` plus `apify~instagram-profile-scraper`, YouTube `streamers~youtube-scraper`. The output field names were checked against each actor's published output list on 2 Nov 2026, but not yet against a live run: the first real run on each platform should be looked at.
+**Not built yet (C6):** the Break down button on an outlier.
 
 ---
 

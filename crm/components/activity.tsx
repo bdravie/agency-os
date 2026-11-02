@@ -4,7 +4,7 @@ const ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   email_logged: Mail, email_found: Mail, call_logged: Phone, dm_logged: MessageSquare, note_logged: MessageSquare,
   stage_changed: ArrowRightLeft, company_added: Building2, lead_added: Building2, contact_added: UserPlus,
   deal_created: ArrowRightLeft, places_lookup: Search, website_found: Search, backup_completed: HardDrive,
-  proposal_drafted: FileSignature, proposal_status: FileSignature, proposal_fit: FileSignature, proposal_plan: FileSignature, proposal_improve: FileSignature, content_ideas_generated: Video, content_archived: Video, content_posted: Video, content_insights: Video, content_keyword_reply: Video, content_metrics: Video, content_deleted: Video, content_repurposed: Video,
+  proposal_drafted: FileSignature, proposal_status: FileSignature, proposal_fit: FileSignature, proposal_plan: FileSignature, proposal_improve: FileSignature, content_ideas_generated: Video, content_archived: Video, content_posted: Video, creator_added: Video, creator_checked: Video, content_insights: Video, content_keyword_reply: Video, content_metrics: Video, content_deleted: Video, content_repurposed: Video,
   deal_offer_added: Package, client_created: UserCheck, ch_health_run: ShieldCheck, site_checked: Search, contact_details_updated: Building2, content_idea_added: Video,
   quote_created: FileText, quote_sent: FileText, quote_accepted: FileText, quote_declined: FileText, csv_import: Building2,
 };
