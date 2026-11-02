@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileSignature, Plus } from "lucide-react";
+import { ExternalLink, FileSignature, Plus } from "lucide-react";
 import { query } from "@/lib/db";
 import { dateOnly } from "@/lib/format";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
@@ -13,7 +13,7 @@ const fitTone = (n: number | null) => (n === null ? "neutral" : n >= 8 ? "good" 
 export default async function Proposals({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status = "" } = await searchParams;
   const rows = await query<any>(
-    `SELECT id, job_title, company_name, fit_score, status, created_at, connects_used FROM proposals
+    `SELECT id, job_title, company_name, job_url, fit_score, status, created_at, connects_used FROM proposals
       WHERE ($1 = '' OR status = $1) ORDER BY created_at DESC LIMIT 200`, [status]);
   return (
     <>
@@ -32,7 +32,7 @@ export default async function Proposals({ searchParams }: { searchParams: Promis
           <EmptyState title="No proposals yet" icon={<FileSignature size={22} />}>Click New proposal and paste a job post.</EmptyState>
         ) : (
           <table>
-            <thead><tr><th>Job</th><th>Fit</th><th>Status</th><th className="num">Connects</th><th>Created</th></tr></thead>
+            <thead><tr><th>Job</th><th>Fit</th><th>Status</th><th className="num">Connects</th><th>Created</th><th>Link</th></tr></thead>
             <tbody>
               {rows.map((p: any) => (
                 <tr key={p.id}>
@@ -41,6 +41,7 @@ export default async function Proposals({ searchParams }: { searchParams: Promis
                   <td><Badge value={p.status} /></td>
                   <td className="num">{p.connects_used}</td>
                   <td className="muted">{dateOnly(p.created_at)}</td>
+                  <td>{/^https?:\/\//i.test(p.job_url ?? "") && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }} aria-label={`Open ${proposalName(p)} on Upwork`}>Upwork <ExternalLink size={13} aria-hidden /></a>}</td>
                 </tr>
               ))}
             </tbody>

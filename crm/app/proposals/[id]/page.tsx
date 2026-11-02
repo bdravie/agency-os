@@ -27,7 +27,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
       <PageHeader
         back={{ href: "/proposals", label: "Proposals" }}
         title={proposalName(p)}
-        description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{p.job_url && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Job post <ExternalLink size={13} aria-hidden /></a>}</span>}
+        description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} /><span>Fit {p.fit_score}/10</span>{/^https?:\/\//i.test(p.job_url ?? "") && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Open on Upwork <ExternalLink size={13} aria-hidden /></a>}</span>}
       />
       <FitPanel id={id} score={p.fit_score} fit={p.fit_analysis} />
       <ImprovePanel id={id} score={p.fit_score} improvements={p.improvements} at={p.improvements_at ? String(p.improvements_at) : null} hourly={rates.hourly_rate_gbp} jobPrice={jobPrice} />
