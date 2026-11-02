@@ -1,5 +1,6 @@
 "use server";
 
+import { withPositioning } from "./positioning";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { query } from "./db";
@@ -36,7 +37,7 @@ export async function draftInstagramDmAction(companyId: number): Promise<DmResul
     if (!research) return { error: "Run the research first (it's free). The message is built from what it found on their website." };
     const [co] = await query<{ name: string }>(`SELECT display_name AS name FROM companies WHERE id = $1`, [companyId]);
     const [sug] = await query<{ result: any }>(`SELECT result FROM offer_suggestions WHERE company_id = $1 ORDER BY id DESC LIMIT 1`, [companyId]);
-    const rules = await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts", "instagram-dm.md"), "utf8");
+    const rules = await withPositioning(await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts", "instagram-dm.md"), "utf8"));
     const facts = await buildFacts(companyId, research);
     const idea = sug?.result?.suggestions?.[0];
     const earlier = idea ? `\n\nEARLIER OFFER IDEA (for the kind of automation to mention): ${idea.title}. ${idea.automation}` : "";

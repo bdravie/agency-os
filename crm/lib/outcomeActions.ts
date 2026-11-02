@@ -221,7 +221,7 @@ export async function saveReportPdf(outcomeId: number, period: string): Promise<
   if (!rep || (rep.wins.length === 0 && !rep.next_improvement)) return { error: "Add the wins and next improvement first (draft them with AI, or type them)." };
   const o = full.l.outcome;
   const { bytes, overflow } = await reportPdf({
-    brand: process.env.BUSINESS_NAME?.trim() || "Your AI automation partner", sender: process.env.SENDER_NAME?.trim() || null,
+    brand: process.env.BUSINESS_NAME?.trim() || "Your business systems partner", sender: process.env.SENDER_NAME?.trim() || null,
     client: o.company_name, monthLabel: monthLabel(period), kickoffText: longDate(o.kickoff_on), built: o.built,
     rows: assessment.metrics.map((m) => ({ name: m.name, unit: m.unit, better: m.better, baseline: m.baseline, now: m.latest?.value ?? null, moved: m.moved, verdict: m.verdict })),
     wins: rep.wins, nextImprovement: rep.next_improvement ?? "",

@@ -1,3 +1,4 @@
+import { withPositioning } from "./positioning";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
@@ -8,7 +9,7 @@ const ROOT = path.resolve(process.cwd(), "..");
 
 /** Asks the AI for a niche's three outreach messages, checks them against the outreach rules, and retries once with the problems listed. Saves nothing. */
 export async function draftNicheMarkdown(label: string, pitch: string | null): Promise<{ md: string; problems: string[] }> {
-  const rules = await readFile(path.join(ROOT, "prompts/outreach-niche-writer.md"), "utf8");
+  const rules = await withPositioning(await readFile(path.join(ROOT, "prompts/outreach-niche-writer.md"), "utf8"));
   const offers = (parse(await readFile(path.join(ROOT, "config/offers.yaml"), "utf8"))?.offers ?? []) as { name: string; outcome?: string }[];
   const prompt = `${rules}\n\nNICHE: ${label}\nHOW THE CONSULTANT USUALLY PITCHES IT: ${pitch ?? "(not written down: choose a safe business-totals pitch)"}\nOFFER CATALOGUE:\n${offers.map((o) => `- ${o.name}: ${o.outcome ?? ""}`).join("\n")}`;
   let md = "", problems: string[] = [];

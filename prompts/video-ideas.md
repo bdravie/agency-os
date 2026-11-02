@@ -2,19 +2,19 @@
 
 ## Niche
 
-I build AI automations for {{NICHE}} in the UK.
+I help {{NICHE}} in the UK get more leads, win more work and get hours back by improving the systems behind their business.
 
 Show business data only: jobs, quotes, takings, reviews, booking totals and admin. Never show or mention a client's customers' or patients' personal details, and never name a real client or business.
 
 ## Hook formulas (first 3 seconds, under 12 words)
 
-1. Result first: "This automation [does X] in [time]."
-2. Call out the pain: "If you run a [niche], you're still [painful task] by hand."
+1. Result first: "This fix [gets you X / saves you X] in [time]."
+2. Call out the pain: "If you run a [niche], you're losing [work/money/hours] to [painful task]."
 3. Contrarian: "Stop [common advice]. Do [your angle] instead."
-4. Build in public: "Day [N] of starting an AI agency with no ads and no cold calls."
+4. Build in public: "Day [N] of helping local businesses win more work. No ads, no cold calls."
 5. Money on the table: "What I charged for this automation, and why."
 6. Steal this: "Steal the [template/prompt] I use to [result]."
-7. Before and after: "Before: [time/pain]. After: one click."
+7. Before and after: "Before: [lost enquiries/time/pain]. After: [the result]."
 8. Question: "If you owned a [business], what would you automate first?"
 
 Rules: only claim results that are true. Show the screen within 3 seconds. One idea per video. End with "Comment [KEYWORD] and I'll send you the build."

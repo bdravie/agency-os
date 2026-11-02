@@ -1,3 +1,4 @@
+import { withPositioning } from "./positioning";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
@@ -16,7 +17,7 @@ export async function loadContentConfig(): Promise<ContentConfig> {
 
 /** prompts/video-ideas.md with {{NICHE}} filled from the content settings. Every content prompt starts from this guide. */
 async function guide(): Promise<string> {
-  return fillNiche(await prompt("video-ideas.md"), audienceText(await loadContentConfig()));
+  return fillNiche(await withPositioning(await prompt("video-ideas.md")), audienceText(await loadContentConfig()));
 }
 
 export type Idea = { idea: string; format?: string; hook?: string };

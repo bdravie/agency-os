@@ -1,3 +1,4 @@
+import { withPositioning } from "./positioning";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
@@ -47,7 +48,7 @@ export async function buildPack(jobText: string): Promise<Pack> {
   ]);
   const offers = (parse(offersYaml)?.offers ?? []) as { name: string; outcome?: string }[];
   const prompt =
-    `${rules}\n\nABOUT ME:\n${about || "(Nothing written yet. Do not describe any past work.)"}\n\n` +
+    `${await withPositioning(rules)}\n\nABOUT ME:\n${about || "(Nothing written yet. Do not describe any past work.)"}\n\n` +
     `OFFERS:\n${offers.map((o) => `- ${o.name}: ${o.outcome ?? ""}`).join("\n")}\n\nJOB POST:\n${jobText}`;
   const run = () => askStructured<Omit<Pack, "cover_letter">>(prompt, SCHEMA, upworkModel(), 3000);
   let r = await run();

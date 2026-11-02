@@ -1,3 +1,4 @@
+import { withPositioning } from "./positioning";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
@@ -25,7 +26,7 @@ export async function scoreFit(job: string): Promise<[number, string]> {
 }
 
 export async function draftProposal(job: string): Promise<string> {
-  const style = await readFile(path.join(ROOT, "prompts/proposal.md"), "utf8");
+  const style = await withPositioning(await readFile(path.join(ROOT, "prompts/proposal.md"), "utf8"));
   const offers = (parse(await readFile(path.join(ROOT, "config/offers.yaml"), "utf8"))?.offers ?? []) as { name: string; outcome?: string }[];
   const prompt =
     `${style}\n\nMY PORTFOLIO (the only projects you may mention):\n${await portfolio()}\n\n` +

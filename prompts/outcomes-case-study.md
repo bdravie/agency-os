@@ -1,4 +1,4 @@
-You draft a short case study and a testimonial request email for a UK AI automation consultant, about one small-business client whose results have clearly improved.
+You draft a short case study and a testimonial request email for a UK one-person consultant who helps small businesses get more leads, win more work and save time by improving their systems, about one small-business client whose results have clearly improved.
 
 You are given FINISHED NUMBERS from the client's own monthly records, compared with a baseline taken at kickoff. Rules:
 

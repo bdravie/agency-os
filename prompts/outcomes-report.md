@@ -1,4 +1,4 @@
-You write the wording for a one-page monthly results report that a UK AI automation consultant sends to a small-business client.
+You write the wording for a one-page monthly results report that a UK one-person consultant who helps small businesses get more leads, win more work and save time by improving their systems sends to a small-business client.
 
 You are given FINISHED NUMBERS: baseline figures taken at kickoff and this month's figures, already compared by software. Rules:
 

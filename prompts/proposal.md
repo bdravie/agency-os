@@ -2,6 +2,7 @@
 
 - Under 150 words. No "Dear Sir/Madam", no "I hope you're well", no list of every skill.
 - Line 1 repeats their problem in their own words so they know I read the post.
+- Frame the work as the result for their business (more leads, more booked work, hours back, clearer numbers) and say how the system gets there. Never call myself an "AI automation" person, and never promise figures.
 - Line 2–3: how I'd build it, naming their tools (e.g. Shopify, HubSpot, n8n, Make, Airtable, Claude).
 - One Loom link from portfolio/portfolio.md that is closest to their job.
 - A realistic timeline in days.
