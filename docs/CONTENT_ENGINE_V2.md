@@ -220,7 +220,7 @@
 
 ## Things I need to decide or set up
 
-- [ ] Content niche to match who I'm selling to (clinics/dental, or trades: hvac/roofing/pest control)
+- [x] Content niche to match who I'm selling to: trades and clinics *(decided 1 Nov 2026)*
 - [ ] Platforms I'm posting on
 - [ ] The first 10 creators to track (handles + why)
 - [ ] Approve the creator-tracking rule (C5) and the ManyChat line (C3) for CLAUDE.md
