@@ -3,6 +3,8 @@ import { CalendarDays, Repeat2 } from "lucide-react";
 import { query } from "@/lib/db";
 import { generateIdeasAction } from "@/lib/actions";
 import { loadContentConfig } from "@/lib/content";
+import { loadPosts } from "@/lib/contentPerformance";
+import { scoreLabel } from "@/lib/contentMath";
 import { audienceText, backlogState } from "@/lib/contentConfigMath";
 import ContentBoard from "@/components/ContentBoard";
 import ActionForm from "@/components/ActionForm";
@@ -13,10 +15,12 @@ export const metadata = { title: "Content" };
 
 export default async function Content({ searchParams }: { searchParams: Promise<{ more?: string }> }) {
   const override = (await searchParams).more === "1";
-  const [items, config] = await Promise.all([
-    query<any>(`SELECT id, idea, format, status, keyword, scheduled_for::text AS day FROM content_items ORDER BY created_at DESC, id DESC`),
+  const [rows, config, posts] = await Promise.all([
+    query<any>(`SELECT id, idea, hook, format, status, keyword, scheduled_for::text AS day FROM content_items ORDER BY created_at DESC, id DESC`),
     loadContentConfig(),
+    loadPosts(),
   ]);
+  const items = rows.map((r: any) => ({ ...r, scoreLines: posts.filter((p) => p.content_item_id === Number(r.id)).map((p) => scoreLabel(p.platform, p.performance)) }));
   const open = items.filter((i: any) => i.status === "Idea").length;
   const gate = backlogState(open, config.max_open_ideas, override);
   return (
@@ -45,7 +49,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
           </ActionForm>
         )}
       </details>
-      <ContentBoard initial={items} />
+      <ContentBoard initial={items} platforms={config.platforms} />
     </>
   );
 }

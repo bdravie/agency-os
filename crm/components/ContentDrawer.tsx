@@ -8,6 +8,8 @@ import { ago } from "@/lib/format";
 import { ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, type ContentStatus } from "@/lib/stages";
 import ActionForm from "./ActionForm";
 import ToastForm from "./ToastForm";
+import PostPerformance from "./PostPerformance";
+import type { PostView } from "@/lib/contentPerformance";
 import { useToast } from "./Toast";
 
 type Item = { id: number; idea: string; hook: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null };
@@ -16,16 +18,18 @@ type Item = { id: number; idea: string; hook: string | null; format: string | nu
 export default function ContentDrawer({ itemId, status, onMove, onClose, onChanged }: { itemId: number; status?: string; onMove: (id: number, status: string) => void; onClose: () => void; onChanged: () => void }) {
   const toast = useToast();
   const [item, setItem] = useState<Item | null>(null);
+  const [posts, setPosts] = useState<PostView[]>([]);
+  const [platforms, setPlatforms] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const panel = useRef<HTMLElement>(null);
 
   const load = useCallback(() => {
     fetch(`/api/content/${itemId}`).then(async (r) => (r.ok ? r.json() : Promise.reject(new Error("Could not load this item."))))
-      .then((d) => { setItem(d.item); setError(null); }).catch((e) => setError(e.message));
+      .then((d) => { setItem(d.item); setPosts(d.posts ?? []); setPlatforms(d.platforms ?? []); setError(null); }).catch((e) => setError(e.message));
   }, [itemId]);
   const refresh = () => { load(); onChanged(); };
 
-  useEffect(() => { setItem(null); load(); }, [load]);
+  useEffect(() => { setItem(null); setPosts([]); load(); }, [load]);
   useEffect(() => { panel.current?.focus(); }, [itemId]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -75,6 +79,8 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
               <div><div className="field-label">Scheduled</div><div className="kv-value small">{item.day ?? "Not set"}</div></div>
               <div><div className="field-label">Created</div><div className="kv-value small">{ago(item.created_at)}</div></div>
             </section>
+
+            <PostPerformance itemId={itemId} status={current} posts={posts} platforms={platforms} hook={item.hook} onChanged={refresh} />
 
             {!item.script ? (
               <section>

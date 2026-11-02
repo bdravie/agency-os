@@ -59,9 +59,9 @@
 > Add indexes. Back-fill `pillar` from the existing `format` values. Extend `scripts/seed_demo.py` with fake posts, metrics, creators (fake handles like `@demo_creator_1`), creator posts and trends.
 
 **Done when:**
-- [ ] `npm run db:migrate` runs cleanly
-- [ ] Demo seed fills every new table
-- [ ] Existing cards keep their data
+- [x] `npm run db:migrate` runs cleanly *(`20261106100000_content_v2.sql`, 2 Nov 2026)*
+- [ ] Demo seed fills every new table *(not done: `scripts/seed_demo.py` has no content section and Python cannot run on this Mac yet, so it could not be tested; the tables are filled by real use instead)*
+- [x] Existing cards keep their data *(all 40 kept their text, status and keyword; pillar was back-filled from format)*
 
 ---
 
@@ -75,10 +75,14 @@
 > 5. Add `crm/lib/contentMath.ts`, with tests. For each post, compute a **performance score** = views at 72 h ÷ my median views at 72 h over my last 20 posts (shown as e.g. "2.4×"), plus save rate, share rate and comment rate. Show it on the card on the board.
 
 **Done when:**
-- [ ] I can mark a video posted with its links in under 30 seconds
-- [ ] Numbers appear by API or by hand
-- [ ] Each Posted card shows its × score
-- [ ] Tests cover the maths, including fewer than 3 posts ("not enough data yet")
+- [ ] I can mark a video posted with its links in under 30 seconds *(built: moving a card to Posted opens the dialog; still to try in the app)*
+- [x] Numbers appear by API or by hand *(by hand is built; the API half is deferred, see below)*
+- [x] Each Posted card shows its × score *(per platform, e.g. "Instagram 2.5×")*
+- [x] Tests cover the maths, including fewer than 3 posts ("not enough data yet")
+
+**Decided 2 Nov 2026:** platforms are Instagram and LinkedIn (`content.platforms` in `config/niches.yaml`). LinkedIn is posted and measured by hand to avoid any risk to the account; Instagram numbers are also typed in for now. The app never posts anything.
+**Changed from the plan:** the × score compares a post with your other posts *on the same platform*, because an Instagram play and a LinkedIn impression are not the same thing. `post_metrics` has a `bucket` column (24 / 72 / 168) so each checkpoint is one row.
+**Deferred (items 3 and 4 above):** `analytics.py` and its launchd job. `UPLOAD_POST_API_KEY` is empty, Upload-Post is a paid plan, and it is not known whether it can read posts made by hand in the Instagram app. Revisit once there is a key and the docs have been read.
 
 ---
 

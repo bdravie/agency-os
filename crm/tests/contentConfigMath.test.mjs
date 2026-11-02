@@ -13,11 +13,16 @@ test("reads the owner's settings, a list or a single key, and ignores nonsense n
   assert.deepEqual(parseContentConfig({ content_niche: "dental" }, []).niches, ["dental"]);
   assert.equal(parseContentConfig({ posts_per_week: 0 }, []).posts_per_week, 4);
 });
+test("platforms: the ones named, ignoring unknown, or all four by default", () => {
+  assert.deepEqual(parseContentConfig({ platforms: ["instagram", "linkedin", "myspace"] }, []).platforms, ["instagram", "linkedin"]);
+  assert.deepEqual(parseContentConfig({}, []).platforms, ["tiktok", "instagram", "youtube", "linkedin"]);
+  assert.deepEqual(parseContentConfig({ platforms: "linkedin" }, []).platforms, ["linkedin"]);
+});
 test("audience wording: the sentence, or built from the keys", () => {
-  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: ["x"], audience: "plumbers" }), "plumbers");
-  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: ["pest_control"], audience: "" }), "pest control");
-  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: ["hvac", "roofing", "pest_control"], audience: "" }), "hvac, roofing and pest control");
-  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: [], audience: "" }), "small UK businesses");
+  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: ["x"], audience: "plumbers", platforms: [] }), "plumbers");
+  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: ["pest_control"], audience: "", platforms: [] }), "pest control");
+  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: ["hvac", "roofing", "pest_control"], audience: "", platforms: [] }), "hvac, roofing and pest control");
+  assert.equal(audienceText({ posts_per_week: 4, max_open_ideas: 15, niches: [], audience: "", platforms: [] }), "small UK businesses");
 });
 test("the placeholder is filled everywhere, and a missing one is an error", () => {
   assert.equal(fillNiche("For {{NICHE}}. Again: {{NICHE}}.", "roofers"), "For roofers. Again: roofers.");

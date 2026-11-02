@@ -1,4 +1,6 @@
 import { query } from "@/lib/db";
+import { loadContentConfig } from "@/lib/content";
+import { loadPosts } from "@/lib/contentPerformance";
 
 export const dynamic = "force-dynamic";
 
@@ -10,5 +12,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     `SELECT id, idea, hook, format, platforms, script, caption, keyword, status, posted_at, created_at, scheduled_for::text AS day
        FROM content_items WHERE id = $1`, [id]);
   if (!item) return Response.json({ error: "Not found" }, { status: 404 });
-  return Response.json({ item });
+  const [posts, config] = await Promise.all([loadPosts(id), loadContentConfig()]);
+  return Response.json({ item, posts, platforms: config.platforms });
 }

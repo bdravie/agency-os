@@ -409,7 +409,7 @@ export async function archiveContent(ids: number[]): Promise<number> {
   await requireLogin();
   const list = contentIds(ids);
   if (!list.length) return 0;
-  const rows = await query<{ id: number }>(`UPDATE content_items SET status = 'Archived' WHERE id = ANY($1::bigint[]) AND status = 'Idea' RETURNING id`, [list]);
+  const rows = await query<{ id: number }>(`UPDATE content_items SET status = 'Archived', archived_at = now() WHERE id = ANY($1::bigint[]) AND status = 'Idea' RETURNING id`, [list]);
   if (rows.length) await logActivity("content_archived", { body: `${rows.length} ideas archived` });
   revalidatePath("/content");
   return rows.length;
@@ -420,7 +420,7 @@ export async function restoreContent(ids: number[]): Promise<number> {
   await requireLogin();
   const list = contentIds(ids);
   if (!list.length) return 0;
-  const rows = await query<{ id: number }>(`UPDATE content_items SET status = 'Idea' WHERE id = ANY($1::bigint[]) AND status = 'Archived' RETURNING id`, [list]);
+  const rows = await query<{ id: number }>(`UPDATE content_items SET status = 'Idea', archived_at = NULL WHERE id = ANY($1::bigint[]) AND status = 'Archived' RETURNING id`, [list]);
   revalidatePath("/content");
   return rows.length;
 }

@@ -1,11 +1,13 @@
 // Pure helpers for the content engine settings (no files, no database), so they can be tested on their own.
 
-export type ContentConfig = { posts_per_week: number; max_open_ideas: number; niches: string[]; audience: string };
+export type ContentConfig = { posts_per_week: number; max_open_ideas: number; niches: string[]; audience: string; platforms: string[] };
+
+const KNOWN_PLATFORMS = ["tiktok", "instagram", "youtube", "linkedin"];
 
 const whole = (v: unknown, fallback: number, min: number) => (typeof v === "number" && Number.isInteger(v) && v >= min ? v : fallback);
 
 /**
- * The `content:` block of config/niches.yaml with safe defaults: 4 posts a week, 15 open ideas,
+ * The `content:` block of config/niches.yaml with safe defaults: 4 posts a week, 15 open ideas, all four platforms if none are named,
  * and the niches default to the first of `focus_niches` when none are set (a single key or a list is accepted).
  */
 export function parseContentConfig(raw: any, focusNiches: unknown): ContentConfig {
@@ -16,6 +18,7 @@ export function parseContentConfig(raw: any, focusNiches: unknown): ContentConfi
     posts_per_week: whole(raw?.posts_per_week, 4, 1),
     max_open_ideas: whole(raw?.max_open_ideas, 15, 1),
     niches,
+    platforms: (asList(raw?.platforms).filter((p) => KNOWN_PLATFORMS.includes(p)).length ? asList(raw?.platforms).filter((p) => KNOWN_PLATFORMS.includes(p)) : KNOWN_PLATFORMS),
     audience: typeof raw?.content_audience === "string" ? raw.content_audience.trim() : "",
   };
 }

@@ -30,6 +30,7 @@ defaults:
 content:
   posts_per_week: 4              # target shown on Today
   max_open_ideas: 15             # "Generate ideas" is blocked while more than this many ideas are waiting
+  platforms: [instagram, linkedin]   # where you post (tiktok, instagram, youtube, linkedin). LinkedIn is posted and measured by hand
   content_niche: [trades, dental, aesthetics]   # niche keys below that the videos are made for (trades and clinics)
   content_audience: "trades businesses (plumbers, heating engineers, roofers, electricians) and clinics (dental practices and aesthetics clinics)"   # how the video guide names them; if blank it is built from the keys
 

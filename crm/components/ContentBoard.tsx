@@ -8,19 +8,21 @@ import { ARCHIVED, ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, contentLabel, 
 import { useToast } from "./Toast";
 import ContentDrawer from "./ContentDrawer";
 import NewIdeaDialog from "./NewIdeaDialog";
+import PostedDialog from "./PostedDialog";
 import { LaneTab } from "./ui";
 
-export type Item = { id: number; idea: string; format: string | null; status: string; keyword: string | null; day: string | null };
+export type Item = { id: number; idea: string; hook: string | null; format: string | null; status: string; keyword: string | null; day: string | null; scoreLines: string[] };
 
 const shortDate = (iso: string) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-export default function ContentBoard({ initial }: { initial: Item[] }) {
+export default function ContentBoard({ initial, platforms }: { initial: Item[]; platforms: string[] }) {
   const toast = useToast();
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const [over, setOver] = useState<string | null>(null);
   const [openId, setOpenId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
+  const [posting, setPosting] = useState<number | null>(null);
   const [filter, setFilter] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [picked, setPicked] = useState<Set<number>>(new Set());
@@ -55,6 +57,7 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
   function move(id: number, status: string) {
     const item = items.find((i) => i.id === id);
     if (!item || item.status === status) return;
+    if (status === "Posted") { setPosting(id); return; } // asks where it was posted first
     const before = items;
     setItems(items.map((i) => (i.id === id ? { ...i, status } : i))); // optimistic
     start(async () => {
@@ -128,6 +131,7 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
                       {selectable && <input type="checkbox" checked={picked.has(i.id)} onChange={() => toggle(i.id)} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()} aria-label={`Select: ${i.idea}`} />}
                       <b>{i.idea}</b>
                     </div>
+                    {i.status === "Posted" && i.scoreLines.length > 0 && <div className="muted">{i.scoreLines.join(" · ")}</div>}
                     {(i.format || i.keyword) && <div className="muted">{[i.format, i.keyword && `keyword ${i.keyword}`].filter(Boolean).join(" · ")}</div>}
                     <div className="deal-foot">
                       {i.day ? <span className="age"><CalendarDays size={12} aria-hidden /> {shortDate(i.day)}</span> : <span className="age">Not scheduled</span>}
@@ -152,6 +156,10 @@ export default function ContentBoard({ initial }: { initial: Item[] }) {
       {openId !== null && (
         <ContentDrawer itemId={openId} status={items.find((i) => i.id === openId)?.status} onMove={move} onClose={() => setOpenId(null)} onChanged={() => router.refresh()} />
       )}
+      {posting !== null && (() => {
+        const it = items.find((x) => x.id === posting);
+        return it ? <PostedDialog itemId={it.id} idea={it.idea} hook={it.hook} platforms={platforms} onClose={() => setPosting(null)} onDone={() => { setPosting(null); router.refresh(); }} /> : null;
+      })()}
       {creating && <NewIdeaDialog onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); router.refresh(); setOpenId(id); }} />}
     </>
   );
