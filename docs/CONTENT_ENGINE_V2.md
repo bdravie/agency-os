@@ -112,9 +112,11 @@
 > - All numbers are computed in `contentMath.ts`. Add a click-only "Explain this week" button: Haiku writes 3 plain-English observations and 3 things to try, using only the computed numbers (prompt `prompts/content-insights.md`, `CONTENT_MODEL`).
 
 **Done when:**
-- [ ] The page works on demo data
-- [ ] Small samples are clearly marked
-- [ ] The AI text never states a number that isn't in the table it was given (add a test that checks numbers in the output against the input)
+- [x] The page works on demo data *(checked on throwaway posts, which were then deleted; with no posts it shows an empty state that says what is missing)*
+- [x] Small samples are clearly marked *(groups under 3 posts are greyed, labelled "too few" and never ranked or boosted)*
+- [x] The AI text never states a number that isn't in the table it was given *(`numbersNotIn` is tested, and the button re-asks once, then refuses to show an answer with a stray number)*
+
+**Built 2 Nov 2026 at `/content/insights`.** Because C3 is parked (see the pre-launch list in `BUILD_PLAN.md`), the funnel runs views to keyword replies only; replies are counted by hand from the video's drawer (`content_keyword_reply` activities, a count with no username). Leads, calls and £ per video come with C3. Videos are grouped by tags set in the drawer (pillar, hook type, niche, length). Until C7 tags new ideas automatically, untagged posts fall in "Not set".
 
 ---
 

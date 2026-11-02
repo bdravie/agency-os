@@ -9,10 +9,11 @@ import { ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, type ContentStatus } fro
 import ActionForm from "./ActionForm";
 import ToastForm from "./ToastForm";
 import PostPerformance from "./PostPerformance";
+import ContentTags from "./ContentTags";
 import type { PostView } from "@/lib/contentPerformance";
 import { useToast } from "./Toast";
 
-type Item = { id: number; idea: string; hook: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null };
+type Item = { id: number; idea: string; hook: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null; pillar: string | null; hook_type: string | null; niche: string | null; length_s: number | null };
 
 // Quick view of a content item. "Open full page" goes to /content/[id] in a new tab, where you can edit everything.
 export default function ContentDrawer({ itemId, status, onMove, onClose, onChanged }: { itemId: number; status?: string; onMove: (id: number, status: string) => void; onClose: () => void; onChanged: () => void }) {
@@ -20,12 +21,14 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
   const [item, setItem] = useState<Item | null>(null);
   const [posts, setPosts] = useState<PostView[]>([]);
   const [platforms, setPlatforms] = useState<string[]>([]);
+  const [niches, setNiches] = useState<string[]>([]);
+  const [replies, setReplies] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const panel = useRef<HTMLElement>(null);
 
   const load = useCallback(() => {
     fetch(`/api/content/${itemId}`).then(async (r) => (r.ok ? r.json() : Promise.reject(new Error("Could not load this item."))))
-      .then((d) => { setItem(d.item); setPosts(d.posts ?? []); setPlatforms(d.platforms ?? []); setError(null); }).catch((e) => setError(e.message));
+      .then((d) => { setItem(d.item); setPosts(d.posts ?? []); setPlatforms(d.platforms ?? []); setNiches(d.niches ?? []); setReplies(d.replies ?? 0); setError(null); }).catch((e) => setError(e.message));
   }, [itemId]);
   const refresh = () => { load(); onChanged(); };
 
@@ -79,6 +82,8 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
               <div><div className="field-label">Scheduled</div><div className="kv-value small">{item.day ?? "Not set"}</div></div>
               <div><div className="field-label">Created</div><div className="kv-value small">{ago(item.created_at)}</div></div>
             </section>
+
+            <ContentTags key={`${itemId}-${item.pillar}-${item.hook_type}-${item.niche}-${item.length_s}`} itemId={itemId} tags={{ pillar: item.pillar, hook_type: item.hook_type, niche: item.niche, length_s: item.length_s }} keyword={current === "Posted" ? item.keyword : null} replies={replies} niches={niches} onChanged={refresh} />
 
             <PostPerformance itemId={itemId} status={current} posts={posts} platforms={platforms} hook={item.hook} onChanged={refresh} />
 

@@ -104,3 +104,22 @@ export function scoreLabel(platform: string, p: Performance): string {
   if (p.status === "ok") return `${name} ${fmtMultiple(p.multiple)}`;
   return p.status === "no_metrics" ? `${name}: add 72h numbers` : `${name}: not enough data yet`;
 }
+
+export const PILLARS = ["Show the build", "Build in public", "Teach / steal this", "Niche pain"] as const;
+/** The eight hook formulas in prompts/video-ideas.md. */
+export const HOOK_TYPES = ["Result first", "Call out the pain", "Contrarian", "Build in public", "Money on the table", "Steal this", "Before and after", "Question"] as const;
+
+/** Tags typed into the drawer: a known pillar and hook type (or blank), a niche word, and a length in seconds. */
+export function cleanTags(raw: { pillar?: string; hook_type?: string; niche?: string; length_s?: string }): { tags: { pillar: string | null; hook_type: string | null; niche: string | null; length_s: number | null } } | { error: string } {
+  const pillar = raw.pillar?.trim() || null;
+  const hook = raw.hook_type?.trim() || null;
+  if (pillar && !(PILLARS as readonly string[]).includes(pillar)) return { error: "Unknown pillar." };
+  if (hook && !(HOOK_TYPES as readonly string[]).includes(hook)) return { error: "Unknown hook type." };
+  const niche = raw.niche?.trim().slice(0, 60) || null;
+  let length: number | null = null;
+  if (raw.length_s?.trim()) {
+    length = Number(raw.length_s);
+    if (!Number.isInteger(length) || length < 1 || length > 3600) return { error: "Length must be a whole number of seconds (1 to 3600)." };
+  }
+  return { tags: { pillar, hook_type: hook, niche, length_s: length } };
+}

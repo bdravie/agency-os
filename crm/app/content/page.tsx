@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Repeat2 } from "lucide-react";
+import { BarChart3, CalendarDays, Repeat2 } from "lucide-react";
 import { query } from "@/lib/db";
 import { generateIdeasAction } from "@/lib/actions";
 import { loadContentConfig } from "@/lib/content";
@@ -30,6 +30,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
         description="Ideas become scripts, then get filmed and posted. Click a card for details, or drag it to another stage."
         actions={
           <>
+            <Link href="/content/insights" className="btn secondary"><BarChart3 size={16} aria-hidden /> What's working</Link>
             <Link href="/content/calendar" className="btn secondary"><CalendarDays size={16} aria-hidden /> Calendar</Link>
             <Link href="/content/repurpose" className="btn secondary"><Repeat2 size={16} aria-hidden /> Repurpose a transcript</Link>
           </>

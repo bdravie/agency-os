@@ -1,0 +1,86 @@
+// Pure maths for the "What's working" page (no files, no database, no AI), so it can be tested on its own.
+// Every number the page shows, and every number the AI is allowed to mention, comes from here.
+import { median } from "./contentMath.ts";
+
+export const MIN_GROUP = 3;
+
+export type ScoredPost = {
+  postId: number; contentId: number; platform: string; multiple: number; views72: number; postedAt: string; url: string;
+  idea: string; hookUsed: string | null; pillar: string | null; hookType: string | null; format: string | null; niche: string | null; lengthS: number | null;
+};
+export type Group = { key: string; n: number; median: number; thin: boolean };
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Posts grouped by one tag: the median × score and the post count of each group. A group with fewer than 3 posts is `thin` (shown greyed, never ranked). Untagged posts go in "Not set". */
+export function groupScores(posts: ScoredPost[], keyOf: (p: ScoredPost) => string | null): Group[] {
+  const by = new Map<string, number[]>();
+  for (const p of posts) by.set(keyOf(p) ?? "Not set", [...(by.get(keyOf(p) ?? "Not set") ?? []), p.multiple]);
+  const groups = [...by].map(([key, v]) => ({ key, n: v.length, median: round1(median(v) as number), thin: v.length < MIN_GROUP }));
+  return groups.sort((a, b) => Number(a.thin) - Number(b.thin) || b.median - a.median || b.n - a.n);
+}
+
+export const lengthBand = (s: number | null): string | null => (s === null ? null : s < 15 ? "Under 15s" : s < 30 ? "15 to 29s" : s < 60 ? "30 to 59s" : "60s or more");
+
+const london = (iso: string, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", ...opts }).format(new Date(iso));
+export const weekdayOf = (iso: string) => london(iso, { weekday: "long" });
+/** Time of day in UK time. */
+export function dayPart(iso: string): string {
+  const h = Number(london(iso, { hour: "numeric", hourCycle: "h23" }));
+  return h >= 5 && h < 11 ? "Morning (5am to 11am)" : h >= 11 && h < 14 ? "Midday (11am to 2pm)" : h >= 14 && h < 18 ? "Afternoon (2pm to 6pm)" : h >= 18 && h < 23 ? "Evening (6pm to 11pm)" : "Night (11pm to 5am)";
+}
+
+/** The best 5 and the worst 5 posts by × score. With fewer than 10 posts the two lists never share a post. */
+export function topBottom(posts: ScoredPost[], n = 5): { top: ScoredPost[]; bottom: ScoredPost[] } {
+  const sorted = [...posts].sort((a, b) => b.multiple - a.multiple);
+  return { top: sorted.slice(0, n), bottom: sorted.slice(n).slice(-n).reverse() };
+}
+
+export type Idea = { id: number; idea: string; idea_score: number | null; pillar: string | null; hook_type: string | null };
+export type RankedIdea = Idea & { rank: number; reasons: string[] };
+
+/** The best group that beats your usual (median above 1×) and has at least 3 posts, or null. */
+export const winner = (groups: Group[]): Group | null => groups.find((g) => !g.thin && g.median > 1) ?? null;
+
+/**
+ * "Next 5 to film": open ideas ordered by their idea score (5 when not scored yet), plus 1 for each of pillar and hook type
+ * that matches a current winner. Each idea carries the reasons, so the boost is never a mystery.
+ */
+export function rankIdeas(ideas: Idea[], pillarWinner: Group | null, hookWinner: Group | null, limit = 5): RankedIdea[] {
+  return ideas.map((i) => {
+    const reasons: string[] = [i.idea_score === null ? "Not scored yet, counted as 5" : `Idea score ${i.idea_score}`];
+    let rank = i.idea_score ?? 5;
+    if (pillarWinner && i.pillar === pillarWinner.key) { rank += 1; reasons.push(`+1: ${pillarWinner.key} is your best pillar (median ${pillarWinner.median}×, ${pillarWinner.n} posts)`); }
+    if (hookWinner && i.hook_type === hookWinner.key) { rank += 1; reasons.push(`+1: ${hookWinner.key} is your best hook type (median ${hookWinner.median}×, ${hookWinner.n} posts)`); }
+    return { ...i, rank, reasons };
+  }).sort((a, b) => b.rank - a.rank || b.id - a.id).slice(0, limit);
+}
+
+export type FunnelRow = { pillar: string; posts: number; withNumbers: number; views72: number; keywordReplies: number };
+/** Per pillar: posts, how many have 72-hour numbers, total 72-hour views and keyword replies logged. Leads, calls and £ need the keyword tracking that is not built yet. */
+export function funnel(posts: { contentId: number; pillar: string | null; views72: number | null }[], replies: Map<number, number>, pillarOf: Map<number, string | null>): FunnelRow[] {
+  const rows = new Map<string, FunnelRow>();
+  const row = (k: string) => rows.get(k) ?? rows.set(k, { pillar: k, posts: 0, withNumbers: 0, views72: 0, keywordReplies: 0 }).get(k)!;
+  for (const p of posts) { const r = row(p.pillar ?? "Not set"); r.posts++; if (p.views72 !== null) { r.withNumbers++; r.views72 += p.views72; } }
+  for (const [id, n] of replies) row(pillarOf.get(id) ?? "Not set").keywordReplies += n;
+  return [...rows.values()].sort((a, b) => b.views72 - a.views72);
+}
+
+/** Numbers in `output` that are not in `input` (compared as numbers, so 2.0 matches 2). The AI may only talk about numbers it was given. */
+export function numbersNotIn(output: string, input: string): string[] {
+  const nums = (t: string) => t.match(/\d[\d,]*(?:\.\d+)?/g)?.map((x) => x.replace(/,/g, "")) ?? [];
+  const allowed = new Set(nums(input).map(Number));
+  return [...new Set(nums(output))].filter((x) => !allowed.has(Number(x)));
+}
+
+/** The plain-text tables the AI sees. It is told to use only these numbers. */
+export function digest(parts: { title: string; groups: Group[] }[], top: ScoredPost[], bottom: ScoredPost[], f: FunnelRow[]): string {
+  const g = (x: Group) => `- ${x.key}: ${x.n} ${x.n === 1 ? "post" : "posts"}, median ${x.median}×${x.thin ? " (too few posts to trust)" : ""}`;
+  const p = (x: ScoredPost) => `- ${x.multiple}× on ${x.platform}: "${x.hookUsed ?? x.idea}"`;
+  return [
+    ...parts.flatMap((s) => [`${s.title}:`, ...s.groups.map(g), ""]),
+    "Best posts:", ...top.map(p), "", "Weakest posts:", ...bottom.map(p), "",
+    "By pillar (posts, with 72-hour numbers, total 72-hour views, keyword replies logged):",
+    ...f.map((r) => `- ${r.pillar}: ${r.posts} posts, ${r.withNumbers} with numbers, ${r.views72} views, ${r.keywordReplies} keyword replies`),
+  ].join("\n");
+}

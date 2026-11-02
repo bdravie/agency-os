@@ -27,6 +27,9 @@ export const dmModel = () => resolve(process.env.DM_MODEL?.trim() || "haiku");
 /** The model for Upwork pitch packs: set UPWORK_MODEL in .env (an alias or a full model id). Defaults to Sonnet. */
 export const upworkModel = () => resolve(process.env.UPWORK_MODEL?.trim() || "sonnet");
 
+/** The model for content insights and other content tasks: set CONTENT_MODEL in .env (an alias or a full model id). Defaults to Haiku, since it only words numbers the code already worked out. */
+export const contentModel = () => resolve(process.env.CONTENT_MODEL?.trim() || "haiku");
+
 /** The model for rapport research on decision-makers: set RAPPORT_MODEL in .env (an alias or a full model id). Defaults to Sonnet, since it must judge sources carefully. */
 export const rapportModel = () => resolve(process.env.RAPPORT_MODEL?.trim() || "sonnet");
 
