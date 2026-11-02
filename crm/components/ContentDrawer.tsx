@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarDays, Copy, ExternalLink, X } from "lucide-react";
 import { scheduleContent, writeScriptAction } from "@/lib/actions";
+import { repurposeItemAction } from "@/lib/contentFilmActions";
 import { ago } from "@/lib/format";
 import { ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, type ContentStatus } from "@/lib/stages";
 import ActionForm from "./ActionForm";
@@ -13,7 +14,7 @@ import ContentTags from "./ContentTags";
 import type { PostView } from "@/lib/contentPerformance";
 import { useToast } from "./Toast";
 
-type Item = { id: number; idea: string; hook: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null; pillar: string | null; hook_type: string | null; niche: string | null; length_s: number | null };
+type Item = { id: number; idea: string; hook: string | null; hook_alt: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null; pillar: string | null; hook_type: string | null; niche: string | null; length_s: number | null };
 
 // Quick view of a content item. "Open full page" goes to /content/[id] in a new tab, where you can edit everything.
 export default function ContentDrawer({ itemId, status, onMove, onClose, onChanged }: { itemId: number; status?: string; onMove: (id: number, status: string) => void; onClose: () => void; onChanged: () => void }) {
@@ -103,6 +104,13 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
                     <p style={{ fontWeight: 550, margin: 0 }}>{item.hook}</p>
                   </section>
                 )}
+                {item.hook_alt && (
+                  <section>
+                    <div className="row-between"><div className="field-label">Alternative hook (B)</div><button type="button" className="link" onClick={() => copy(item.hook_alt!, "Hook B")}><Copy size={13} aria-hidden /> Copy</button></div>
+                    <p style={{ margin: 0 }}>{item.hook_alt}</p>
+                    <p className="muted" style={{ margin: "4px 0 0" }}>Post one version with each hook and say which when you mark it posted. What's working compares them.</p>
+                  </section>
+                )}
                 <section>
                   <div className="row-between"><div className="field-label">Script</div><button type="button" className="link" onClick={() => copy(item.script!, "Script")}><Copy size={13} aria-hidden /> Copy</button></div>
                   <pre className="script-box">{item.script}</pre>
@@ -119,6 +127,16 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
                   </ActionForm>
                 </section>
               </>
+            )}
+
+            {(current === "Filmed" || current === "Posted") && (
+              <section>
+                <div className="field-label">Repurpose</div>
+                <p className="muted">Make a post for each place you publish and an Upwork portfolio blurb from this video. They land in Script ready.</p>
+                <ActionForm action={async (_p, f) => { const r = await repurposeItemAction(Number(f.get("id"))); return r.ok ? `✓ ${r.message}` : r.error; }} label="Repurpose this video" busyLabel="Writing… (about 20 seconds)" onDone={refresh} secondary>
+                  <input type="hidden" name="id" value={itemId} />
+                </ActionForm>
+              </section>
             )}
 
             <section>

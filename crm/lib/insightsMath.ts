@@ -6,7 +6,7 @@ export const MIN_GROUP = 3;
 
 export type ScoredPost = {
   postId: number; contentId: number; platform: string; multiple: number; views72: number; postedAt: string; url: string;
-  idea: string; source?: string | null; hookUsed: string | null; pillar: string | null; hookType: string | null; format: string | null; niche: string | null; lengthS: number | null;
+  idea: string; source?: string | null; itemHook?: string | null; itemHookAlt?: string | null; hookUsed: string | null; pillar: string | null; hookType: string | null; format: string | null; niche: string | null; lengthS: number | null;
 };
 export type Group = { key: string; n: number; median: number; thin: boolean };
 

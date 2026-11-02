@@ -223,8 +223,10 @@
 > 4. **Posting slots:** the Calendar suggests slots from my best weekday and hour (C4) and the `posts_per_week` target.
 
 **Done when:**
-- [ ] I can script and film 5 videos in one sitting from the app
-- [ ] Every posted video has a hook recorded
+- [ ] I can script and film 5 videos in one sitting from the app *(built: select up to 5 ideas, press Script, then open Filming day; the writing was tested with the real model, the teleprompter's scrolling and keys still need trying in the app)*
+- [x] Every posted video has a hook recorded *(the posted box records the hook for each platform: hook A or B when the idea has two, otherwise the one you type; skipping the links skips this too)*
+
+**Built 2 Nov 2026.** Filming day: Script (max 5, one at a time with progress; `crm/lib/scriptItem.ts` saves hook A, hook B, script, caption, keyword), then `/content/film` (`Teleprompter.tsx`: space plays or pauses, arrows move between scripts, up and down change speed, + and - change size, R restarts, full screen, shot list and both hooks beside the script, Mark filmed). Hook tests: two hooks per idea (`hook_alt`), a per-platform A or B choice when posting, and a "Hook A against hook B" table on What's working. Repurpose: from a filmed or posted video's drawer, one post for each platform you publish on plus an Upwork portfolio blurb about the demo (`prompts/repurpose-item.md`; no links, figures or client claims; once per video). Posting slots: the calendar suggests your best trusted weekdays and time of day, or a clearly labelled starting guess until the data is in.
 
 ---
 

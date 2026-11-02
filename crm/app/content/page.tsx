@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, CalendarDays, FileText, Flame, Repeat2, TrendingUp, Users } from "lucide-react";
+import { BarChart3, CalendarDays, Clapperboard, FileText, Flame, Repeat2, TrendingUp, Users } from "lucide-react";
 import { query } from "@/lib/db";
 import { generateIdeasAction, pipelineIdeasAction } from "@/lib/actions";
 import { loadContentConfig } from "@/lib/content";
@@ -18,7 +18,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
   const sp = await searchParams;
   const override = sp.more === "1";
   const [rows, config, posts, deals] = await Promise.all([
-    query<any>(`SELECT id, idea, hook, format, status, keyword, niche, scheduled_for::text AS day FROM content_items ORDER BY created_at DESC, id DESC`),
+    query<any>(`SELECT id, idea, hook, hook_alt AS "hookAlt", format, status, keyword, niche, scheduled_for::text AS day FROM content_items ORDER BY created_at DESC, id DESC`),
     loadContentConfig(),
     loadPosts(),
     query<any>(`SELECT d.id, d.title, c.display_name FROM deals d JOIN companies c ON c.id = d.company_id WHERE d.stage <> 'Lost' AND EXISTS (SELECT 1 FROM company_research r WHERE r.company_id = c.id AND jsonb_array_length(r.findings) > 0) ORDER BY d.updated_at DESC LIMIT 30`),
@@ -37,6 +37,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
         actions={
           <>
             <Link href="/content/insights" className="btn secondary"><BarChart3 size={16} aria-hidden /> What's working</Link>
+            <Link href="/content/film" className="btn secondary"><Clapperboard size={16} aria-hidden /> Filming day</Link>
             <Link href="/content/brief" className="btn secondary"><FileText size={16} aria-hidden /> Weekly brief</Link>
             <Link href="/content/trends" className="btn secondary"><Flame size={16} aria-hidden /> Trends</Link>
             <Link href="/content/creators" className="btn secondary"><Users size={16} aria-hidden /> Creators</Link>

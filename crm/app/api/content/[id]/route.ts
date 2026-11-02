@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const id = Number((await params).id);
   if (!Number.isInteger(id)) return Response.json({ error: "Not found" }, { status: 404 });
   const [item] = await query<any>(
-    `SELECT id, idea, hook, format, platforms, script, caption, keyword, status, posted_at, created_at, scheduled_for::text AS day, pillar, hook_type, niche, length_s
+    `SELECT id, idea, hook, hook_alt, format, platforms, script, caption, keyword, status, posted_at, created_at, scheduled_for::text AS day, pillar, hook_type, niche, length_s
        FROM content_items WHERE id = $1`, [id]);
   if (!item) return Response.json({ error: "Not found" }, { status: 404 });
   const [posts, config, replies] = await Promise.all([loadPosts(id), loadContentConfig(), keywordReplyCount(id)]);

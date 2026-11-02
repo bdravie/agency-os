@@ -4,6 +4,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { scheduleContent } from "@/lib/actions";
 import ToastForm from "@/components/ToastForm";
 import { PageHeader } from "@/components/ui";
+import { loadContentConfig } from "@/lib/content";
+import { loadInsights } from "@/lib/contentInsights";
+import { suggestSlots } from "@/lib/filmMath";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +24,11 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
     query<any>(`SELECT id, idea, status FROM content_items WHERE scheduled_for IS NULL AND status IN ('Idea','Scripted','Filmed') ORDER BY (status = 'Scripted') DESC, id DESC LIMIT 30`),
   ]);
 
+  const [config, ins] = await Promise.all([loadContentConfig(), loadInsights("all")]);
+  const tableOf = (title: string) => ins.tables.find((t) => t.title === title)?.groups ?? [];
+  const slots = suggestSlots(config.posts_per_week, tableOf("Weekday posted"), tableOf("Time of day posted"));
+  const dayOf = (weekday: string) => days.find((d) => d.toLocaleDateString("en-GB", { weekday: "long" }) === weekday) ?? null;
+
   const range = `${days[0].toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
   return (
     <>
@@ -36,6 +44,22 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
           </>
         }
       />
+      <section className="card" aria-labelledby="slots-h" style={{ marginBottom: 16 }}>
+        <h2 id="slots-h">Suggested slots</h2>
+        <p className="muted">{config.posts_per_week} posts a week. Your best days and times once the data is in; until then a labelled starting guess.</p>
+        <ul>
+          {slots.map((s) => {
+            const d = dayOf(s.weekday);
+            const taken = d ? scheduled.filter((x: any) => x.day === iso(d)).length : 0;
+            return (
+              <li key={s.weekday} className="row-between" style={{ gap: 12, alignItems: "flex-start" }}>
+                <span><b>{s.weekday}{d ? ` ${d.getDate()} ${d.toLocaleDateString("en-GB", { month: "short" })}` : ""}</b> · {s.time}<div className="muted">{s.why}</div></span>
+                <span className={`badge tone-${taken ? "good" : "neutral"}`}>{taken ? `${taken} scheduled` : "Free"}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
       <div className="board" style={{ gridTemplateColumns: "repeat(7, minmax(140px, 1fr))" }}>
         {days.map((d) => (
           <section key={iso(d)} className="col" style={iso(d) === iso(new Date()) ? { borderColor: "var(--accent)" } : undefined} aria-label={d.toDateString()}>

@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Archive, CalendarDays, ChevronLeft, ChevronRight, ExternalLink, FileText, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { archiveContent, deleteContent, moveContent, restoreContent } from "@/lib/actions";
+import { scriptOneAction } from "@/lib/contentFilmActions";
 import { ARCHIVED, ARCHIVED_META, CONTENT_META, CONTENT_STATUSES, contentLabel, type ContentStatus } from "@/lib/stages";
 import { useToast } from "./Toast";
 import ContentDrawer from "./ContentDrawer";
@@ -11,7 +12,7 @@ import NewIdeaDialog from "./NewIdeaDialog";
 import PostedDialog from "./PostedDialog";
 import { LaneTab } from "./ui";
 
-export type Item = { id: number; idea: string; hook: string | null; format: string | null; status: string; keyword: string | null; day: string | null; scoreLines: string[] };
+export type Item = { id: number; idea: string; hook: string | null; hookAlt?: string | null; format: string | null; status: string; keyword: string | null; day: string | null; scoreLines: string[] };
 
 const shortDate = (iso: string) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
@@ -28,6 +29,7 @@ export default function ContentBoard({ initial, platforms, niches }: { initial: 
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, start] = useTransition();
+  const [scripting, setScripting] = useState<string | null>(null);
 
   useEffect(() => setItems(initial), [initial]);
   const needle = filter.trim().toLowerCase();
@@ -40,6 +42,20 @@ export default function ContentBoard({ initial, platforms, niches }: { initial: 
   const clear = () => { setPicked(new Set()); setConfirmDelete(false); };
   const toggle = (id: number) => setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleAll = (list: Item[]) => setPicked((p) => (list.every((i) => p.has(i.id)) ? new Set([...p].filter((id) => !list.some((i) => i.id === id))) : new Set([...p, ...list.map((i) => i.id)])));
+
+  // Filming day: write the scripts for up to 5 waiting ideas, one after another so you can watch the progress.
+  async function scriptThem() {
+    const ids = pickedIdeas.slice(0, 5).map((i) => i.id);
+    let done = 0;
+    for (const id of ids) {
+      setScripting(`Writing script ${done + 1} of ${ids.length}… (about 15 seconds each)`);
+      const r = await scriptOneAction(id);
+      if (!r.ok) { toast(r.error, "bad"); break; }
+      done++;
+    }
+    setScripting(null); clear(); router.refresh();
+    if (done) toast(`${done} script${done === 1 ? "" : "s"} ready. Open Filming day when you are set up.`);
+  }
 
   function bulk(kind: "archive" | "restore" | "delete", only?: number[]) {
     const list = kind === "archive" ? pickedIdeas : kind === "restore" ? pickedArchived : pickedItems.filter((i) => i.status === "Idea" || i.status === ARCHIVED);
@@ -83,6 +99,7 @@ export default function ContentBoard({ initial, platforms, niches }: { initial: 
         <div className="card row" role="region" aria-label="Selected ideas" style={{ gap: 8, marginBottom: 12, padding: "8px 12px", flexWrap: "wrap" }}>
           <b>{picked.size} selected</b>
           {pickedIdeas.length > 0 && <button type="button" className="secondary" disabled={busy} onClick={() => bulk("archive")}><Archive size={15} aria-hidden /> Archive {pickedIdeas.length}</button>}
+          {pickedIdeas.length > 0 && <button type="button" disabled={busy || scripting !== null || pickedIdeas.length > 5} title={pickedIdeas.length > 5 ? "Pick no more than 5 for one filming day" : undefined} onClick={scriptThem}><FileText size={15} aria-hidden /> {scripting ?? `Script ${Math.min(pickedIdeas.length, 5)}${pickedIdeas.length > 5 ? " (max 5)" : ""}`}</button>}
           {pickedArchived.length > 0 && <button type="button" className="secondary" disabled={busy} onClick={() => bulk("restore")}><RotateCcw size={15} aria-hidden /> Restore {pickedArchived.length}</button>}
           {!confirmDelete && <button type="button" className="secondary" disabled={busy || pickedIdeas.length + pickedArchived.length === 0} onClick={() => setConfirmDelete(true)}><Trash2 size={15} aria-hidden /> Delete…</button>}
           {confirmDelete && (
@@ -158,7 +175,7 @@ export default function ContentBoard({ initial, platforms, niches }: { initial: 
       )}
       {posting !== null && (() => {
         const it = items.find((x) => x.id === posting);
-        return it ? <PostedDialog itemId={it.id} idea={it.idea} hook={it.hook} platforms={platforms} onClose={() => setPosting(null)} onDone={() => { setPosting(null); router.refresh(); }} /> : null;
+        return it ? <PostedDialog itemId={it.id} idea={it.idea} hook={it.hook} hookAlt={it.hookAlt ?? null} platforms={platforms} onClose={() => setPosting(null)} onDone={() => { setPosting(null); router.refresh(); }} /> : null;
       })()}
       {creating && <NewIdeaDialog niches={niches} onClose={() => setCreating(false)} onCreated={(id) => { setCreating(false); router.refresh(); setOpenId(id); }} />}
     </>

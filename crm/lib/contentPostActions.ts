@@ -21,11 +21,12 @@ function refresh(id?: number) {
  * Mark a video as posted: saves one post per ticked platform (with its link and the hook that was used) and moves the card to Posted,
  * all or nothing. Nothing is posted anywhere by the app: you post by hand, then record it here.
  */
-export async function markPosted(contentId: number, entries: { platform: string; url: string }[], hook: string, postedAt: string | null): Promise<Result> {
+export async function markPosted(contentId: number, entries: { platform: string; url: string; hook?: string }[], hook: string, postedAt: string | null): Promise<Result> {
   await requireLogin();
   const config = await loadContentConfig();
-  const clean = cleanPostEntries(entries, config.platforms);
+  const clean = cleanPostEntries(entries.map((e) => ({ platform: e.platform, url: e.url })), config.platforms);
   if ("error" in clean) return fail(clean.error);
+  const hookBy = Object.fromEntries(entries.map((e) => [e.platform, (e.hook ?? "").trim()]));
   const when = postedAt ? new Date(postedAt) : new Date();
   if (Number.isNaN(when.getTime()) || when.getTime() > Date.now() + 5 * 60_000) return fail("The posting time cannot be in the future.");
   try {
@@ -33,7 +34,7 @@ export async function markPosted(contentId: number, entries: { platform: string;
       const found = await c.query(`SELECT status FROM content_items WHERE id = $1 FOR UPDATE`, [contentId]);
       if (!found.rows[0]) throw new Error("That idea no longer exists.");
       for (const e of clean.entries) {
-        await c.query(`INSERT INTO posts (content_item_id, platform, url, hook_used, posted_at) VALUES ($1,$2,$3,$4,$5)`, [contentId, e.platform, e.url, hook.trim().slice(0, 300) || null, when]);
+        await c.query(`INSERT INTO posts (content_item_id, platform, url, hook_used, posted_at) VALUES ($1,$2,$3,$4,$5)`, [contentId, e.platform, e.url, (hookBy[e.platform] || hook).trim().slice(0, 300) || null, when]);
       }
       await c.query(`UPDATE content_items SET status = 'Posted', posted_at = COALESCE(posted_at, $2) WHERE id = $1`, [contentId, when]);
     });

@@ -13,7 +13,8 @@ import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposa
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
-import { loadContentConfig, writeScript, formatScript, repurpose } from "./content";
+import { loadContentConfig, repurpose } from "./content";
+import { scriptItem } from "./scriptItem";
 import { generateEvidenceIdeas, pipelineIdeas, scoreNewIdeas } from "./ideaGeneration";
 import { scoredLow, type NewIdea } from "./ideaEvidenceMath";
 import { backlogState } from "./contentConfigMath";
@@ -415,14 +416,8 @@ export async function writeScriptAction(_prev: string | null, form: FormData): P
   await requireLogin();
   const id = num(form, "id");
   try {
-    const [item] = await query<{ idea: string; status: string }>(`SELECT idea, status FROM content_items WHERE id = $1`, [id]);
-    if (!item) return "Item not found.";
-    const s = await writeScript(item.idea);
-    await query(
-      `UPDATE content_items SET hook = $2, script = $3, caption = $4, keyword = $5,
-              status = CASE WHEN status = 'Idea' THEN 'Scripted' ELSE status END WHERE id = $1`,
-      [id, s.favourite_hook, formatScript(s), s.caption, String(s.keyword ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "") || null],
-    );
+    const r = await scriptItem(id);
+    if (!r.ok) return r.error;
   } catch (err) {
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
   }
