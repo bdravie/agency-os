@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 import { revalidatePath } from "next/cache";
 import { query } from "./db";
 import { requireLogin } from "./auth";
-import { ROOT, pythonCommand, runChJob, scrub } from "./launch";
+import { ROOT, pythonCommand, runChJob, scrub, toolError } from "./launch";
 
 // Runs the Companies House search (agency.companies_house) in the background and records what it printed.
 // Free to run. Only a niche from config/niches.yaml and a plain place name can be passed, and no shell is involved.
@@ -46,6 +46,6 @@ export async function addSearchResultsAction(searchId: number, numbers: string[]
     revalidatePath("/companies");
     return { ok: scrub(String(stdout)).trim() };
   } catch (err: any) {
-    return { error: scrub(String(err?.stderr || err?.message || err)).split("\n").filter(Boolean).slice(-3).join(" ") };
+    return { error: scrub(toolError(err)).split("\n").filter(Boolean).slice(-3).join(" ") };
   }
 }

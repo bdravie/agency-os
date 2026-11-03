@@ -20,6 +20,10 @@ export function pythonCommand(args: string[]): { cmd: string; args: string[] } {
   return existsSync(venv) ? { cmd: venv, args: ["-m", ...args] } : { cmd: "uv", args: ["run", "python", "-m", ...args] };
 }
 
+/** A plain-English message when the Python tools can't start (no .venv and no uv), otherwise the error's own text. */
+export const toolError = (err: any): string =>
+  err?.code === "ENOENT" ? "The Python tools are not set up on this computer. In the project folder run: uv sync (install uv first with: brew install uv)." : String(err?.stderr || err?.message || err);
+
 /** Never let a secret reach the screen or the database, even inside an error message. */
 export const scrub = (text: string) => ["DATABASE_URL", "COMPANIES_HOUSE_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_PLACES_API_KEY", "SEARCH_API_KEY", "APIFY_TOKEN", "APP_PASSWORD", "SESSION_SECRET"]
   .reduce((t, k) => { const v = process.env[k]; return v && v.length > 6 ? t.split(v).join("[hidden]") : t; }, text).slice(-6000);
@@ -47,7 +51,7 @@ export async function launchChSearch(o: { niche: string; location: string | null
 export function runChJob(searchId: number, args: string[]) {
   const { cmd, args: full } = pythonCommand(args);
   execFile(cmd, full, { cwd: ROOT, env: process.env, timeout: MAX_CH_RUN_MINUTES * 60_000, maxBuffer: 5_000_000 }, (err, stdout, stderr) => {
-    const output = scrub(`${stdout}${err ? `\n${stderr || err.message}` : ""}`.trim());
+    const output = scrub(`${stdout}${err ? `\n${stderr || toolError(err)}` : ""}`.trim());
     void query(`UPDATE lead_searches SET status = $2, output = $3, finished_at = now() WHERE id = $1`, [searchId, err ? "failed" : "done", output]).then(() => { revalidatePath("/sourcer"); });
   });
 }
