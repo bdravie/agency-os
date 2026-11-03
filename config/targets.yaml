@@ -1,0 +1,17 @@
+# Targets for the Dashboard's Today, This week and This month cards. Edit the numbers to suit you;
+# anything missing or not a positive number falls back to the default shown here.
+# Nothing here is hard-coded in the app. The percentages, the "where you should be by now" tick and the projections
+# are all worked out from these numbers and from what is really in the CRM.
+
+today:
+  emails_sent: 5          # outreach emails sent (first emails and follow-ups). Tasks done today needs no target: it is everything due today.
+
+week:                     # weeks run Monday to Sunday, UK time
+  new_leads: 15           # companies added to the CRM
+  calls_booked: 3         # deals moved to "Call booked"
+  # posts_published: 4    # leave this out to use "posts_per_week" from config/niches.yaml
+
+month:                    # calendar month, UK time
+  revenue_gbp: 6000       # one-off revenue booked (deals marked Won this month). Monthly recurring revenue is shown separately.
+  deals_won: 3
+  new_leads: 60

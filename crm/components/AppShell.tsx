@@ -10,7 +10,7 @@ import { ReplyFeedProvider } from "./ReplyFeed";
 import HashScroll from "./HashScroll";
 
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
-export default function AppShell({ children, demo, signOut }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void> }) {
+export default function AppShell({ children, demo, signOut, theme }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void>; theme: "light" | "dark" }) {
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState(false);
   const pathname = usePathname();
@@ -39,7 +39,7 @@ export default function AppShell({ children, demo, signOut }: { children: React.
         <strong>Agency OS</strong>
       </div>
       <aside className={`sidebar${open ? " open" : ""}`}>
-        <Sidebar demo={demo} signOut={signOut} onSearch={() => { setOpen(false); setPalette(true); }} />
+        <Sidebar demo={demo} signOut={signOut} theme={theme} onSearch={() => { setOpen(false); setPalette(true); }} />
       </aside>
       {open && <div className="scrim" onClick={() => setOpen(false)} aria-hidden />}
       <main id="main" className="main"><HashScroll />{children}</main>

@@ -71,7 +71,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 
 - Small, readable modules; type hints; a `main()` with `argparse` for every Python CLI so it runs as `uv run python -m agency.<module> ...`.
 - Prompts live as Markdown files in `prompts/`, not inline strings, so the owner can edit them.
-- The CRM is clean, fast and keyboard-friendly; it will be filmed for marketing. Every page must work in `DEMO_MODE` with fake data (example.com emails, 07700 900xxx phone numbers).
+- The CRM is clean, fast and keyboard-friendly; it will be filmed for marketing, and it follows `BRAND_SHEET.md`. Every page must work in `DEMO_MODE` with fake data (example.com emails, 07700 900xxx phone numbers).
 - Every demo folder in `demos/<name>/` contains `README.md` (what it does, setup, cost per run), `loom-script.md`, the n8n workflow JSON or code, and `sample-data/` with fake data only.
 - British English in anything client-facing. Prices in GBP.
 - Before saying a milestone is done, run the tests, run the feature once on demo data, and check the done-checklist.
@@ -103,4 +103,5 @@ Errors are learning opportunities. When something breaks:
 - Explain what you are about to change in one or two sentences, then do it.
 - Keep running costs low: cache API responses during development, use Haiku where quality allows.
 
-- **Lead Sourcer look** is scoped to `/sourcer` only: all styles live in `crm/app/sourcer/sourcer.css` under `.sx` (Bricolage Grotesque + Instrument Sans, on the CRM's normal dark theme: use the tokens from `globals.css`, no light palette). The memorable element is `components/ScoreBar.tsx`, which draws the four score parts (size, verified, reach, reputation) from `parts` on each result. Keep new Lead Sourcer UI inside `.sx`; the only colours defined there are the four score-part colours.
+- **Brand sheet (approved by the owner, 3 Nov 2026): follow `BRAND_SHEET.md` for every new screen, component and feature.** White and Ember orange, with Lagoon (deep teal) as the third colour; Bricolage Grotesque and Instrument Sans; white cards on Paper with soft shadows; pill buttons with one Ember button per screen; six small motions that respect "reduce motion"; light and dark both supported (a switch, light by default). Use the tokens in `crm/app/globals.css`, never raw hex. The visual reference is `docs/brand-sheet-preview.html`. Check a new screen in both themes before calling it done.
+- **Lead Sourcer** keeps its own layout and logic, scoped to `/sourcer` under `.sx` in `crm/app/sourcer/sourcer.css`, but it uses the brand tokens like everything else (the only colours it names are the four score-part colours, which point at brand tokens). The memorable element is `components/ScoreBar.tsx`, which draws the four score parts (size, verified, reach, reputation) from `parts` on each result. Keep new Lead Sourcer UI inside `.sx`.

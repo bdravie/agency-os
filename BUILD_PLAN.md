@@ -217,6 +217,13 @@ Company page > Decision-makers (Apollo): free senior-people search, then a click
 
 ---
 
+## Extra: Brand, dashboard and navigation (built 3 Nov 2026)
+
+`BRAND_SHEET.md` is the approved brand (white, Ember orange, Lagoon teal; Bricolage Grotesque and Instrument Sans; light and dark with a switch in the sidebar, light by default). The whole CRM follows it through the tokens at the top of `crm/app/globals.css`, including the deals pipeline (same stacked-band format, new colours) and the Lead Sourcer (same layout and logic). The sidebar is regrouped into Home, Find and win, Sell, Deliver, Grow and Setup (`crm/components/nav-items.ts`). The Today page is now the Dashboard: Today, This week and This month cards with a completion ring, bars with a "where you should be by now" tick and a projection (`crm/lib/pace.ts`, `crm/lib/paceMath.ts`, `crm/components/PaceCard.tsx`), targets in `config/targets.yaml`, a pipeline snapshot, and a collapsible Recent activity. Visual reference: `docs/brand-sheet-preview.html`.
+
+- [ ] Owner to review the dashboard on real days and adjust `config/targets.yaml` (the numbers are starting guesses).
+- [ ] Click through the less-visited screens in both themes (company page, quote builder, audits, outcomes, enablement, teleprompter) and fix anything that looks off.
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

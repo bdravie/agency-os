@@ -6,14 +6,14 @@ export type Stage = (typeof STAGES)[number];
 export const FUNNEL_STAGES = STAGES.filter((s) => s !== "Lost") as readonly Stage[];
 
 export const STAGE_META: Record<Stage, { label: string; hint: string; next: string; colour: string }> = {
-  New: { label: "Lead", hint: "Not contacted yet", next: "Send the first email or message.", colour: "var(--muted)" },
-  Contacted: { label: "Contacted", hint: "Waiting for a reply", next: "Send one follow-up after 3-4 days if there's no reply.", colour: "var(--accent)" },
-  Replied: { label: "Replied", hint: "They've replied", next: "Offer a short call or the free pilot.", colour: "var(--violet)" },
-  "Call booked": { label: "Call booked", hint: "Discovery call scheduled", next: "Review their site and get the demo ready.", colour: "var(--warn)" },
-  "Audit sold": { label: "Audit sold", hint: "Paid audit agreed", next: "Deliver the audit, then propose the build.", colour: "var(--orange)" },
-  "Proposal sent": { label: "Proposal", hint: "Proposal or quote sent", next: "Follow up in 3 days and offer to answer questions.", colour: "var(--cyan)" },
-  Won: { label: "Won", hint: "Now a paying client", next: "Check the client is set up with a review date.", colour: "var(--good)" },
-  Lost: { label: "Lost", hint: "Not going ahead", next: "Note why it was lost, then move on.", colour: "var(--bad)" },
+  New: { label: "Lead", hint: "Not contacted yet", next: "Send the first email or message.", colour: "var(--st-new)" },
+  Contacted: { label: "Contacted", hint: "Waiting for a reply", next: "Send one follow-up after 3-4 days if there's no reply.", colour: "var(--st-contacted)" },
+  Replied: { label: "Replied", hint: "They've replied", next: "Offer a short call or the free pilot.", colour: "var(--st-replied)" },
+  "Call booked": { label: "Call booked", hint: "Discovery call scheduled", next: "Review their site and get the demo ready.", colour: "var(--st-call)" },
+  "Audit sold": { label: "Audit sold", hint: "Paid audit agreed", next: "Deliver the audit, then propose the build.", colour: "var(--st-audit)" },
+  "Proposal sent": { label: "Proposal", hint: "Proposal or quote sent", next: "Follow up in 3 days and offer to answer questions.", colour: "var(--st-proposal)" },
+  Won: { label: "Won", hint: "Now a paying client", next: "Check the client is set up with a review date.", colour: "var(--st-won)" },
+  Lost: { label: "Lost", hint: "Not going ahead", next: "Note why it was lost, then move on.", colour: "var(--st-lost)" },
 };
 
 export const stageLabel = (s: string) => STAGE_META[s as Stage]?.label ?? s;
@@ -44,12 +44,12 @@ export const channelLabel = (code: string | null | undefined) => (code ? CHANNEL
 export const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"] as const;
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
 export const CONTENT_META: Record<ContentStatus, { label: string; hint: string; next: string; colour: string }> = {
-  Idea: { label: "Ideas", hint: "Raw ideas to pick from", next: "Pick one and write its script.", colour: "var(--muted)" },
-  Scripted: { label: "Script ready", hint: "Script and caption written", next: "Film it, then move it to Filmed.", colour: "var(--accent)" },
-  Filmed: { label: "Filmed", hint: "Recorded, not posted yet", next: "Edit it, schedule it and post it.", colour: "var(--warn)" },
-  Posted: { label: "Posted", hint: "Published", next: "Watch for comments with your keyword.", colour: "var(--good)" },
+  Idea: { label: "Ideas", hint: "Raw ideas to pick from", next: "Pick one and write its script.", colour: "var(--st-new)" },
+  Scripted: { label: "Script ready", hint: "Script and caption written", next: "Film it, then move it to Filmed.", colour: "var(--st-contacted)" },
+  Filmed: { label: "Filmed", hint: "Recorded, not posted yet", next: "Edit it, schedule it and post it.", colour: "var(--st-call)" },
+  Posted: { label: "Posted", hint: "Published", next: "Watch for comments with your keyword.", colour: "var(--st-won)" },
 };
 /** Archived ideas are kept but hidden from the board unless "Show archived" is on. It is not a stage you move through. */
 export const ARCHIVED = "Archived";
-export const ARCHIVED_META = { label: "Archived", hint: "Set aside, not deleted", next: "Restore it to Ideas if you want it back.", colour: "var(--muted)" };
+export const ARCHIVED_META = { label: "Archived", hint: "Set aside, not deleted", next: "Restore it to Ideas if you want it back.", colour: "var(--st-new)" };
 export const contentLabel = (s: string) => (s === ARCHIVED ? ARCHIVED_META.label : CONTENT_META[s as ContentStatus]?.label ?? s);

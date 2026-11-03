@@ -20,7 +20,7 @@ export default function InstagramDm({ companyId, instagramUrl, cap }: { companyI
   const copy = async (t: string, label: string) => { await navigator.clipboard.writeText(t); setNote(`${label} copied`); };
   const d = res?.draft;
   return (
-    <div className="stack" style={{ gap: 8, marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--line, #2a2f3a)" }}>
+    <div className="stack" style={{ gap: 8, marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
       <div className="row-between">
         <b>Instagram DM</b>
         <a href={instagramUrl} target="_blank" rel="noreferrer" className="muted">Open their Instagram <ExternalLink size={11} aria-hidden /></a>

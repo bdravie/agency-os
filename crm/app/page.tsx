@@ -13,12 +13,15 @@ import { activityLabel } from "@/components/activity";
 import ActivityItem from "@/components/ActivityItem";
 import { activityTarget } from "@/lib/activityTarget";
 import { EmptyState, PageHeader, StageBadge, Stat } from "@/components/ui";
+import PaceCard from "@/components/PaceCard";
+import { loadPace, loadPipelineSnapshot } from "@/lib/pace";
+import { FUNNEL_STAGES, STAGE_META } from "@/lib/stages";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Today" };
+export const metadata = { title: "Dashboard" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -48,7 +51,11 @@ export default async function Today() {
         ORDER BY scheduled_for LIMIT 5`),
     loadContentConfig(),
     query<{ has: boolean }>(`SELECT EXISTS (SELECT 1 FROM content_briefs WHERE week_start = (date_trunc('week', now() AT TIME ZONE 'Europe/London'))::date) AS has`),
+    loadPace(),
+    loadPipelineSnapshot(),
   ]);
+  const openDeals = FUNNEL_STAGES.filter((st) => st !== "Won").map((st) => { const x = snapshot.find((y) => y.stage === st); return { stage: st, n: x?.n ?? 0, value: x?.value ?? 0 }; }).filter((x) => x.n > 0);
+  const openTotal = openDeals.reduce((a, x) => a + x.n, 0);
   const postedWeek = Number(contentStats[0].posted_week);
   const noSession = dueForSession(training);
   const atRisk = outcomes.filter(needsAttention);
@@ -67,16 +74,21 @@ export default async function Today() {
         description={new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
         actions={
           <>
-            <Link href="/companies?view=nosite" className="btn secondary"><Plus size={16} aria-hidden /> Find a lead</Link>
+            <Link href="/companies?view=nosite" className="btn"><Plus size={16} aria-hidden /> Find a lead</Link>
             <Link href="/proposals/new" className="btn secondary"><FileSignature size={16} aria-hidden /> New proposal</Link>
             <Link href="/content" className="btn secondary"><Video size={16} aria-hidden /> Content ideas</Link>
           </>
         }
       />
 
+      <section className="pace-grid" aria-label="Progress against your targets">
+        <PaceCard card={pace.today} />
+        <PaceCard card={pace.week} />
+        <PaceCard card={pace.month} />
+      </section>
+
       <section className="stats" aria-label="Key numbers">
-        <Stat label="Monthly recurring revenue" value={gbp(revenue.mrr)} hint={`${revenue.activeClients} active client${revenue.activeClients === 1 ? "" : "s"}`} href="/clients" />
-        <Stat label="One-off revenue this month" value={gbp(revenue.oneOffMonth)} hint={`${gbp(revenue.oneOffTotal)} all time · audits, builds, workshops`} href="/funnel" />
+        <Stat label="Monthly recurring revenue" value={gbp(revenue.mrr)} hint={`${revenue.activeClients} active client${revenue.activeClients === 1 ? "" : "s"} · ${gbp(revenue.oneOffTotal)} one-off all time`} href="/clients" />
         <Stat label="Open pipeline" value={gbp(revenue.pipelineOneOff)} hint={`one-off, plus ${gbp(revenue.pipelineMonthly)}/mo recurring · ${revenue.openDeals} deal${revenue.openDeals === 1 ? "" : "s"}`} href="/deals" />
         <Stat label="Tasks due" value={tasks.length} hint={overdue ? `${overdue} overdue` : "Nothing overdue"} href="/tasks" />
         <Stat label="Clients to check on" value={atRisk.length} hint={atRisk.length ? atRisk.slice(0, 2).map((l) => l.outcome.company_name).join(", ") + (atRisk.length > 2 ? "…" : "") : outcomes.length ? "Results are on track" : "Track results on the Outcomes page"} href="/outcomes" />
@@ -137,6 +149,21 @@ export default async function Today() {
           </section>
         </div>
 
+        <div className="stack">
+        <section className="card" aria-labelledby="snap-h">
+          <div className="row-between"><h2 id="snap-h">Pipeline snapshot</h2><Link href="/deals" className="muted">Open deals</Link></div>
+          {openTotal === 0 ? <p className="muted">No open deals yet.</p> : (
+            <>
+              <div className="snap-bar" role="img" aria-label={`${openTotal} open deals across ${openDeals.length} stages`}>
+                {openDeals.map((x, i) => <i key={x.stage} style={{ flex: x.n, background: STAGE_META[x.stage].colour, animationDelay: `${i * 60}ms` }} title={`${STAGE_META[x.stage].label}: ${x.n}`} />)}
+              </div>
+              <ul className="snap-list" style={{ marginTop: 10 }}>{openDeals.map((x) => (
+                <li key={x.stage}><span><i className="dot" style={{ background: STAGE_META[x.stage].colour }} aria-hidden />{STAGE_META[x.stage].label}</span><span className="muted">{x.n} · {gbp(x.value)}</span></li>
+              ))}</ul>
+            </>
+          )}
+        </section>
+
         <section className="card" aria-labelledby="act-h">
           <details>
           <summary><h2 id="act-h" style={{ margin: 0 }}>Recent activity</h2><span className="muted">{recent.length} {recent.length === 1 ? "item" : "items"}</span></summary>
@@ -154,6 +181,7 @@ export default async function Today() {
             {last ? `Last backup ${ago(last)}${backupBad ? " (over 36 hours: check the backup job)" : ""}` : "No backup recorded yet. Run: uv run python -m agency.backup"}
           </p>
         </section>
+        </div>
       </div>
     </>
   );
