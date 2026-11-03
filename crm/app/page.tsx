@@ -138,7 +138,8 @@ export default async function Today() {
         </div>
 
         <section className="card" aria-labelledby="act-h">
-          <h2 id="act-h">Recent activity</h2>
+          <details>
+          <summary><h2 id="act-h" style={{ margin: 0 }}>Recent activity</h2><span className="muted">{recent.length} {recent.length === 1 ? "item" : "items"}</span></summary>
           {recent.length === 0 ? <EmptyState title="Nothing yet">Activity appears here as you work.</EmptyState> : (
             <ul className="timeline">{recent.map((a: any) => (
               <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "feed")}>
@@ -148,6 +149,7 @@ export default async function Today() {
               </ActivityItem>
             ))}</ul>
           )}
+          </details>
           <p className={backupBad ? "error" : "muted"} style={{ marginTop: 12 }}>
             {last ? `Last backup ${ago(last)}${backupBad ? " (over 36 hours: check the backup job)" : ""}` : "No backup recorded yet. Run: uv run python -m agency.backup"}
           </p>
