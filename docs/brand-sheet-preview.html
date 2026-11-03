@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agency OS brand sheet (draft for review)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== Tokens (this block is the brand; everything below uses it) ===== */
+:root {
+  --page: #FAF7F2;        /* Paper: the page, a warm white */
+  --card: #FFFFFF;        /* White: every card */
+  --sunk: #F3EDE4;        /* Sand: tiles inside cards, inputs */
+  --line: #EAE3D9;
+  --ink: #1C1917;         /* text, primary data */
+  --ink-2: #5F5A54;
+  --muted: #78726B;
+
+  --ember: #F26B1D;       /* BRAND ORANGE: fills, bars, focus, the active thing */
+  --ember-text: #B4470A;  /* orange used as text or links on light (5.5:1 on white) */
+  --ember-tint: #FFF0E6;
+  --ember-line: #FFD3B5;
+
+  --lagoon: #0F5C5E;      /* THIRD COLOUR: deep teal. Done, on track, money kept */
+  --lagoon-tint: #E3F1F0;
+  --lagoon-line: #B7DAD8;
+
+  --danger: #C8321F;      /* only for errors and overdue, never decoration */
+  --danger-tint: #FDEBE8;
+
+  --r-lg: 20px; --r-md: 14px; --r-sm: 10px; --r-pill: 999px;
+  --shadow-1: 0 1px 2px rgba(28,25,23,.05), 0 4px 14px rgba(28,25,23,.05);
+  --shadow-2: 0 2px 4px rgba(28,25,23,.06), 0 14px 32px rgba(28,25,23,.12);
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --spring: cubic-bezier(.34,1.56,.64,1);
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-text: "Instrument Sans", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 var(--font-text); -webkit-font-smoothing: antialiased; }
+h1,h2,h3 { font-family: var(--font-display); letter-spacing: -.02em; margin: 0; line-height: 1.1; }
+p { margin: 0 0 10px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 48px 28px 96px; }
+.eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--ink-2); max-width: 62ch; }
+section.sheet { margin-top: 72px; }
+section.sheet > h2 { font-size: 30px; margin: 6px 0 8px; }
+.card { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 22px; }
+.tile { background: var(--sunk); border-radius: var(--r-md); padding: 14px 16px; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 860px) { .g2,.g3,.g4 { grid-template-columns: 1fr; } }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.muted { color: var(--muted); } .small { font-size: 13px; }
+code { background: var(--sunk); padding: 1px 6px; border-radius: 6px; font-size: 12.5px; }
+.note { border-left: 3px solid var(--ember); background: var(--ember-tint); padding: 10px 14px; border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 14px; }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: end; }
+.hero h1 { font-size: clamp(38px, 6vw, 62px); }
+.hero h1 em { font-style: normal; color: var(--ember); }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
+.bar3 { display: flex; height: 14px; border-radius: var(--r-pill); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+.bar3 i { display: block; }
+
+/* Swatches */
+.sw { border-radius: var(--r-md); overflow: hidden; background: var(--card); box-shadow: var(--shadow-1); }
+.sw .chip { height: 92px; display: flex; align-items: flex-end; padding: 10px 12px; font-weight: 600; font-size: 13px; }
+.sw .meta { padding: 10px 12px 12px; font-size: 13px; }
+.sw .meta b { display: block; font-family: var(--font-display); font-size: 15px; }
+
+/* Buttons */
+.btn { font: 600 14.5px var(--font-text); border: 0; cursor: pointer; border-radius: var(--r-pill); padding: 10px 20px; display: inline-flex; align-items: center; gap: 8px;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease), background 160ms var(--ease), color 160ms var(--ease); }
+.btn:active { transform: scale(.97); }
+.btn:focus-visible { outline: 3px solid var(--ember); outline-offset: 3px; }
+.btn.primary { background: var(--ember); color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 16px rgba(242,107,29,.28); }
+.btn.primary:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 10px 22px rgba(242,107,29,.36); }
+.btn.dark { background: var(--ink); color: #fff; }
+.btn.dark:hover { background: #34302c; transform: translateY(-1px); }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ember); color: var(--ember-text); }
+.btn.done { background: var(--lagoon); color: #fff; }
+.btn.danger { background: var(--danger-tint); color: var(--danger); }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.btn.sm { padding: 6px 14px; font-size: 13px; }
+input.field, textarea.field { width: 100%; font: 15px var(--font-text); background: var(--sunk); border: 1.5px solid transparent; border-radius: var(--r-sm); padding: 10px 12px; color: var(--ink); transition: border-color 160ms var(--ease), background 160ms var(--ease); }
+input.field:focus, textarea.field:focus { outline: none; border-color: var(--ember); background: #fff; box-shadow: 0 0 0 4px var(--ember-tint); }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: var(--r-pill); }
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.b-ember { background: var(--ember-tint); color: var(--ember-text); } .b-lagoon { background: var(--lagoon-tint); color: var(--lagoon); }
+.b-sand { background: var(--sunk); color: var(--ink-2); } .b-danger { background: var(--danger-tint); color: var(--danger); }
+.seg { display: inline-flex; background: var(--sunk); border-radius: var(--r-pill); padding: 3px; }
+.seg button { font: 600 13px var(--font-text); border: 0; background: transparent; padding: 6px 14px; border-radius: var(--r-pill); cursor: pointer; color: var(--ink-2); transition: all 180ms var(--ease); }
+.seg button.on { background: var(--card); color: var(--ink); box-shadow: var(--shadow-1); }
+
+/* Progress: the signature element (fill + pace tick) */
+.prog { position: relative; height: 10px; background: var(--sunk); border-radius: var(--r-pill); }
+.prog > b { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: var(--r-pill); background: var(--ember); transition: width 900ms var(--ease); }
+.prog.full > b { background: var(--lagoon); }
+.prog > s { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 2px; opacity: .55; }
+.ring { position: relative; --p: 0; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  background: conic-gradient(var(--ember) calc(var(--p) * 1%), var(--sunk) 0); transition: --p 1s var(--ease); }
+.ring::before { content: ""; position: absolute; width: 64px; height: 64px; background: var(--card); border-radius: 50%; }
+.ring span { position: relative; font: 700 20px var(--font-display); }
+.ring.full { background: conic-gradient(var(--lagoon) calc(var(--p) * 1%), var(--sunk) 0); }
+@property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+.num { font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+
+/* Pipeline (same format as the CRM deals board) */
+.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 860px) { .board { grid-template-columns: 1fr 1fr; } }
+.col { background: var(--sunk); border-radius: var(--r-md); padding: 10px; border-top: 3px solid var(--c, var(--ink-2)); min-height: 210px; }
+.col header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 10px; font-weight: 600; font-size: 13.5px; }
+.col header > span:first-child::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 8px; }
+.col header .pill { font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-pill); background: var(--card); color: var(--ink-2); }
+.deal { background: var(--card); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 8px; box-shadow: var(--shadow-1); border-left: 3px solid var(--c, var(--ink-2)); font-size: 13.5px; cursor: grab;
+  transition: transform 180ms var(--spring), box-shadow 180ms var(--ease); }
+.deal:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
+.deal.lifted { transform: translateY(-6px) rotate(2deg) scale(1.03); box-shadow: var(--shadow-2); }
+.deal b { display: block; } .deal span { color: var(--muted); font-size: 12.5px; }
+.deal.hot { box-shadow: 0 0 0 1.5px var(--ember), var(--shadow-1); }
+
+/* Motion demos */
+.settle > * { opacity: 0; transform: translateY(8px); }
+.settle.go > * { animation: settle 420ms var(--ease) forwards; }
+.settle.go > *:nth-child(2) { animation-delay: 60ms; } .settle.go > *:nth-child(3) { animation-delay: 120ms; } .settle.go > *:nth-child(4) { animation-delay: 180ms; }
+@keyframes settle { to { opacity: 1; transform: none; } }
+.caret::after { content: ""; display: inline-block; width: 2px; height: 1.1em; background: var(--ember); margin-left: 2px; vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.mono-spec { font-variant-numeric: tabular-nums; font-size: 13px; }
+table.spec { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.spec th { text-align: left; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; }
+table.spec td { padding: 10px; border-top: 1px solid var(--line); vertical-align: top; }
+
+/* Dashboard mock */
+.app { display: grid; grid-template-columns: 210px 1fr; background: var(--page); border-radius: var(--r-lg); box-shadow: var(--shadow-2); overflow: hidden; border: 1px solid var(--line); }
+@media (max-width: 860px) { .app { grid-template-columns: 1fr; } .side { display: none; } }
+.side { background: var(--card); padding: 16px 12px; border-right: 1px solid var(--line); font-size: 14px; }
+.side .logo { display: flex; align-items: center; gap: 9px; font: 700 16px var(--font-display); padding: 2px 8px 14px; }
+.side .logo i { width: 26px; height: 26px; border-radius: 8px; background: var(--ember); display: grid; place-items: center; font-style: normal; color: var(--ink); font-size: 14px; }
+.side h4 { margin: 14px 8px 4px; font: 600 10.5px var(--font-text); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.side a { display: flex; justify-content: space-between; padding: 7px 10px; border-radius: var(--r-sm); color: var(--ink-2); transition: background 150ms var(--ease); }
+.side a:hover { background: var(--sunk); }
+.side a.on { background: var(--ink); color: #fff; }
+.side a em { font-style: normal; background: var(--ember); color: var(--ink); font-size: 11px; font-weight: 700; border-radius: var(--r-pill); padding: 0 7px; }
+.main { padding: 22px; display: grid; gap: 14px; }
+.pace { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 1000px) { .pace { grid-template-columns: 1fr; } }
+.pace .card { padding: 18px; position: relative; }
+.goal { margin-top: 12px; font-size: 13px; } .goal .row { justify-content: space-between; margin-bottom: 5px; }
+details.rec { background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 14px 18px; }
+details.rec summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; font-weight: 600; }
+details.rec summary::-webkit-details-marker { display: none; }
+details.rec summary::before { content: "+"; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--ember-tint); color: var(--ember-text); font-weight: 700; transition: transform 200ms var(--ease); }
+details.rec[open] summary::before { content: "−"; }
+.nav-map { columns: 2; column-gap: 16px; } @media (max-width: 860px) { .nav-map { columns: 1; } }
+.nav-map .card { break-inside: avoid; margin-bottom: 16px; padding: 16px 18px; }
+.nav-map h3 { font-size: 16px; margin-bottom: 6px; } .nav-map li { padding: 3px 0; color: var(--ink-2); font-size: 14px; } .nav-map ul { margin: 0; padding: 0; list-style: none; }
+.nav-map li b { color: var(--ink); font-weight: 600; }
+.dd { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } @media (max-width: 860px) { .dd { grid-template-columns: 1fr; } }
+.dd ul { margin: 6px 0 0; padding-left: 18px; } .dd li { margin: 4px 0; }
+.yes h3 { color: var(--lagoon); } .no h3 { color: var(--danger); }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation: none !important; transition: none !important; } .settle > * { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ===================== 1. HERO ===================== -->
+<div class="hero">
+  <div>
+    <div class="eyebrow">Agency OS · brand sheet · draft v1 for review</div>
+    <h1>Calm paper, one <em>ember</em> to follow.</h1>
+    <p class="lede" style="margin-top:16px">A light, warm workspace where white does the resting and orange marks the one thing that needs you. A deep teal means "done" and "on track". Everything on this page is live: hover, click, press Replay.</p>
+  </div>
+  <div class="card">
+    <div class="eyebrow" style="margin-bottom:10px">The 60 / 30 / 10 rule</div>
+    <div class="bar3"><i style="width:60%;background:var(--page)"></i><i style="width:20%;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)"></i><i style="width:12%;background:var(--ember)"></i><i style="width:8%;background:var(--lagoon)"></i></div>
+    <p class="small muted" style="margin-top:10px">Mostly paper and white. Orange is the action and the current focus. Teal appears only when something is finished or healthy. If a screen looks orange all over, it is wrong.</p>
+  </div>
+</div>
+
+<!-- ===================== 2. WHAT I TOOK FROM THE VIDEO ===================== -->
+<section class="sheet">
+  <div class="eyebrow">01 · The video, analysed</div>
+  <h2>What worked, and what I made my own</h2>
+  <p class="lede">The video is a 28-second walkthrough of a CRM for a four-wheel-drive accessories workshop: a dashboard, a combined inbox with AI-drafted replies, and a deals board. I kept the ideas that make it fast to use. I did not keep its colours, fonts or exact shapes.</p>
+  <div class="card" style="margin-top:16px;padding:8px 14px">
+  <table class="spec">
+    <thead><tr><th style="width:21%">Part of the video</th><th style="width:40%">What it does well</th><th>My version</th></tr></thead>
+    <tbody>
+      <tr><td><b>Overall look</b></td><td>Warm cream page, near-white cards, soft shadows and very large corner radius. Almost no hard borders, so it feels calm and filmable. A dark mode flashes on briefly, with a lime accent.</td><td>Warm paper page, white cards, sand tiles inside cards, 20px card radius, shadows instead of borders. White and orange lead; no lime. Dark mode is not in this draft (see questions).</td></tr>
+      <tr><td><b>Dashboard</b></td><td>Big numbers up top, grouped sections (ads, revenue, AI agents), a bar chart, a "where leads come from" list, recent activity and to-dos. One page answers "how are we doing".</td><td>Same one-page idea, but organised by time: Today, This week, This month, each with a completion ring, a pace marker and a projection.</td></tr>
+      <tr><td><b>Navigation</b></td><td>Sidebar grouped under small capital labels (Workspace, Delivery, Money, People, System). Active item is a dark pill with a red count badge.</td><td>Same grouping, six groups named by what you are doing. Active item is an ink pill with an orange count.</td></tr>
+      <tr><td><b>Type</b></td><td>A friendly geometric grotesque for headings and names, a quiet sans for body, letter-spaced capitals for field labels.</td><td>Bricolage Grotesque for headings and big numbers, Instrument Sans for everything else. Both are already loaded in the CRM (the Lead Sourcer uses them), so no new fonts.</td></tr>
+      <tr><td><b>Buttons</b></td><td>Full-width black "Send" under a draft; turns solid green "✓ Sent" on click. Pill chips for tags.</td><td>Orange pill for the one main action per screen, ink pill for secondary, outlined for the rest. Success turns teal with a tick.</td></tr>
+      <tr><td><b>Deals board</b></td><td>Columns with a coloured top edge, a dot, the stage name and a "count · value" pill. Cards have a coloured left edge; cards needing action get a full coloured outline.</td><td>Kept as is. This is your pipeline format, and the video's is the same idea. Only the colours change.</td></tr>
+      <tr><td><b>Motion</b></td><td>The AI estimator list highlights options one at a time, a tick appears, the price counts in. The reply types itself out. Send turns green. The card lifts and drags to the next column. The panel opens and closes with a soft scale.</td><td>Six small, purposeful motions (section 6): settle-in, count-up, fill, type-out, press-to-success, lift-and-drop. Nothing loops and nothing is decorative.</td></tr>
+      <tr><td><b>Organisation</b></td><td>Each screen has one job. The inbox, estimator and pipeline connect: enquiry, drafted reply, send, card moves. Nothing is more than two clicks away.</td><td>Same: Today is the start of every day and everything links outwards from it.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted" style="margin-top:10px">I could only see the picture, not hear the audio, and the screen is filmed at an angle, so exact hex values and fonts are estimates. That does not matter: the point is to make yours different.</p>
+</section>
+
+<!-- ===================== 3. COLOUR ===================== -->
+<section class="sheet">
+  <div class="eyebrow">02 · Colour</div>
+  <h2>White, Ember and Lagoon</h2>
+  <p class="lede">Your two colours are white and orange. For the third I chose <b>Lagoon</b>, a deep teal. It sits opposite orange on the colour wheel, so both look stronger next to each other. It also reads naturally as "done", "on track" and "money kept", which frees orange to mean only "look here". It is far from the video's cream, black and green, which keeps this yours.</p>
+  <div class="grid g4" style="margin-top:18px">
+    <div class="sw"><div class="chip" style="background:#fff;box-shadow:inset 0 0 0 1px var(--line)">Aa</div><div class="meta"><b>White</b><code>#FFFFFF</code><br><span class="muted">Cards, drawers, inputs when focused.</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--page);box-shadow:inset 0 0 0 1px var(--line)">Aa</div><div class="meta"><b>Paper</b><code>#FAF7F2</code><br><span class="muted">The page behind the cards. A warm white, never grey.</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ember);color:var(--ink)">Aa</div><div class="meta"><b>Ember</b> (brand orange)<code>#F26B1D</code><br><span class="muted">Main button, active bar, focus ring, count badges. Text on it is ink, 5.7:1.</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--lagoon);color:#fff">Aa</div><div class="meta"><b>Lagoon</b> (third colour)<code>#0F5C5E</code><br><span class="muted">Done, on track, won, paid. Text on it is white, 7.7:1.</span></div></div>
+  </div>
+  <div class="grid g4" style="margin-top:16px">
+    <div class="sw"><div class="chip" style="background:var(--ink);color:#fff">Aa</div><div class="meta"><b>Ink</b><code>#1C1917</code><br><span class="muted">Text, and the secondary button.</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--sunk)">Aa</div><div class="meta"><b>Sand</b><code>#F3EDE4</code><br><span class="muted">Tiles inside cards, inputs, board columns.</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--ember-tint);color:var(--ember-text)">Aa</div><div class="meta"><b>Ember text / tint</b><code>#B4470A</code> <code>#FFF0E6</code><br><span class="muted">Orange links and badges on light. Darker so it passes 5.5:1.</span></div></div>
+    <div class="sw"><div class="chip" style="background:var(--lagoon-tint);color:var(--lagoon)">Aa</div><div class="meta"><b>Lagoon tint</b><code>#E3F1F0</code><br><span class="muted">Success backgrounds and finished bars.</span></div></div>
+  </div>
+  <div class="note" style="margin-top:16px"><b>Rules.</b> One Ember button per screen. Never white text on Ember (only 3:1); use Ink. Lagoon only means finished or healthy. Red (<code>#C8321F</code>) is for errors and overdue, never decoration. Pipeline stages run a calm ramp: sand, then Lagoon-tinted steps for progress, Ember for "needs you now", full Lagoon for Won.</div>
+</section>
+
+<!-- ===================== 4. TYPE ===================== -->
+<section class="sheet">
+  <div class="eyebrow">03 · Type</div>
+  <h2>Two fonts, five sizes</h2>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <div class="eyebrow">Display · Bricolage Grotesque 600 / 700</div>
+      <h1 style="font-size:46px;margin:8px 0">£12,480 booked</h1>
+      <p class="muted small">Page titles, section titles, and every big number (tabular figures so columns line up, tight tracking).</p>
+      <div class="eyebrow" style="margin-top:16px">Body · Instrument Sans 400 / 500 / 600</div>
+      <p style="margin-top:6px">Lists, forms, tables and buttons. Warm and readable at small sizes, so a dense CRM page stays calm.</p>
+    </div>
+    <div class="card">
+      <table class="spec" style="font-size:14px">
+        <tr><td><span class="eyebrow">Label</span></td><td class="mono-spec">11.5px · 600 · caps · +0.12em</td></tr>
+        <tr><td class="small">Small / meta</td><td class="mono-spec">13px · 400 · muted</td></tr>
+        <tr><td>Body</td><td class="mono-spec">15px · 400 · line 1.55</td></tr>
+        <tr><td style="font:600 20px var(--font-display)">Section</td><td class="mono-spec">20–30px · display 600</td></tr>
+        <tr><td style="font:700 34px var(--font-display)">Page / numbers</td><td class="mono-spec">34–62px · display 700 · −0.03em</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 5. CONTROLS ===================== -->
+<section class="sheet">
+  <div class="eyebrow">04 · Buttons, fields, badges</div>
+  <h2>Pill-shaped, one loud button</h2>
+  <div class="card" style="margin-top:16px">
+    <div class="row" style="gap:14px">
+      <button class="btn primary">Add lead</button>
+      <button class="btn dark">Save draft</button>
+      <button class="btn ghost">Cancel</button>
+      <button class="btn danger">Remove</button>
+      <button class="btn primary" disabled>Disabled</button>
+      <button class="btn primary" id="sendBtn" style="min-width:150px;justify-content:center">Send reply</button>
+      <button class="btn ghost sm" onclick="resetSend()">Replay</button>
+    </div>
+    <p class="small muted" style="margin-top:10px">Hover lifts 1px, press shrinks to 97%, keyboard focus draws a thick Ember ring. "Send reply" shows the success motion: ink spinner, then Lagoon with a tick. Same pattern for Save, Generate, Mark done.</p>
+    <div class="grid g3" style="margin-top:14px">
+      <input class="field" placeholder="Company name">
+      <input class="field" placeholder="Click me: Ember focus ring">
+      <div class="row"><span class="badge b-ember">Needs you</span><span class="badge b-lagoon">On track</span><span class="badge b-sand">Waiting</span><span class="badge b-danger">Overdue</span></div>
+    </div>
+    <div class="row" style="margin-top:14px"><span class="seg" id="seg"><button class="on">Today</button><button>Week</button><button>Month</button></span><span class="small muted">Switches (Today / Week / Month, filters) use this segmented pill.</span></div>
+  </div>
+</section>
+
+<!-- ===================== 6. MOTION ===================== -->
+<section class="sheet">
+  <div class="eyebrow">05 · Motion</div>
+  <h2>Six motions, each with a job</h2>
+  <p class="lede">Rule: motion explains a change; it never decorates. Everything is 150 to 450ms with one easing curve (<code>cubic-bezier(.2,.8,.2,1)</code>), and switches off for anyone with "reduce motion" set.</p>
+  <div class="grid g3" style="margin-top:16px">
+    <div class="card"><div class="eyebrow">1 · Settle-in · 420ms</div>
+      <div class="settle" id="m1" style="margin:12px 0"><div class="tile">Card one</div><div class="tile" style="margin-top:6px">Card two</div><div class="tile" style="margin-top:6px">Card three</div></div>
+      <p class="small muted">On page load, cards rise 8px and fade in, 60ms apart. Replaces everything popping in at once.</p><button class="btn ghost sm" onclick="play('m1')">Replay</button></div>
+    <div class="card"><div class="eyebrow">2 · Count-up and fill · 900ms</div>
+      <div class="row" style="margin:12px 0"><div class="num" id="cnt" style="font-size:40px">£0</div></div>
+      <div class="prog" id="pg"><b></b><s style="left:60%"></s></div>
+      <p class="small muted" style="margin-top:12px">Numbers count up and bars fill when a screen opens. The thin tick is the pace marker: where you should be by now.</p><button class="btn ghost sm" onclick="runCount()">Replay</button></div>
+    <div class="card"><div class="eyebrow">3 · Type-out · AI drafts</div>
+      <div class="tile" style="margin:12px 0;min-height:92px;font-size:14px" id="tw"></div>
+      <p class="small muted">An AI draft writes itself out at reading speed, then shows its Send button. Still click-only: it types only after you press Generate.</p><button class="btn ghost sm" onclick="runType()">Replay</button></div>
+    <div class="card"><div class="eyebrow">4 · Press to success · 300ms</div>
+      <div class="row" style="margin:12px 0"><button class="btn primary" id="b4" onclick="pressDemo(this)" style="min-width:150px;justify-content:center">Mark done</button></div>
+      <p class="small muted">Button shrinks, then morphs to Lagoon with a tick for 1.5 seconds. Confirmation without a pop-up.</p></div>
+    <div class="card"><div class="eyebrow">5 · Lift and drop · deals</div>
+      <div class="deal hot" id="d5" style="margin:12px 0;--c:var(--ember)"><b>Cooper Plumbing</b><span>£3,900 est</span></div>
+      <p class="small muted">Dragging lifts the card (scale 1.03, 2° tilt, bigger shadow). Dropping springs it into place and the column totals update.</p><button class="btn ghost sm" onclick="liftDemo()">Replay</button></div>
+    <div class="card"><div class="eyebrow">6 · Panel open · 220ms</div>
+      <details class="rec" style="margin:12px 0;box-shadow:none;background:var(--sunk)"><summary>Recent activity <span class="muted small">12 items</span></summary><p class="small muted" style="margin:10px 0 0">Collapsed by default, so the page stays short.</p></details>
+      <p class="small muted">Drawers slide in from the right; collapsible sections expand with a soft height ease. Used for Recent activity.</p></div>
+  </div>
+</section>
+
+<!-- ===================== 7. PIPELINE ===================== -->
+<section class="sheet">
+  <div class="eyebrow">06 · Deals pipeline</div>
+  <h2>The same board you have now, re-coloured</h2>
+  <p class="lede">Format unchanged: stage column, dot, name, "count · value" pill, cards with a coloured left edge, and a full Ember outline for deals that need you. (Sample data.)</p>
+  <div class="board" style="margin-top:16px">
+    <div class="col" style="--c:#A8A29A"><header><span>New</span><span class="pill">2 · £7,500</span></header>
+      <div class="deal hot" style="--c:var(--ember)"><b>Harlow Heating Ltd</b><span>£3,900 est · 2d in stage</span></div>
+      <div class="deal" style="--c:#A8A29A"><b>Brook Roofing</b><span>£3,600 est</span></div></div>
+    <div class="col" style="--c:#5B9C9B"><header><span>Quoted</span><span class="pill">3 · £14,200</span></header>
+      <div class="deal" style="--c:#5B9C9B"><b>Oakley Dental</b><span>£5,600 est · 0d</span></div>
+      <div class="deal" style="--c:#5B9C9B"><b>Mason Electrical</b><span>£6,800 est · 1d</span></div></div>
+    <div class="col" style="--c:var(--ember)"><header><span>Negotiating</span><span class="pill">1 · £4,800</span></header>
+      <div class="deal" style="--c:var(--ember)"><b>Glow Aesthetics</b><span>£4,800 est · 3d</span></div></div>
+    <div class="col" style="--c:var(--lagoon)"><header><span>Won</span><span class="pill">2 · £9,100</span></header>
+      <div class="deal" style="--c:var(--lagoon)"><b>Pryce Plumbing</b><span>£6,100 · paid</span></div></div>
+  </div>
+</section>
+
+<!-- ===================== 8. DASHBOARD ===================== -->
+<section class="sheet">
+  <div class="eyebrow">07 · New dashboard and navigation</div>
+  <h2>Today, this week, this month, in one glance</h2>
+  <p class="lede">The first thing you see is how far you are through each period, and where you are heading. Under that, only what needs you. All figures here are sample data. (Press the Today / Week / Month switch to see the pace cards respond.)</p>
+  <div class="app" style="margin-top:18px">
+    <aside class="side">
+      <div class="logo"><i>A</i> Agency OS</div>
+      <h4>Home</h4><a class="on">Dashboard <em>3</em></a><a>Inbox</a><a>Tasks</a>
+      <h4>Find &amp; win</h4><a>Lead Sourcer</a><a>Companies</a><a>Deals</a><a>Proposals</a>
+      <h4>Sell</h4><a>Calls</a><a>Quotes</a><a>Audits</a><a>Objections</a>
+      <h4>Deliver</h4><a>Clients</a><a>Outcomes</a><a>Enablement</a>
+      <h4>Grow</h4><a>Content</a><a>Funnel</a>
+      <h4>Setup</h4><a>Offers</a><a>Mailboxes</a><a>Suppression</a>
+    </aside>
+    <div class="main">
+      <div class="row between"><div><div class="eyebrow">Tuesday 3 November</div><h2 style="font-size:26px">Good morning, Brad</h2></div>
+        <div class="row"><span class="seg" id="seg2"><button class="on" data-k="all">All</button><button data-k="t">Today</button><button data-k="w">Week</button><button data-k="m">Month</button></span><button class="btn primary sm">+ New lead</button></div></div>
+      <div class="pace" id="pace">
+        <div class="card" data-k="t"><div class="row between"><div><div class="eyebrow">Today</div><div class="num" style="font-size:28px;margin-top:4px">3 of 5 done</div><span class="badge b-ember" style="margin-top:6px">2 left</span></div><div class="ring" data-p="60" style="position:relative"><span>60%</span></div></div>
+          <div class="goal"><div class="row"><span>Follow-ups sent</span><b>2 / 4</b></div><div class="prog" data-p="50"><b></b><s style="left:60%"></s></div></div>
+          <div class="goal"><div class="row"><span>Replies answered</span><b>3 / 3</b></div><div class="prog full" data-p="100"><b></b></div></div>
+          <div class="goal"><div class="row"><span>Post filmed</span><b>0 / 1</b></div><div class="prog" data-p="0"><b></b></div></div></div>
+        <div class="card" data-k="w"><div class="row between"><div><div class="eyebrow">This week · day 2 of 7</div><div class="num" style="font-size:28px;margin-top:4px">On pace</div><span class="badge b-lagoon" style="margin-top:6px">Projected 14 leads</span></div><div class="ring" data-p="38" style="position:relative"><span>38%</span></div></div>
+          <div class="goal"><div class="row"><span>New leads (target 15)</span><b>6</b></div><div class="prog" data-p="40"><b></b><s style="left:29%"></s></div></div>
+          <div class="goal"><div class="row"><span>Calls booked (target 4)</span><b>1</b></div><div class="prog" data-p="25"><b></b><s style="left:29%"></s></div></div>
+          <div class="goal"><div class="row"><span>Posts published (target 5)</span><b>2</b></div><div class="prog" data-p="40"><b></b><s style="left:29%"></s></div></div></div>
+        <div class="card" data-k="m"><div class="row between"><div><div class="eyebrow">This month · day 3 of 30</div><div class="num" style="font-size:28px;margin-top:4px">£1,150</div><span class="badge b-ember" style="margin-top:6px">Projected £4,700 of £6,000</span></div><div class="ring" data-p="19" style="position:relative"><span>19%</span></div></div>
+          <div class="goal"><div class="row"><span>Revenue booked</span><b>£1,150 / £6,000</b></div><div class="prog" data-p="19"><b></b><s style="left:10%"></s></div></div>
+          <div class="goal"><div class="row"><span>Deals won</span><b>1 / 3</b></div><div class="prog" data-p="33"><b></b><s style="left:10%"></s></div></div>
+          <div class="goal"><div class="row"><span>Outreach batches</span><b>0 / 4</b></div><div class="prog" data-p="0"><b></b></div></div></div>
+      </div>
+      <div class="grid g2" style="gap:14px">
+        <div class="card"><div class="row between"><div class="eyebrow">Needs you now</div><span class="badge b-ember">3</span></div>
+          <div class="tile" style="margin-top:10px">Reply from Oakley Dental (unread)</div><div class="tile" style="margin-top:6px">Quote to chase: Mason Electrical, 4 days</div><div class="tile" style="margin-top:6px">Script overdue: GUESTS</div></div>
+        <div class="card"><div class="eyebrow">Pipeline snapshot</div>
+          <div class="row" style="margin-top:12px;gap:6px;align-items:flex-end;height:74px"><div style="flex:2;background:#A8A29A;height:35%;border-radius:8px"></div><div style="flex:3;background:#5B9C9B;height:70%;border-radius:8px"></div><div style="flex:1;background:var(--ember);height:50%;border-radius:8px"></div><div style="flex:2;background:var(--lagoon);height:100%;border-radius:8px"></div></div>
+          <div class="small muted" style="margin-top:8px">8 open deals · £35,600 · tap to open the board</div></div>
+      </div>
+      <details class="rec"><summary>Recent activity <span class="muted small">12 items</span></summary><p class="small muted" style="margin:10px 0 0">Collapsed by default. Opens in place. Backup status stays visible underneath.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 9. NAV ===================== -->
+<section class="sheet">
+  <div class="eyebrow">08 · Navigation</div>
+  <h2>Six groups, named by what you are doing</h2>
+  <p class="lede">Today your sidebar has five groups, and "Selling" holds seven unrelated things (Calls, Objections, Audits, Quotes, Outcomes, Enablement, Clients). The proposal below keeps every page but sorts them by the question you are asking when you open the app.</p>
+  <div class="nav-map" style="margin-top:16px">
+    <div class="card"><h3>Home</h3><ul><li><b>Dashboard</b>: today, week, month (replaces "Today")</li><li><b>Inbox</b>: replies to emails you sent</li><li><b>Tasks</b></li></ul></div>
+    <div class="card"><h3>Find &amp; win</h3><ul><li><b>Lead Sourcer</b></li><li><b>Companies</b></li><li><b>Deals</b>: your board, unchanged</li><li><b>Proposals</b> (moved from Marketing: it is how you win work)</li></ul></div>
+    <div class="card"><h3>Sell</h3><ul><li><b>Calls</b></li><li><b>Quotes</b></li><li><b>Audits</b></li><li><b>Objections</b></li></ul></div>
+    <div class="card"><h3>Deliver</h3><ul><li><b>Clients</b></li><li><b>Outcomes</b></li><li><b>Enablement</b></li></ul></div>
+    <div class="card"><h3>Grow</h3><ul><li><b>Content</b>: ideas, board, film, What's working</li><li><b>Funnel</b>: conversion and channels</li></ul></div>
+    <div class="card"><h3>Setup</h3><ul><li><b>Offers</b></li><li><b>Mailboxes</b></li><li><b>Suppression</b></li></ul></div>
+  </div>
+</section>
+
+<!-- ===================== 10. DO / DON'T ===================== -->
+<section class="sheet">
+  <div class="eyebrow">09 · How every new feature follows this</div>
+  <h2>The checklist</h2>
+  <div class="dd" style="margin-top:16px">
+    <div class="card yes"><h3>Always</h3><ul>
+      <li>Use tokens (<code>--ember</code>, <code>--lagoon</code>, <code>--card</code>…) and never a raw hex.</li>
+      <li>White cards on Paper, Sand tiles inside, 20px / 14px / 10px radii, shadows instead of borders.</li>
+      <li>One Ember button per screen; ink for secondary; outlined for the rest.</li>
+      <li>Big numbers in Bricolage with tabular figures; labels in small capitals.</li>
+      <li>Progress shows fill plus a pace tick; finished turns Lagoon.</li>
+      <li>Success is a button morph, not a pop-up. Respect "reduce motion".</li>
+      <li>Every page works with demo data and looks good on camera.</li></ul></div>
+    <div class="card no"><h3>Never</h3><ul>
+      <li>White text on Ember (use Ink), or Ember text smaller than 14px (use the darker Ember text).</li>
+      <li>Orange backgrounds on whole sections, or more than one Ember button in view.</li>
+      <li>Red for decoration; teal for anything not finished or healthy.</li>
+      <li>Looping or decorative animation, or anything slower than 450ms.</li>
+      <li>New fonts, new accent colours or gradients.</li>
+      <li>Copying another product's layout or colours.</li></ul></div>
+  </div>
+</section>
+
+</div>
+
+<script>
+if (location.search.includes("still")) document.head.insertAdjacentHTML("beforeend", "<style>*{transition:none!important;animation:none!important}.settle>*{opacity:1!important;transform:none!important}</style>");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || location.search.includes("still");
+const ease = t => 1 - Math.pow(1 - t, 3);
+function play(id){ const e = document.getElementById(id); e.classList.remove("go"); void e.offsetWidth; e.classList.add("go"); }
+function animateNum(el, to, fmt, ms=900){ if(reduce){ el.textContent = fmt(to); return; } const s = performance.now(); (function f(n){ const t = Math.min(1,(n-s)/ms); el.textContent = fmt(Math.round(to*ease(t))); if(t<1) requestAnimationFrame(f); })(s); }
+function runCount(){ const p = document.querySelector("#pg"); p.firstElementChild.style.width = "0"; animateNum(document.getElementById("cnt"), 7200, v => "£" + v.toLocaleString("en-GB")); setTimeout(()=> p.firstElementChild.style.width = "72%", 40); }
+const msg = "Hi Sam, thanks for getting in touch. A setup like yours usually comes in around £3,900 fitted. Want me to give you a call to run through it?";
+let tt; function runType(){ clearInterval(tt); const el = document.getElementById("tw"); el.textContent = ""; el.classList.add("caret"); let i = 0; if(reduce){ el.textContent = msg; el.classList.remove("caret"); return; } tt = setInterval(()=>{ el.textContent = msg.slice(0, ++i); if(i >= msg.length){ clearInterval(tt); el.classList.remove("caret"); } }, 22); }
+function pressDemo(b){ if(b.dataset.busy) return; b.dataset.busy = 1; const old = b.textContent; b.classList.add("done"); b.classList.remove("primary"); b.textContent = "✓ Done"; setTimeout(()=>{ b.classList.remove("done"); b.classList.add("primary"); b.textContent = old; delete b.dataset.busy; }, 1600); }
+function resetSend(){ const b = document.getElementById("sendBtn"); b.className = "btn primary"; b.textContent = "Send reply"; }
+document.getElementById("sendBtn").addEventListener("click", function(){ const b = this; if(b.classList.contains("done")) return; b.textContent = "Sending…"; b.classList.remove("primary"); b.classList.add("dark"); setTimeout(()=>{ b.classList.remove("dark"); b.classList.add("done"); b.textContent = "✓ Sent"; }, 700); });
+function liftDemo(){ const d = document.getElementById("d5"); d.classList.add("lifted"); setTimeout(()=> d.classList.remove("lifted"), 1100); }
+document.querySelectorAll(".seg").forEach(s => s.addEventListener("click", e => { if(e.target.tagName !== "BUTTON") return; s.querySelectorAll("button").forEach(b => b.classList.remove("on")); e.target.classList.add("on");
+  if(s.id === "seg2"){ const k = e.target.dataset.k; document.querySelectorAll("#pace .card").forEach(c => c.style.display = (k === "all" || c.dataset.k === k) ? "" : "none"); } }));
+function fillDash(){ document.querySelectorAll(".prog[data-p]").forEach(p => setTimeout(()=> p.firstElementChild.style.width = p.dataset.p + "%", 60)); document.querySelectorAll(".ring[data-p]").forEach(r => setTimeout(()=> r.style.setProperty("--p", r.dataset.p), 60)); }
+// Run the demos when they scroll into view
+const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ io.unobserve(e.target); const id = e.target.id; if(id === "m1") play("m1"); if(id === "pg") runCount(); if(id === "tw") runType(); if(id === "pace") fillDash(); } }), { threshold: .4 });
+["m1","pg","tw","pace"].forEach(id => io.observe(document.getElementById(id)));
+</script>
+</body>
+</html>
