@@ -224,6 +224,14 @@ Company page > Decision-makers (Apollo): free senior-people search, then a click
 - [ ] Owner to review the dashboard on real days and adjust `config/targets.yaml` (the numbers are starting guesses).
 - [ ] Click through the less-visited screens in both themes (company page, quote builder, audits, outcomes, enablement, teleprompter) and fix anything that looks off.
 
+## Extra: Calendar and click-to-book meetings (built 3 Nov 2026)
+
+`/calendar` shows the owner's week (Google events read live, meetings booked here, tasks due, content scheduled) and the Dashboard has the same week as a card. Book a meeting (`/calendar/book`, or from a company page) creates a Google Calendar event with a Google Meet link and Google emails the invitation, on the owner's click only, to a saved contact who agreed to a call. Rules are in `CLAUDE.md` ("Calendar and click-to-book meetings"). Code: `crm/lib/gcal.ts` (Google client), `gcalAuth.ts` (sign-in), `meetingMath.ts` (rules and UK-time maths), `meetingBook.ts`, `meetingActions.ts`, `meetings.ts`; migration `20261109100000_calendar_meetings.sql`; checks `crm/tests/meetingMath.test.mjs`, `crm/tests/gcal.test.mjs` and `npx tsx scripts/checkBooking.mts` (against a stand-in Google, ZZ rows cleaned up).
+
+- [ ] Owner: in Google Cloud turn on the Google Calendar API, add the `calendar.events` scope to the consent screen, then press Connect Google Calendar on `/calendar` (steps are on that page).
+- [ ] Book one real test meeting with the owner's own second email address, check the invitation and the Meet link arrive, then cancel it.
+- [ ] Not built (on purpose): reschedule (cancel and rebook), a public booking page for clients to pick their own slot (Cal.com is the planned tool for that), reading replies to invitations.
+
 ## Milestone 8: Backups and reliability
 
 **Paste into Claude Code:**

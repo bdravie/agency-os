@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ToastForm from "@/components/ToastForm";
 import { notFound } from "next/navigation";
-import { Check, Globe, Mail, MapPin, Phone } from "lucide-react";
+import { CalendarPlus, Check, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { query } from "@/lib/db";
 import { addContact, addDeal, addTask, completeTask, findEmailAction, findWebsiteOneAction, logContact, saveNotes, setWebsite } from "@/lib/actions";
 import { googleSearchUrl } from "@/lib/websites";
@@ -27,6 +27,8 @@ import DealBuilder from "@/components/DealBuilder";
 import { loadBuilderCatalogue } from "@/lib/dealBuilderData";
 import { creditUsage } from "@/lib/usage";
 import { nextStep } from "@/lib/nextStep";
+import { loadMeetings } from "@/lib/meetings";
+import MeetingList from "@/components/MeetingList";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
 import { activityLabel } from "@/components/activity";
 import ActivityItem from "@/components/ActivityItem";
@@ -56,6 +58,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!gate) notFound();
   const blocker = gate.sendable ? null : gate.reasons.join(" ");
   const apollo = await apolloStatusAction(id);
+  const meetings = await loadMeetings(id);
   const [latestSuggestion] = await query<any>(`SELECT id, result FROM offer_suggestions WHERE company_id = $1 ORDER BY id DESC LIMIT 1`, [id]);
   const offerChoices = ((latestSuggestion?.result?.suggestions ?? []) as any[]).slice(0, 3).map((x, i) => ({ suggestionId: Number(latestSuggestion.id), index: i, title: String(x.title), offerName: x.offer_name ?? null, needsDpa: !!x.needs_dpa }));
   const rapport = await latestRapportFor(contacts.map((c: any) => Number(c.id)));
@@ -269,6 +272,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
               <input name="due" type="datetime-local" aria-label="Due" />
               <button className="secondary">Add</button>
             </ToastForm>
+          </section>
+
+          <section className="card" id="meetings">
+            <div className="row-between"><h2>Meetings</h2><Link href={`/calendar/book?company=${id}`} className="btn secondary"><CalendarPlus size={15} aria-hidden /> Book a meeting</Link></div>
+            <MeetingList rows={[...meetings.upcoming, ...meetings.past]} empty="No meetings booked with this company yet." showCompany={false} />
           </section>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import ToastForm from "@/components/ToastForm";
-import { Check, FileSignature, Plus, Video } from "lucide-react";
+import { CalendarPlus, Check, FileSignature, Plus, Video } from "lucide-react";
 import { query } from "@/lib/db";
 import { loadRevenue } from "@/lib/revenue";
 import { loadOutcomes, needsAttention } from "@/lib/outcomeData";
@@ -14,6 +14,9 @@ import ActivityItem from "@/components/ActivityItem";
 import { activityTarget } from "@/lib/activityTarget";
 import { EmptyState, PageHeader, StageBadge, Stat } from "@/components/ui";
 import PaceCard from "@/components/PaceCard";
+import WeekCalendar from "@/components/WeekCalendar";
+import { loadWeekView } from "@/lib/meetings";
+import { dayKey, dayLabel, timeLabel } from "@/lib/meetingMath";
 import { loadPace, loadPipelineSnapshot } from "@/lib/pace";
 import { FUNNEL_STAGES, STAGE_META } from "@/lib/stages";
 
@@ -21,7 +24,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
 
 export default async function Today() {
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot, week] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -53,6 +56,7 @@ export default async function Today() {
     query<{ has: boolean }>(`SELECT EXISTS (SELECT 1 FROM content_briefs WHERE week_start = (date_trunc('week', now() AT TIME ZONE 'Europe/London'))::date) AS has`),
     loadPace(),
     loadPipelineSnapshot(),
+    loadWeekView(dayKey(new Date())),
   ]);
   const openDeals = FUNNEL_STAGES.filter((st) => st !== "Won").map((st) => { const x = snapshot.find((y) => y.stage === st); return { stage: st, n: x?.n ?? 0, value: x?.value ?? 0 }; }).filter((x) => x.n > 0);
   const openTotal = openDeals.reduce((a, x) => a + x.n, 0);
@@ -85,6 +89,25 @@ export default async function Today() {
         <PaceCard card={pace.today} />
         <PaceCard card={pace.week} />
         <PaceCard card={pace.month} />
+      </section>
+
+      <section className="card" aria-labelledby="cal-h" style={{ marginBottom: 20 }}>
+        <div className="row-between">
+          <h2 id="cal-h" style={{ margin: 0 }}>This week</h2>
+          <div className="row" style={{ gap: 10 }}>
+            {week.next && (
+              <span className="badge tone-warn" title={week.next.title}>
+                Next: {dayLabel(week.next.start)} {timeLabel(week.next.start)} · {week.next.title.length > 34 ? week.next.title.slice(0, 31) + "…" : week.next.title}
+              </span>
+            )}
+            {week.next?.meetUrl && <a className="btn secondary" href={week.next.meetUrl} target="_blank" rel="noreferrer"><Video size={15} aria-hidden /> Join</a>}
+            {week.connected && <Link href="/calendar/book" className="btn secondary"><CalendarPlus size={15} aria-hidden /> Book a meeting</Link>}
+            <Link href="/calendar" className="muted">Open calendar</Link>
+          </div>
+        </div>
+        {week.error && <p className="error" role="alert" style={{ marginTop: 10 }}>{week.error} <Link href="/calendar">Open calendar</Link></p>}
+        {!week.connected && <p className="muted" style={{ margin: "10px 0 0" }}>Connect your Google Calendar to see your meetings here and book new ones with a Meet link. <Link href="/calendar">Connect it</Link></p>}
+        <div style={{ marginTop: 14 }}><WeekCalendar view={week} max={4} weekHref={() => "/calendar"} /></div>
       </section>
 
       <section className="stats" aria-label="Key numbers">

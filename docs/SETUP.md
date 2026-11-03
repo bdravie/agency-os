@@ -56,6 +56,23 @@ Notes:
 - Replies show in Inbox while the CRM is open in a browser tab (checked every minute, only conversations the CRM started). For Mac notifications with no tab open, install the optional checker: see the comment at the top of `scripts/com.agencyos.replies.plist`.
 - Bounces and unsubscribes stay on Instantly: copy them into the Suppression page by hand.
 
+
+## 2c. Calendar and Meet invitations (Google Calendar)
+
+Uses the same Google Cloud project and the same `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` as the mailboxes (section 2b), so there is no new sign-in address to register.
+
+1. In that project: APIs & Services > Library > enable the **Google Calendar API**.
+2. OAuth consent screen (Google Auth Platform) > Data access > add the scope `https://www.googleapis.com/auth/calendar.events`. Use **Internal** if the calendar is on your own Google Workspace (no review needed). If it is **External**, press **Publish app**: an app left in *Testing* has its access cancelled by Google every 7 days, and you would have to connect again each week.
+3. Add `SENDER_NAME` and `BUSINESS_NAME` to the env file if they are not there yet (every invitation names you and your business). Optionally set `CALENDAR_DAILY_CAP` (default 10 meetings a day).
+4. CRM > Calendar > **Connect Google Calendar**, and tick every box on Google's screen.
+5. Try it once with your own second email address: Book a meeting, check the invitation and Meet link arrive, then cancel it.
+
+Notes
+- Booking asks Google to create the event with a Meet link and to email the guest (`sendUpdates=all`). Cancelling asks Google to email the guest that it is cancelled.
+- Events on your calendar are read when a page loads (kept in memory for a minute) and are never saved in the database. Only meetings you book from the CRM are saved.
+- The saved Google access is encrypted with a key made from `SESSION_SECRET` (as for the mailboxes). If you change it, connect the calendar again.
+- If you see "Google Calendar is switched off for your Google Cloud project", step 1 is not done (or needs a minute to take effect).
+
 ## 3. Accounts and API keys, in the order you need them
 
 | When | Service | Sign up | `.env` key | Cost |

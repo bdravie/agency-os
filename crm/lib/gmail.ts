@@ -5,7 +5,7 @@ import { decryptToken } from "./mailCrypto";
 import type { GmailMessage } from "./replyMath";
 
 const AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
-const TOKEN = "https://oauth2.googleapis.com/token";
+const TOKEN = process.env.GOOGLE_TOKEN_URL?.trim() || "https://oauth2.googleapis.com/token";   // the override is only for tests with a stand-in server
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 // send: to send on a click. readonly: to read replies (the code only opens messages in threads the CRM sent, see replies.ts).
 export const SCOPES = ["openid", "email", "profile", "https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/gmail.readonly"];
@@ -24,7 +24,7 @@ export function authUrl(state: string, loginHint?: string): string {
   return `${AUTH}?${p}`;
 }
 
-async function tokenCall(body: Record<string, string>): Promise<any> {
+export async function tokenCall(body: Record<string, string>): Promise<any> {
   const res = await fetch(TOKEN, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID ?? "", client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "", ...body }) });
   const json: any = await res.json().catch(() => ({}));
   if (!res.ok) {

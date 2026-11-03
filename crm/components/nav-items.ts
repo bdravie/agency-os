@@ -1,10 +1,11 @@
-import { Building2, Inbox, Mail, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Radar, Phone, ShieldBan, TrendingUp, Funnel, FileSignature, FileText, Kanban, LayoutDashboard, Package, Users, Video, type LucideIcon } from "lucide-react";
+import { Building2, Inbox, Mail, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Radar, Phone, ShieldBan, TrendingUp, Funnel, FileSignature, FileText, CalendarDays, Kanban, LayoutDashboard, Package, Users, Video, type LucideIcon } from "lucide-react";
 
 // One place that defines where everything lives. Grouped by what you are doing (BRAND_SHEET.md section 6).
 export type NavItem = { href: string; label: string; icon: LucideIcon; hint: string };
 export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: "Home", items: [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, hint: "Today, this week and this month at a glance" },
+    { href: "/calendar", label: "Calendar", icon: CalendarDays, hint: "Your week, and book a meeting with a Meet link" },
     { href: "/inbox", label: "Inbox", icon: Inbox, hint: "Replies to the emails you sent" },
     { href: "/tasks", label: "Tasks", icon: CheckSquare, hint: "Everything to do" },
   ] },
