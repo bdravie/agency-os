@@ -69,7 +69,9 @@ Uses the same Google Cloud project and the same `GOOGLE_CLIENT_ID` / `GOOGLE_CLI
 
 Notes
 - Booking asks Google to create the event with a Meet link and to email the guest (`sendUpdates=all`). Cancelling asks Google to email the guest that it is cancelled.
-- Events on your calendar are read when a page loads (kept in memory for a minute) and are never saved in the database. Only meetings you book from the CRM are saved.
+- The CRM saves a copy of the events on this (business) calendar and keeps it in step: it checks Google about once a minute while the CRM is open, and when you come back to its tab. It saves the title, times, links and which saved contact an event is with; never descriptions, locations or guest lists.
+- Tasks with a due date appear in the calendar as events with no guests (nothing is emailed). Change a task's title or time in the CRM or in Google and the other follows; delete the event in Google to stop syncing that task. Events more than 30 days back or 400 days ahead are not synced.
+- Real-time here means within about a minute. Instant push from Google would need the CRM to have a public address (the Cloudflare Tunnel, planned for the webhooks); say if you want it later.
 - The saved Google access is encrypted with a key made from `SESSION_SECRET` (as for the mailboxes). If you change it, connect the calendar again.
 - If you see "Google Calendar is switched off for your Google Cloud project", step 1 is not done (or needs a minute to take effect).
 

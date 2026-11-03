@@ -50,7 +50,11 @@ export async function loadPace(now = new Date()): Promise<{ today: PaceCard; wee
     query<{ leads: string; calls: string; posts: string }>(
       `WITH w AS (SELECT date_trunc('week', now() AT TIME ZONE 'Europe/London') AT TIME ZONE 'Europe/London' AS start)
        SELECT (SELECT count(*) FROM companies c, w WHERE c.created_at >= w.start) AS leads,
-              (SELECT count(*) FROM stage_history h, w WHERE h.to_stage = 'Call booked' AND h.source = 'app' AND h.changed_at >= w.start) AS calls,
+              (SELECT count(DISTINCT company_id) FROM (
+                 SELECT d.company_id FROM stage_history h JOIN deals d ON d.id = h.deal_id, w WHERE h.to_stage = 'Call booked' AND h.source = 'app' AND h.changed_at >= w.start
+                 UNION ALL
+                 SELECT e.company_id FROM calendar_events e, w WHERE e.company_id IS NOT NULL AND e.status <> 'cancelled' AND NOT e.all_day AND e.starts_at >= w.start AND e.starts_at < w.start + interval '7 days'
+               ) x WHERE company_id IS NOT NULL) AS calls,
               (SELECT count(*) FROM content_items i, w WHERE i.status = 'Posted' AND i.posted_at >= w.start) AS posts`),
     // One-off value of deals won this month. Same "won date" rule as the Revenue figures: the app's own stage change, else the last update.
     query<{ revenue: number; won: string; leads: string }>(

@@ -8,6 +8,7 @@ import CommandPalette from "./CommandPalette";
 import { ToastProvider } from "./Toast";
 import { ReplyFeedProvider } from "./ReplyFeed";
 import HashScroll from "./HashScroll";
+import LiveCalendar from "./LiveCalendar";
 
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
 export default function AppShell({ children, demo, signOut, theme }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void>; theme: "light" | "dark" }) {
@@ -42,7 +43,7 @@ export default function AppShell({ children, demo, signOut, theme }: { children:
         <Sidebar demo={demo} signOut={signOut} theme={theme} onSearch={() => { setOpen(false); setPalette(true); }} />
       </aside>
       {open && <div className="scrim" onClick={() => setOpen(false)} aria-hidden />}
-      <main id="main" className="main"><HashScroll />{children}</main>
+      <main id="main" className="main"><HashScroll /><LiveCalendar />{children}</main>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
     </ReplyFeedProvider>

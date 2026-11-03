@@ -5,6 +5,9 @@ import { addDays, dayKey, mondayOf } from "@/lib/meetingMath";
 import { googleConfigured, getConnection } from "@/lib/gcalAuth";
 import { disconnectCalendar } from "@/lib/meetingActions";
 import { redirectUri } from "@/lib/gmail";
+import { runSync } from "@/lib/calendarSync";
+import SyncNowButton from "@/components/SyncNowButton";
+import { ago } from "@/lib/format";
 import ConfirmButton from "@/components/ConfirmButton";
 import MeetingList from "@/components/MeetingList";
 import WeekCalendar from "@/components/WeekCalendar";
@@ -18,7 +21,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const today = dayKey(new Date());
   const anchor = sp.week && /^\d{4}-\d{2}-\d{2}$/.test(sp.week) ? sp.week : today;
   const monday = mondayOf(anchor);
-  const [view, meetings, conn] = await Promise.all([loadWeekView(anchor), loadMeetings(), getConnection()]);
+  const [first0, meetings, conn] = await Promise.all([loadWeekView(anchor), loadMeetings(), getConnection()]);
+  let view = first0;
+  // The very first time, fetch the calendar now so the page is not empty.
+  if (conn && !view.lastSync && !view.error) { await runSync({ force: true }); view = await loadWeekView(anchor); }
   const configured = googleConfigured();
   const first = new Date(monday + "T12:00:00Z"), last = new Date(addDays(monday, 6) + "T12:00:00Z");
   const range = `${first.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })} to ${last.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
@@ -68,7 +74,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             </div>
             {view.error && <p className="error" role="alert" style={{ marginTop: 10 }}>{view.error} <a href="/api/google/calendar/connect">Connect again</a></p>}
             <div style={{ marginTop: 14 }}><WeekCalendar view={view} max={8} /></div>
-            <p className="muted" style={{ marginTop: 12 }}>Showing {view.calendarEmail}. Events are read live from Google and are not saved here. Private events show as Busy.</p>
+            <div className="row-between" style={{ marginTop: 12 }}>
+              <p className="muted" style={{ margin: 0 }}>
+                Synced with {view.calendarEmail} {view.lastSync ? ago(view.lastSync) : "just now"}, and again about every minute while the CRM is open. Private events show as Busy.
+                Tasks with a due date appear in your Google Calendar too: change one in either place and the other follows, or delete its event in Google to stop syncing that task.
+              </p>
+              <SyncNowButton />
+            </div>
           </section>
 
           <div className="grid">

@@ -58,7 +58,7 @@ export async function createBooking(form: FormData, now = new Date()): Promise<{
   }
 
   try {
-    const body = buildEventBody({ title: check.title, description: buildDescription(check.notes, sender, business), start: check.start, end: check.end, email: check.email, requestId: `crm-meeting-${id}` });
+    const body = buildEventBody({ title: check.title, description: buildDescription(check.notes, sender, business), start: check.start, end: check.end, email: check.email, requestId: `crm-meeting-${id}`, meetingId: id });
     const ev = await createMeetEvent(await calendarToken(conn), conn.calendar_id, body);
     await query(`UPDATE meetings SET status = 'scheduled', google_event_id = $2, meet_url = $3, html_link = $4 WHERE id = $1`, [id, ev.id, ev.meetUrl, ev.link]);
   } catch (e) {

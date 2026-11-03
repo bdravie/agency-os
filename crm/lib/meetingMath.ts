@@ -87,7 +87,7 @@ export function buildDescription(notes: string, sender: string, business: string
 }
 
 /** The body for Google's events.insert: a Meet link is requested, the person is the only guest, and they cannot change or forward it. */
-export function buildEventBody(o: { title: string; description: string; start: Date; end: Date; email: string; requestId: string }) {
+export function buildEventBody(o: { title: string; description: string; start: Date; end: Date; email: string; requestId: string; meetingId?: number }) {
   return {
     summary: o.title,
     description: o.description,
@@ -97,6 +97,7 @@ export function buildEventBody(o: { title: string; description: string; start: D
     guestsCanModify: false, guestsCanInviteOthers: false, guestsCanSeeOtherGuests: false,
     reminders: { useDefault: true },
     conferenceData: { createRequest: { requestId: o.requestId, conferenceSolutionKey: { type: "hangoutsMeet" } } },
+    ...(o.meetingId ? { extendedProperties: { private: { crm_kind: "meeting", crm_meeting_id: String(o.meetingId) } } } : {}),
   };
 }
 

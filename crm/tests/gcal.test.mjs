@@ -13,11 +13,15 @@ const server = http.createServer((req, res) => {
     const send = (status, json) => { res.writeHead(status, { "Content-Type": "application/json" }); res.end(json === undefined ? "" : JSON.stringify(json)); };
     if (mode === "401") return send(401, { error: { message: "Invalid Credentials" } });
     if (mode === "disabled") return send(403, { error: { message: "Google Calendar API has not been used in project 123 before or it is disabled.", errors: [{ reason: "accessNotConfigured" }] } });
+    if (mode === "expired") return send(410, { error: { message: "Sync token is no longer valid" } });
     if (mode === "gone") return send(410, { error: { message: "Resource has been deleted" } });
+    if (req.method === "GET" && req.url.includes("syncToken=")) return send(200, { items: [{ id: "c1", status: "cancelled" }], nextSyncToken: "tok-2" });
     if (req.method === "GET" && req.url.includes("/events?")) return send(200, { items: [
       { id: "1", summary: "Standup", start: { dateTime: "2026-11-12T09:00:00Z" }, end: { dateTime: "2026-11-12T09:15:00Z" }, hangoutLink: "https://meet.google.com/aaa-bbbb-ccc" },
       { id: "2", status: "cancelled", start: { dateTime: "2026-11-12T10:00:00Z" }, end: { dateTime: "2026-11-12T11:00:00Z" } },
     ] });
+    if (req.method === "POST" && req.url.includes("sendUpdates=none")) return send(200, { id: "plain1" });
+    if (req.method === "PATCH") return send(200, { id: "plain1" });
     if (req.method === "POST") return send(200, mode === "pending" ? { id: "ev1", htmlLink: "https://www.google.com/calendar/event?eid=zz" } : { id: "ev1", hangoutLink: "https://meet.google.com/xyz-abcd-efg", htmlLink: "https://www.google.com/calendar/event?eid=zz" });
     if (req.method === "GET") return send(200, { id: "ev1", hangoutLink: "https://meet.google.com/late-link-now", htmlLink: "https://www.google.com/calendar/event?eid=zz" });
     if (req.method === "DELETE") return send(204);
@@ -27,7 +31,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 process.env.GOOGLE_CALENDAR_API_BASE = `http://127.0.0.1:${server.address().port}`;
 process.env.GOOGLE_MEET_POLL_MS = "1";
-const { listEvents, createMeetEvent, cancelEvent, CalendarAuthError } = await import("../lib/gcal.ts");
+const { listEvents, createMeetEvent, cancelEvent, CalendarAuthError, listChanges, insertPlainEvent, patchPlainEvent, deletePlainEvent, SyncTokenExpired, EventGone } = await import("../lib/gcal.ts");
 test.after(() => server.close());
 test.beforeEach(() => { seen = []; mode = "ok"; });
 
@@ -71,4 +75,37 @@ test("errors are plain: expired access, and the Calendar API being switched off"
   await assert.rejects(() => listEvents("tok", "primary", new Date(), new Date()), (e) => e instanceof CalendarAuthError && /Connect the calendar again/.test(e.message));
   mode = "disabled";
   await assert.rejects(() => createMeetEvent("tok", "primary", {}), /Google Calendar API/);
+});
+
+test("changes: with a token only the token is sent; without one a window is; guest addresses are asked for but never descriptions", async () => {
+  const first = await listChanges("tok", "primary", { timeMin: new Date("2026-10-01T00:00:00Z"), timeMax: new Date("2027-01-01T00:00:00Z") });
+  assert.ok(Array.isArray(first.items));
+  assert.match(seen[0].url, /timeMin=/);
+  assert.doesNotMatch(seen[0].url, /syncToken/);
+  assert.doesNotMatch(decodeURIComponent(seen[0].url), /description|location/);
+  assert.match(decodeURIComponent(seen[0].url), /attendees\(email,self,resource\)/);
+  seen = [];
+  const next = await listChanges("tok", "primary", { syncToken: "tok-1" });
+  assert.deepEqual([next.nextSyncToken, next.items[0].status], ["tok-2", "cancelled"]);
+  assert.match(seen[0].url, /syncToken=tok-1/);
+  assert.doesNotMatch(seen[0].url, /timeMin/);
+});
+
+test("changes: an expired sync token is reported so the caller can start again", async () => {
+  mode = "expired";
+  await assert.rejects(() => listChanges("tok", "primary", { syncToken: "old" }), (e) => e instanceof SyncTokenExpired);
+});
+
+test("task events: created, changed and removed without Google emailing anyone", async () => {
+  const id = await insertPlainEvent("tok", "primary", { summary: "x" });
+  assert.equal(id, "plain1");
+  assert.match(seen[0].url, /sendUpdates=none/);
+  await patchPlainEvent("tok", "primary", "plain1", { summary: "y" });
+  assert.equal(seen[1].method, "PATCH");
+  assert.match(seen[1].url, /sendUpdates=none/);
+  await deletePlainEvent("tok", "primary", "plain1");
+  assert.match(seen[2].url, /sendUpdates=none/);
+  mode = "gone";
+  await deletePlainEvent("tok", "primary", "plain1");                                        // already gone counts as done
+  await assert.rejects(() => patchPlainEvent("tok", "primary", "plain1", {}), (e) => e instanceof EventGone);
 });

@@ -57,3 +57,40 @@ export async function cancelEvent(token: string, calendarId: string, eventId: st
   try { await call<void>(token, `${cal(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all`, { method: "DELETE" }); }
   catch (e) { if (e instanceof Error && /said (404|410)/.test(e.message)) return; throw e; }
 }
+
+// ---------- Keeping a copy in step (incremental sync) and mirroring tasks ----------
+
+export class SyncTokenExpired extends Error {}
+export class EventGone extends Error {}
+
+export type ChangePage = { items: any[]; nextPageToken?: string; nextSyncToken?: string };
+
+/** One page of changes. With a sync token Google returns only what changed since (including deleted events); without one, a window of events.
+ *  Guest addresses are asked for only so they can be matched to saved contacts in memory: they are never saved. Descriptions and locations are never asked for. */
+export async function listChanges(token: string, calendarId: string, o: { syncToken?: string; timeMin?: Date; timeMax?: Date; pageToken?: string }): Promise<ChangePage> {
+  const q = new URLSearchParams({
+    maxResults: "250", singleEvents: "true",
+    fields: "nextPageToken,nextSyncToken,items(id,status,summary,start,end,hangoutLink,htmlLink,visibility,attendees(email,self,resource),extendedProperties/private)",
+  });
+  if (o.syncToken) q.set("syncToken", o.syncToken);
+  else { if (o.timeMin) q.set("timeMin", o.timeMin.toISOString()); if (o.timeMax) q.set("timeMax", o.timeMax.toISOString()); }
+  if (o.pageToken) q.set("pageToken", o.pageToken);
+  try { return await call<ChangePage>(token, `${cal(calendarId)}/events?${q}`); }
+  catch (e) { if (e instanceof Error && /said 410/.test(e.message)) throw new SyncTokenExpired("The saved sync position has expired."); throw e; }
+}
+
+/** A plain event with no guests: sendUpdates=none, so Google emails nobody. Returns the new event's id. */
+export async function insertPlainEvent(token: string, calendarId: string, body: object): Promise<string> {
+  const r = await call<{ id: string }>(token, `${cal(calendarId)}/events?sendUpdates=none&fields=id`, { method: "POST", body: JSON.stringify(body) });
+  return String(r.id);
+}
+
+export async function patchPlainEvent(token: string, calendarId: string, id: string, body: object): Promise<void> {
+  try { await call<unknown>(token, `${cal(calendarId)}/events/${encodeURIComponent(id)}?sendUpdates=none&fields=id`, { method: "PATCH", body: JSON.stringify(body) }); }
+  catch (e) { if (e instanceof Error && /said (404|410)/.test(e.message)) throw new EventGone("The event is gone."); throw e; }
+}
+
+export async function deletePlainEvent(token: string, calendarId: string, id: string): Promise<void> {
+  try { await call<void>(token, `${cal(calendarId)}/events/${encodeURIComponent(id)}?sendUpdates=none`, { method: "DELETE" }); }
+  catch (e) { if (e instanceof Error && /said (404|410)/.test(e.message)) return; throw e; }
+}

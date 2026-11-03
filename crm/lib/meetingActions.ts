@@ -11,12 +11,11 @@ import { revokeToken } from "./gmail";
 import { getConnection, calendarToken } from "./gcalAuth";
 import { cancelEvent } from "./gcal";
 import { createBooking } from "./meetingBook";
-import { forgetCalendarCache } from "./meetings";
 
 // Actions behind the Calendar screens. Booking is one meeting at a time, only on the owner's click (the form asks for confirmation first);
 // the rules are in meetingBook.ts. Google sends the invitation with the Meet link.
 
-const touch = (companyId?: number | null) => { forgetCalendarCache(); revalidatePath("/"); revalidatePath("/calendar"); if (companyId) revalidatePath(`/companies/${companyId}`); };
+const touch = (companyId?: number | null) => { revalidatePath("/"); revalidatePath("/calendar"); if (companyId) revalidatePath(`/companies/${companyId}`); };
 
 export async function bookMeeting(_prev: string | null, form: FormData): Promise<string | null> {
   await requireLogin();
@@ -50,7 +49,12 @@ export async function disconnectCalendar(): Promise<void> {
   await requireLogin();
   const conn = await getConnection();
   if (conn?.refresh_token_enc) { try { await revokeToken(decryptToken(conn.refresh_token_enc, process.env.SESSION_SECRET ?? "")); } catch { /* already unreadable: nothing to revoke */ } }
-  if (conn) await query(`UPDATE calendar_connections SET refresh_token_enc = NULL, last_error = NULL WHERE id = $1`, [conn.id]);
+  if (conn) {
+    await query(`UPDATE calendar_connections SET refresh_token_enc = NULL, last_error = NULL WHERE id = $1`, [conn.id]);
+    // The saved copy of the calendar goes with the connection (tasks stay; their Google events are left as they are).
+    await query(`DELETE FROM calendar_events WHERE connection_id = $1`, [conn.id]);
+    await query(`DELETE FROM calendar_sync_state WHERE connection_id = $1`, [conn.id]);
+  }
   touch();
   redirect("/calendar");
 }

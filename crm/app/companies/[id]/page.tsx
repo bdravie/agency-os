@@ -27,7 +27,7 @@ import DealBuilder from "@/components/DealBuilder";
 import { loadBuilderCatalogue } from "@/lib/dealBuilderData";
 import { creditUsage } from "@/lib/usage";
 import { nextStep } from "@/lib/nextStep";
-import { loadMeetings } from "@/lib/meetings";
+import { loadLinkedEvents, loadMeetings } from "@/lib/meetings";
 import MeetingList from "@/components/MeetingList";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
 import { activityLabel } from "@/components/activity";
@@ -58,7 +58,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!gate) notFound();
   const blocker = gate.sendable ? null : gate.reasons.join(" ");
   const apollo = await apolloStatusAction(id);
-  const meetings = await loadMeetings(id);
+  const [meetings, linkedEvents] = await Promise.all([loadMeetings(id), loadLinkedEvents(id)]);
   const [latestSuggestion] = await query<any>(`SELECT id, result FROM offer_suggestions WHERE company_id = $1 ORDER BY id DESC LIMIT 1`, [id]);
   const offerChoices = ((latestSuggestion?.result?.suggestions ?? []) as any[]).slice(0, 3).map((x, i) => ({ suggestionId: Number(latestSuggestion.id), index: i, title: String(x.title), offerName: x.offer_name ?? null, needsDpa: !!x.needs_dpa }));
   const rapport = await latestRapportFor(contacts.map((c: any) => Number(c.id)));
@@ -277,6 +277,18 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           <section className="card" id="meetings">
             <div className="row-between"><h2>Meetings</h2><Link href={`/calendar/book?company=${id}`} className="btn secondary"><CalendarPlus size={15} aria-hidden /> Book a meeting</Link></div>
             <MeetingList rows={[...meetings.upcoming, ...meetings.past]} empty="No meetings booked with this company yet." showCompany={false} />
+            {linkedEvents.length > 0 && (
+              <>
+                <h3>Also on your calendar</h3>
+                <ul>{linkedEvents.map((e) => (
+                  <li key={e.id} className="row-between">
+                    <span>{e.title}{e.contact_name && <span className="muted"> · {e.contact_name}</span>}</span>
+                    <span className="muted">{when(e.starts_at)}</span>
+                  </li>
+                ))}</ul>
+                <p className="muted">Linked because a guest is a saved contact here.</p>
+              </>
+            )}
           </section>
         </div>
       </div>
