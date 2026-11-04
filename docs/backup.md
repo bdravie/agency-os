@@ -16,7 +16,7 @@ Your Neon database is the business's most valuable asset. Two layers protect it:
 
 ## Daily schedule (macOS launchd)
 
-The file `scripts/launchd/com.agencyos.backup.plist` runs `scripts/backup.sh` at 02:30 every day (if the Mac is asleep it runs on wake). It contains this Mac's paths (`/Users/brad/Documents/agency-os`); `backup.sh` uses the repo's `.venv/bin/python` when it exists, so launchd does not need `uv` on its PATH. To switch it on (or, after moving the project, to reload it):
+The file `scripts/launchd/com.agencyos.backup.plist` runs `scripts/backup.sh` at 02:30 every day (if the Mac is asleep it runs on wake). It contains this Mac's paths (`/Users/brad/Documents/agency-os`); `backup.sh` uses the repo's `.venv` only if it really runs on this system. The project folder is shared with a Linux dev container whose `.venv` will not run on the Mac, so on the Mac it normally uses `uv` (from Homebrew) with its own environment in `~/.venvs/agency-os`, and neither system rebuilds the other's `.venv`. To switch it on (or, after moving the project, to reload it):
 
 ```
 launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.plist 2>/dev/null
