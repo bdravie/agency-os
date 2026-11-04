@@ -16,12 +16,16 @@ Your Neon database is the business's most valuable asset. Two layers protect it:
 
 ## Daily schedule (macOS launchd)
 
-The file `scripts/launchd/com.agencyos.backup.plist` runs the backup at 02:30 every day (if the Mac is asleep it runs on wake). It contains this Mac's paths. To switch it on:
+The file `scripts/launchd/com.agencyos.backup.plist` runs `scripts/backup.sh` at 02:30 every day (if the Mac is asleep it runs on wake). It contains this Mac's paths (`/Users/brad/Documents/agency-os`); `backup.sh` uses the repo's `.venv/bin/python` when it exists, so launchd does not need `uv` on its PATH. To switch it on (or, after moving the project, to reload it):
 
 ```
+launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.plist 2>/dev/null
 cp scripts/launchd/com.agencyos.backup.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.agencyos.backup.plist
+launchctl start com.agencyos.backup   # run once now to check
 ```
+
+**If the project moves** (for example off the T7), update the two paths in the plist and reload it. Until 4 Nov 2026 it still pointed at `/Volumes/T7/agency-os 2` and `~/.local/bin/uv`, so the nightly job failed silently from 21 Oct; the Dashboard's red "Last backup" line is the warning to watch.
 
 To switch it off: `launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.plist`. Output goes to `~/Library/Logs/agencyos-backup.log`.
 
@@ -52,6 +56,6 @@ Code is on GitHub. Secrets (`.env`) are not backed up anywhere: keep a copy in a
 
 ## Scratch databases
 
-`agency_scratch`, `agency_scratch2`, `agency_scratch3` and `agency_scratch4` exist in the same Neon project and are only for testing restores and migrations. `agency_scratch2` currently holds synthetic funnel test deals (not real data). A restore needs an empty scratch database, so to test again create a new one (for example `agency_scratch3`) and point `SCRATCH_DATABASE_URL` at it, or delete and recreate one in the Neon console.
+`agency_scratch`, `agency_scratch2`, `agency_scratch3` and `agency_scratch4` exist in the same Neon project and are only for testing restores and migrations. `agency_scratch2` currently holds synthetic funnel test deals (not real data); `agency_scratch3` holds the 4 Nov 2026 restore test and `agency_scratch4` is also not empty. `SCRATCH_DATABASE_URL` in `.env` was blank on 4 Nov 2026: set it to an empty scratch database before the next test. A restore needs an empty scratch database, so to test again create a new one (for example `agency_scratch3`) and point `SCRATCH_DATABASE_URL` at it, or delete and recreate one in the Neon console.
 
 The restore switches user triggers off while it loads data (and back on afterwards), so tables with triggers, such as `deals` and its stage history, restore exactly as backed up.

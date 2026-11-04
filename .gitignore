@@ -20,3 +20,10 @@ crm/next-env.d.ts
 
 # Personal Claude Code overrides
 .claude/settings.local.json
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
+
+# Local MCP wiring (MemPalace lives in the dev container, not on other machines)
+.mcp.json

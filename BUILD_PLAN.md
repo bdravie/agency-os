@@ -239,9 +239,9 @@ Company page > Decision-makers (Apollo): free senior-people search, then a click
 > Build milestone 8. (1) `scripts/backup.sh`: `pg_dump` the database (via the postgres container) to a dated, compressed file in BACKUP_DIR, keep the last 14 daily and 8 weekly copies. BACKUP_DIR should be a folder synced to cloud storage (e.g. Google Drive or iCloud) so backups leave the laptop. (2) `scripts/restore.sh` that restores a chosen backup into a fresh scratch database and prints row counts, so I can test restores without touching live data. (3) Schedule the backup daily via an n8n workflow or the OS scheduler, and show "last backup" on the CRM Today page (warning if older than 36 hours). (4) Add the CRM app to docker-compose as a production build so `docker compose up -d` starts everything after a reboot.
 
 **Done when:**
-- [ ] A backup file appears in the synced folder
-- [ ] A test restore into the scratch database shows the same row counts
-- [ ] After a reboot, `docker compose up -d` brings back the CRM, database and n8n
+- [ ] A backup file appears in the synced folder (backup verified 4 Nov 2026 in a test folder; reload the fixed launchd job on the Mac, see `docs/backup.md`, and check a file lands in `BACKUP_DIR`)
+- [x] A test restore into the scratch database shows the same row counts (4 Nov 2026, `agency_scratch3`, all 57 tables match)
+- [x] ~~After a reboot, `docker compose up -d` brings back the CRM, database and n8n~~ Replaced: no Docker. The database is Neon, the CRM starts at login from `scripts/com.agencyos.crm.plist` (launchd, KeepAlive) and n8n is deferred.
 
 ---
 

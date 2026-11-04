@@ -5,13 +5,14 @@
   <key>Label</key><string>com.agencyos.backup</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/brad/.local/bin/uv</string>
-    <string>run</string>
-    <string>python</string>
-    <string>-m</string>
-    <string>agency.backup</string>
+    <string>/bin/sh</string>
+    <string>/Users/brad/Documents/agency-os/scripts/backup.sh</string>
   </array>
-  <key>WorkingDirectory</key><string>/Volumes/T7/agency-os 2</string>
+  <key>WorkingDirectory</key><string>/Users/brad/Documents/agency-os</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
   <key>StartCalendarInterval</key>
   <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>30</integer></dict>
   <key>StandardOutPath</key><string>/Users/brad/Library/Logs/agencyos-backup.log</string>
