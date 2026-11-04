@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parsePastedPeople, splitLine } from "../lib/manualPeople.ts";
+import { parsePastedPeople, splitLine, canSaveUnverified, manualConsentText } from "../lib/manualPeople.ts";
 
 const D = "oakwood-heating.co.uk";
 test("a spreadsheet paste (tabs) and a comma list both work, and the position may contain commas", () => {
@@ -36,4 +36,15 @@ test("duplicates are dropped and limits apply", () => {
   assert.match(parsePastedPeople("x".repeat(9000), D).error ?? "", /too much/);
   assert.match(parsePastedPeople(Array(21).fill("A, B, C, a@oakwood-heating.co.uk").join("\n"), D).error ?? "", /Too many/);
   assert.deepEqual(parsePastedPeople("  \n ", D), { people: [], skipped: [] });
+});
+
+test("people can be saved for a company that is only unverified, never for one that is not eligible, opted out or suppressed", () => {
+  assert.equal(canSaveUnverified({ compliance_status: "unchecked", opted_out: false, suppressed: false }), true);
+  assert.equal(canSaveUnverified({ compliance_status: "not_eligible", opted_out: false, suppressed: false }), false);
+  assert.equal(canSaveUnverified({ compliance_status: "unchecked", opted_out: true, suppressed: false }), false);
+  assert.equal(canSaveUnverified({ compliance_status: "unchecked", opted_out: false, suppressed: true }), false);
+});
+test("the recorded basis says when a person was saved before the company was verified", () => {
+  assert.doesNotMatch(manualConsentText("4 Nov 2026"), /not yet verified|before the company was verified/);
+  assert.match(manualConsentText("4 Nov 2026", true), /before the company was verified.*blocked for outreach/);
 });

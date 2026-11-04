@@ -50,5 +50,11 @@ export function parsePastedPeople(text: string, companyDomain: string | null): P
   return { people, skipped };
 }
 
-export const manualConsentText = (date: string) =>
-  `B2B corporate subscriber + legitimate interest. Work details added by the owner by hand from a public source on ${date}.`;
+export const manualConsentText = (date: string, unverified = false) =>
+  `B2B corporate subscriber + legitimate interest. Work details added by the owner by hand from a public source on ${date}.` +
+  (unverified ? " Saved before the company was verified as a limited company: it stays blocked for outreach until it is." : "");
+
+/** People may be saved for a company that has simply not been verified yet (never looked up, or its number not found). Never for one that was
+ *  looked up and is not a limited company, that has opted out, or that is on the suppression list. The outreach gate itself is unchanged. */
+export const canSaveUnverified = (g: { compliance_status: string; opted_out: boolean; suppressed: boolean }) =>
+  g.compliance_status === "unchecked" && !g.opted_out && !g.suppressed;

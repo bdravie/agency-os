@@ -15,6 +15,7 @@ import ComplianceCard from "@/components/ComplianceCard";
 import OfferSuggestionCard from "@/components/OfferSuggestionCard";
 import DecisionMakers from "@/components/DecisionMakers";
 import PasteDecisionMakers from "@/components/PasteDecisionMakers";
+import { canSaveUnverified } from "@/lib/manualPeople";
 import ContactRapport from "@/components/ContactRapport";
 import { latestRapportFor } from "@/lib/rapport";
 import { apolloStatusAction, contactClearOptOutAction, contactOptOutAction } from "@/lib/apolloActions";
@@ -120,7 +121,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           <details className="card" id="paste-decision-makers">
             <summary>Add decision-makers by pasting{contacts.length > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {contacts.length} contact{contacts.length === 1 ? "" : "s"} saved</span>}</summary>
             <div style={{ marginTop: 14 }}>
-              <PasteDecisionMakers companyId={id} domain={company.domain ?? null} blocked={gate.sendable ? null : `People are only added for verified active limited companies that can be contacted. ${gate.reasons.join(" ")}`.trim()} />
+              <PasteDecisionMakers companyId={id} domain={company.domain ?? null} unverifiedOk={!gate.sendable && canSaveUnverified({ compliance_status: company.compliance_status, opted_out: !!company.opted_out, suppressed: gate.reasons.some((r: string) => /suppress/i.test(r)) })} blocked={gate.sendable ? null : `People are only added for verified active limited companies that can be contacted. ${gate.reasons.join(" ")}`.trim()} />
             </div>
           </details>
           <ComplianceCard company={company} gate={gate} />

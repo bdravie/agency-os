@@ -7,15 +7,16 @@ import { parsePastedPeople } from "@/lib/manualPeople";
 import { useToast } from "./Toast";
 
 // Paste decision-makers you found yourself: one person per line (or paste rows straight from a spreadsheet).
-export default function PasteDecisionMakers({ companyId, domain, blocked }: { companyId: number; domain: string | null; blocked: string | null }) {
+export default function PasteDecisionMakers({ companyId, domain, blocked, unverifiedOk = false }: { companyId: number; domain: string | null; blocked: string | null; unverifiedOk?: boolean }) {
   const toast = useToast(), router = useRouter();
   const [text, setText] = useState("");
   const [result, setResult] = useState<PasteResult | null>(null);
+  const [anyway, setAnyway] = useState(false);
   const [pending, start] = useTransition();
   const preview = useMemo(() => parsePastedPeople(text, domain), [text, domain]);
 
   const save = () => start(async () => {
-    const r = await addPastedPeopleAction(companyId, text);
+    const r = await addPastedPeopleAction(companyId, text, unverifiedOk && anyway);
     setResult(r);
     if (r.error) { toast(r.error, "bad"); return; }
     toast(`${r.saved?.length ?? 0} saved as contacts`);
@@ -23,9 +24,15 @@ export default function PasteDecisionMakers({ companyId, domain, blocked }: { co
     router.refresh();
   });
 
-  if (blocked) return <p className="muted">{blocked}</p>;
+  if (blocked && !unverifiedOk) return <p className="muted">{blocked}</p>;
   return (
     <div className="stack" style={{ gap: 10 }}>
+      {unverifiedOk && (
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
+          <input type="checkbox" checked={anyway} onChange={(e) => setAnyway(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>This company isn't verified yet (for example, I can't find its company number). Save these people anyway. <span className="muted">Emails and messages stay blocked for this company until it is verified on Companies House.</span></span>
+        </label>
+      )}
       <p className="muted" style={{ margin: 0 }}>
         One person per line: <b>first name, last name, position, contact detail</b>. You can paste rows straight from a spreadsheet.
         The contact detail must be a work email{domain ? ` on ${domain}` : ""} or a LinkedIn profile link. Personal addresses and phone numbers are refused.
@@ -44,7 +51,7 @@ export default function PasteDecisionMakers({ companyId, domain, blocked }: { co
       )}
       {result?.error && <p className="error" role="alert">{result.error}</p>}
       <div className="row">
-        <button type="button" disabled={pending || preview.people.length === 0} onClick={save}>{pending ? "Saving…" : `Save ${preview.people.length || ""} ${preview.people.length === 1 ? "person" : "people"}`.replace("  ", " ")}</button>
+        <button type="button" disabled={pending || preview.people.length === 0 || (unverifiedOk && !anyway)} onClick={save}>{pending ? "Saving…" : `Save ${preview.people.length || ""} ${preview.people.length === 1 ? "person" : "people"}`.replace("  ", " ")}</button>
         <span className="muted">Each is saved as a contact with how you found them recorded. Nothing is sent.</span>
       </div>
     </div>
