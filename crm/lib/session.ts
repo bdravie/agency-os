@@ -1,6 +1,6 @@
 // Signed session cookie using Web Crypto, so it works in middleware (edge) and server code.
 export const COOKIE = "agency_session";
-const MAX_AGE_S = 60 * 60 * 24 * 14;
+const MAX_AGE_S = 60 * 60 * 12;   // a session lasts 12 hours at most; the cookie itself also ends when the browser closes
 
 const enc = new TextEncoder();
 
@@ -36,7 +36,6 @@ export const cookieOptions = {
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production" && process.env.LOCAL_HTTP !== "1",   // LOCAL_HTTP=1: the app is served on http://127.0.0.1, where Safari refuses secure-only cookies
   path: "/",
-  maxAge: MAX_AGE_S,
 };
 
 export { safeEqual };
