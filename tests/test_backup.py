@@ -34,6 +34,7 @@ def test_few_files_are_all_kept():
     ("BACKUP_DIR=~/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups", "darwin"),  # name typed twice
     ("backups", "darwin"),  # relative, so it would land inside the project
     (str(config.ROOT / "backups"), "darwin"),  # inside the project
+    ("/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups", "darwin"),  # the ~ left off
     ("~/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups", "linux"),  # Mac folder, in the container
 ])
 def test_a_bad_backup_folder_is_refused(raw: str, platform: str):

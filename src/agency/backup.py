@@ -117,6 +117,8 @@ def backup_folder(raw: str, platform: str = sys.platform) -> Path:
         sys.exit(f"The backup folder must be a full path (starting with / or ~), not: {raw}")
     if folder.resolve().is_relative_to(config.ROOT):
         sys.exit("The backup folder must be outside the project: backups hold real business data and must never reach git.")
+    if folder.parts[:3] == ("/", "Library", "Mobile Documents"):
+        sys.exit("BACKUP_DIR is missing the ~ at the start. iCloud Drive is in your home folder: ~/Library/Mobile Documents/...")
     if "Library" in folder.parts and platform != "darwin":
         sys.exit("BACKUP_DIR is a Mac folder, and this is not the Mac (probably the dev container). Run this in the Mac's Terminal app.")
     return folder
@@ -126,7 +128,12 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Back up the database to BACKUP_DIR.")
     p.add_argument("--dir", type=Path, help="Backup folder (default: BACKUP_DIR from .env)")
     a = p.parse_args()
-    run(backup_folder(str(a.dir) if a.dir else config.require("BACKUP_DIR")))
+    folder = backup_folder(str(a.dir) if a.dir else config.require("BACKUP_DIR"))
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+    except OSError as err:
+        sys.exit(f"Could not use the backup folder {folder}: {err.strerror}. Check BACKUP_DIR in .env.")
+    run(folder)
 
 
 if __name__ == "__main__":
