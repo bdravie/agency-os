@@ -11,10 +11,14 @@ Your Neon database is the business's most valuable asset. Two layers protect it:
    `BACKUP_DIR=~/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups`
 2. Run the first backup by hand:
    `uv run python -m agency.backup`
-   A file named `agency-YYYYmmdd-HHMMSS.tar.gz` appears in that folder (small: a few hundred KB).
+   A file named `agency-YYYYmmdd-HHMMSS.tar.gz.enc` appears in that folder (small: a few hundred KB).
 3. The Today page in the CRM now shows "Last backup", in red if it is over 36 hours old.
 
 Run backups from the Mac's own Terminal app (`uname` says `Darwin`), not a VS Code terminal, which is inside the Linux container. The tool refuses a folder that is relative, inside the project, or a Mac folder when run in the container, because a recorded backup turns the Dashboard's warning off.
+
+## Encryption
+
+Backups hold real business data, so each file is encrypted before it reaches the synced folder and read back to check it before it is kept. **The key is `BACKUP_ENCRYPTION_KEY` in `.env`, and `.env` is not backed up, so keep a copy of the key in your password manager. Without it the backups cannot be restored by anyone.** `uv run python -m agency.backup --new-key` creates it once without displaying it, and refuses to replace an existing key, because that would lock out older backups. With no key the backup stops and records nothing, so the Dashboard's warning stays on. Older unencrypted `.tar.gz` backups can still be restored.
 
 ## Daily schedule (macOS launchd)
 
@@ -41,7 +45,7 @@ To switch it off: `launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.p
 
 ## What is kept
 
-The newest 14 backups, plus the newest one from each of the last 8 weeks. Only files named `agency-*.tar.gz` in the backup folder are ever deleted.
+The newest 14 backups, plus the newest one from each of the last 8 weeks. Only files named `agency-YYYYmmdd-HHMMSS.tar.gz` or `.tar.gz.enc` in the backup folder are ever deleted.
 
 ## Test a restore (do this once a month)
 
@@ -60,7 +64,7 @@ First try Neon's point-in-time restore. If that is not possible, create a new Ne
 
 ## What is not covered
 
-Code is on GitHub. Secrets (`.env`) are not backed up anywhere: keep a copy in a password manager.
+Code is on GitHub. Secrets (`.env`), including the backup key, are not backed up anywhere: keep a copy in a password manager.
 
 ## Scratch databases
 

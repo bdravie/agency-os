@@ -30,5 +30,6 @@ entities.json
 
 # Database backups hold real business data: never in the repo, wherever they end up
 agency-*.tar.gz
-agency-*.tar.partial
+agency-*.tar.gz.enc
+agency-*.partial
 BACKUP_DIR=*/

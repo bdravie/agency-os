@@ -21,6 +21,7 @@ from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict
 
 from agency import config
+from agency.backup import open_backup
 from agency.config import ROOT
 
 
@@ -55,6 +56,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Restore a backup into the scratch database and verify counts.")
     p.add_argument("backup", type=Path)
     a = p.parse_args()
+    open_backup(a.backup)  # a wrong key or damaged file should stop here, before the scratch database is touched
 
     live, scratch = config.require("DATABASE_URL"), config.require("SCRATCH_DATABASE_URL")
     guard(live, scratch)
@@ -69,7 +71,7 @@ def main() -> None:
     subprocess.run([str(dbmate), "--migrations-dir", str(ROOT / "db" / "migrations"), "--no-dump-schema", "up"],
                    check=True, env={**os.environ, "DATABASE_URL": scratch}, stdout=subprocess.DEVNULL)
 
-    with tarfile.open(a.backup, "r:gz") as tar, psycopg.connect(scratch) as conn:
+    with tarfile.open(fileobj=open_backup(a.backup), mode="r:gz") as tar, psycopg.connect(scratch) as conn:
         manifest = json.load(tar.extractfile("manifest.json"))
         set_triggers(conn, manifest["order"], enabled=False)
         for t in manifest["order"]:

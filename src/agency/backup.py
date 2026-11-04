@@ -1,15 +1,20 @@
-"""Back up the whole database to a dated .tar.gz in BACKUP_DIR.
+"""Back up the whole database to a dated, encrypted file in BACKUP_DIR.
 
 Usage: uv run python -m agency.backup [--dir PATH]
+       uv run python -m agency.backup --new-key   (once: creates BACKUP_ENCRYPTION_KEY in .env, never shown)
 
 Read-only against the database: one consistent snapshot, every table exported with PostgreSQL COPY
 (exact round trip of every column type). Keeps the newest 14 backups plus the newest one from each of
-the last 8 weeks, and deletes only files named agency-YYYYmmdd-HHMMSS.tar.gz in the backup folder.
+the last 8 weeks, and deletes only files named agency-YYYYmmdd-HHMMSS.tar.gz[.enc] in the backup folder.
+
+Files are encrypted before they reach the backup folder, so a cloud-synced copy is useless without the key. Plain data
+only ever sits in a temporary folder on this computer. Older unencrypted .tar.gz files can still be restored.
 """
 
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import sys
@@ -19,14 +24,51 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import psycopg
+from cryptography.fernet import Fernet, InvalidToken
 from psycopg import IsolationLevel, sql
 
 from agency import config
 from agency.core import db
 
-NAME_RE = re.compile(r"^agency-(\d{8})-(\d{6})\.tar\.gz$")
+NAME_RE = re.compile(r"^agency-(\d{8})-(\d{6})\.tar\.gz(?:\.enc)?$")
 KEEP_RECENT = 14
 KEEP_WEEKS = 8
+
+
+def fernet(key: str | None = None) -> Fernet:
+    """The cipher for backups, or a clear message if the key is missing or damaged. Never echoes the key."""
+    key = key or config.get("BACKUP_ENCRYPTION_KEY")
+    if not key:
+        sys.exit("BACKUP_ENCRYPTION_KEY is not set. Run: uv run python -m agency.backup --new-key")
+    try:
+        return Fernet(key.encode())
+    except ValueError:
+        sys.exit("BACKUP_ENCRYPTION_KEY is not a valid key. Restore it from your password manager.")
+
+
+def add_key_to_env(env_file: Path) -> None:
+    """Create a key and write it to .env without ever displaying it. Refuses to replace one: that would lock out older backups."""
+    lines = env_file.read_text().splitlines() if env_file.exists() else []
+    if any(re.fullmatch(r"\s*BACKUP_ENCRYPTION_KEY\s*=\s*\S+.*", line) for line in lines):
+        sys.exit("BACKUP_ENCRYPTION_KEY already exists, so it was left alone: replacing it would make older backups unreadable.")
+    entry = f"BACKUP_ENCRYPTION_KEY={Fernet.generate_key().decode()}"
+    blank = [i for i, line in enumerate(lines) if re.fullmatch(r"\s*BACKUP_ENCRYPTION_KEY\s*=\s*", line)]
+    if blank:
+        lines[blank[0]] = entry
+    else:
+        lines.append(entry)
+    env_file.write_text("\n".join(lines) + "\n")
+
+
+def open_backup(path: Path, key: str | None = None) -> io.BytesIO:
+    """A backup's .tar.gz contents, decrypted if needed, ready for tarfile. Reads the whole file: backups are small."""
+    data = path.read_bytes()
+    if path.name.endswith(".enc"):
+        try:
+            data = fernet(key).decrypt(data)
+        except InvalidToken:
+            sys.exit(f"{path.name} could not be decrypted: BACKUP_ENCRYPTION_KEY is not the key it was made with.")
+    return io.BytesIO(data)
 
 
 def tables_in_dependency_order(conn: psycopg.Connection) -> list[str]:
@@ -72,10 +114,11 @@ def files_to_delete(files: list[Path]) -> list[Path]:
 
 
 def run(dest: Path) -> Path:
+    cipher = fernet()  # before anything is written: no key, no backup
     dest.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
-    final = dest / f"agency-{now:%Y%m%d-%H%M%S}.tar.gz"
-    partial = final.with_suffix(".partial")
+    final = dest / f"agency-{now:%Y%m%d-%H%M%S}.tar.gz.enc"
+    partial = dest / f"{final.name}.partial"
 
     with tempfile.TemporaryDirectory() as tmp, psycopg.connect(config.require("DATABASE_URL"), row_factory=psycopg.rows.dict_row) as conn:
         conn.isolation_level = IsolationLevel.REPEATABLE_READ  # one consistent snapshot of every table
@@ -91,19 +134,24 @@ def run(dest: Path) -> Path:
         versions = [r["version"] for r in conn.execute("SELECT version FROM schema_migrations ORDER BY version")]
         manifest = {"format": 1, "created_at": now.isoformat(), "order": order, "rows": counts, "migrations": versions}
         (Path(tmp) / "manifest.json").write_text(json.dumps(manifest, indent=2))
-        with tarfile.open(partial, "w:gz") as tar:
+        plain = Path(tmp) / "backup.tar.gz"
+        with tarfile.open(plain, "w:gz") as tar:
             tar.add(Path(tmp) / "manifest.json", arcname="manifest.json")
             for t in order:
                 tar.add(Path(tmp) / f"{t}.copy", arcname=f"{t}.copy")
+        partial.write_bytes(cipher.encrypt(plain.read_bytes()))
+    with tarfile.open(fileobj=io.BytesIO(cipher.decrypt(partial.read_bytes())), mode="r:gz") as check:
+        if json.load(check.extractfile("manifest.json"))["rows"] != counts:  # prove it can be read back before trusting it
+            sys.exit("The encrypted backup did not read back correctly, so it was not kept.")
     partial.rename(final)  # only a finished file ever has the real name
 
-    for old in files_to_delete(list(dest.glob("agency-*.tar.gz"))):
+    for old in files_to_delete(list(dest.glob("agency-*.tar.gz*"))):
         old.unlink()
 
     with db.connect() as conn:
         db.log_activity(conn, "backup_completed", channel="backup", body=final.name,
-                        meta={"bytes": final.stat().st_size, "rows": sum(counts.values())})
-    print(f"Backup written: {final} ({final.stat().st_size / 1024:.0f} KB, {sum(counts.values())} rows in {len(order)} tables)")
+                        meta={"bytes": final.stat().st_size, "rows": sum(counts.values()), "encrypted": True})
+    print(f"Encrypted backup written: {final} ({final.stat().st_size / 1024:.0f} KB, {sum(counts.values())} rows in {len(order)} tables)")
     return final
 
 
@@ -127,7 +175,13 @@ def backup_folder(raw: str, platform: str = sys.platform) -> Path:
 def main() -> None:
     p = argparse.ArgumentParser(description="Back up the database to BACKUP_DIR.")
     p.add_argument("--dir", type=Path, help="Backup folder (default: BACKUP_DIR from .env)")
+    p.add_argument("--new-key", action="store_true", help="Create BACKUP_ENCRYPTION_KEY in .env (never shown), then stop")
     a = p.parse_args()
+    if a.new_key:
+        add_key_to_env(config.ROOT / ".env")
+        print("Key added to .env as BACKUP_ENCRYPTION_KEY. Copy it into your password manager now: backups can't be restored without it.")
+        return
+    fernet()  # say so now if the key is missing, before touching the folder
     folder = backup_folder(str(a.dir) if a.dir else config.require("BACKUP_DIR"))
     try:
         folder.mkdir(parents=True, exist_ok=True)

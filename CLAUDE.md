@@ -68,7 +68,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - **Social**: Upload-Post API for posting and analytics, ManyChat for comment-to-DM.
 - **Config**: niches in `config/niches.yaml`, starting offers and prices in `config/offers.yaml`. Never hard-code a niche or a price.
 - **Secrets** come from `.env` (see `.env.example`). Never print, log or commit secret values.
-- **Backups**: `scripts/backup.sh` (milestone 8) to a cloud-synced folder, plus Neon's built-in point-in-time restore. Treat the database as the business's most valuable asset: never run destructive commands against it.
+- **Backups**: `scripts/backup.sh` (milestone 8), encrypted (`BACKUP_ENCRYPTION_KEY`, with a copy in the owner's password manager) to a cloud-synced folder, never into the repo, plus Neon's built-in point-in-time restore. Treat the database as the business's most valuable asset: never run destructive commands against it.
 
 ## Conventions
 
