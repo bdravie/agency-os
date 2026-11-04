@@ -9,6 +9,7 @@ import { dateOnly } from "@/lib/format";
 import { creditUsage } from "@/lib/usage";
 import CopyButton from "./CopyButton";
 import OfferSuggestionButtons from "./OfferSuggestionButtons";
+import ResearchNotes from "./ResearchNotes";
 import ToastForm from "./ToastForm";
 import AddToDealsButton from "./AddToDealsButton";
 import { Pill } from "./ui";
@@ -27,9 +28,12 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
     creditUsage(),
   ]);
   const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'offer_suggested' AND occurred_at::date = current_date`);
+  const [notes] = await query<{ notes: string; updated_at: Date }>(`SELECT notes, updated_at FROM company_research_notes WHERE company_id = $1`, [companyId]);
   const latest = suggestions[0] as { id: number; model: string; result: SuggestionResult; created_at: Date } | undefined;
   const stale = research ? await companyChangedSince(companyId, research) : false;
   const byId = new Map((research?.findings ?? []).map((f) => [f.id, f]));
+  const noteById = new Map((latest?.result.owner_notes ?? []).map((n) => [n.id, n.text]));
+  const basedOn = (id: string) => (noteById.has(id) ? `Your note: ${noteById.get(id)}` : byId.get(id)?.title ?? id);
   const gaps = (research?.findings ?? []).filter((f) => f.kind !== "strength"), strengths = (research?.findings ?? []).filter((f) => f.kind === "strength");
 
   return (
@@ -38,6 +42,7 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
         <span className="muted">{research ? `Researched ${dateOnly(research.created_at)}${research.domain ? ` · ${research.domain}` : ""}` : "Not researched yet"}</span></div>
       <p className="muted" style={{ margin: "6px 0 12px" }}>Reads their own public website, works out where it may be losing enquiries, and suggests what to automate and what outcome to sell. Nothing is sent or saved to their record without you.</p>
       {stale && <p role="status" className="muted" style={{ margin: "0 0 12px", color: "var(--warn)" }}>This company&apos;s details were edited after this research ran, so the findings below may be out of date. Run the research again before relying on them.</p>}
+      <ResearchNotes companyId={companyId} initial={notes?.notes ?? ""} changedSinceDraft={!!latest && !!notes && new Date(notes.updated_at) > new Date(latest.created_at)} />
       <OfferSuggestionButtons companyId={companyId} model={suggestModel()} usage={{ used: Number(n), cap: Number(process.env.SUGGEST_DAILY_CAP ?? 15) || 15 }}
         search={{ enabled: usage.search.enabled, left: Math.max(0, usage.search.cap - usage.search.used) }} hasSuggestion={!!latest} />
 
@@ -56,7 +61,7 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
                 <dt className="muted">Measure</dt><dd style={{ margin: 0 }}>{s.kpi}</dd>
                 <dt className="muted">First step</dt><dd style={{ margin: 0 }}>{s.pilot}</dd>
                 <dt className="muted">Watch out</dt><dd style={{ margin: 0 }}>{s.risk}</dd>
-                <dt className="muted">Based on</dt><dd style={{ margin: 0 }} className="muted">{s.finding_ids.map((id) => byId.get(id)?.title ?? id).join(" · ") || "no finding (a guess)"}</dd>
+                <dt className="muted">Based on</dt><dd style={{ margin: 0 }} className="muted">{s.finding_ids.map(basedOn).join(" · ") || "no finding or note (a guess)"}</dd>
               </dl>
               <ToastForm action={saveToNotesAction} success="Added to the company notes" className="row" style={{ marginTop: 8 }}><input type="hidden" name="id" value={latest.id} /><input type="hidden" name="index" value={i} /><AddToDealsButton suggestionId={latest.id} index={i} /><button className="link">Add to notes</button></ToastForm>
             </div>
@@ -65,7 +70,7 @@ export default async function OfferSuggestionCard({ companyId, name }: { company
           {latest.result.questions.length > 0 && <div><div className="field-label">Worth asking on a call</div><ul style={{ margin: "4px 0 0" }}>{latest.result.questions.map((q, k) => <li key={k} style={{ border: 0, padding: "2px 0" }}>{q}</li>)}</ul></div>}
           <div className="row"><textarea id="offer-copy" readOnly defaultValue={asText(name, latest.result)} style={{ display: "none" }} /><CopyButton targetId="offer-copy" />
             <ToastForm action={deleteSuggestionAction} success="Deleted" confirm="Delete this suggestion?"><input type="hidden" name="id" value={latest.id} /><button className="link">Delete</button></ToastForm></div>
-          <p className="muted" style={{ margin: 0 }}>Ideas, not facts: check them against the company before you use them. The AI only words what the research found.</p>
+          <p className="muted" style={{ margin: 0 }}>Ideas, not facts: check them against the company before you use them. The AI only words what the research and your notes say.</p>
         </div>
       )}
 

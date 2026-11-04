@@ -75,6 +75,7 @@ export async function addSuggestionAsDealAction(suggestionId: number, index: num
   const routes = contactRoutes({ ...c, sendable: !!gate?.sendable, contacts });
   const research = r.research_id ? await query<{ findings: any }>(`SELECT findings FROM company_research WHERE id = $1`, [r.research_id]) : [];
   const titles = new Map<string, string>((Array.isArray(research[0]?.findings) ? research[0].findings : []).map((f: any) => [String(f.id), String(f.title)]));
+  for (const n of r.result?.owner_notes ?? []) titles.set(String(n.id), `Your note: ${n.text}`);
   const plan = buildPlan({ companyName: c.name, suggestion: s, findingTitles: (s.finding_ids ?? []).map((id: string) => titles.get(id)).filter(Boolean) as string[],
     opener: r.result.opener ?? null, questions: Array.isArray(r.result.questions) ? r.result.questions : [], routes, blockedReason: gate && !gate.sendable ? gate.reasons.join(" ") : undefined,
     date: new Date(r.created_at).toLocaleDateString("en-GB", { dateStyle: "medium" }) });

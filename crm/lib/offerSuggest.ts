@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
 import { query } from "./db";
+import { citedNotes, ownerNotesFacts, toOwnerNotes, type OwnerNote } from "./researchNotes";
 import { askStructured, suggestModel } from "./llm";
 import { normaliseSuggestions, type SuggestionResult } from "./offerSuggestNormalise";
 import type { Research } from "./research";
@@ -30,10 +31,12 @@ async function nichePitch(niche: string | null): Promise<string | null> {
 
 const band = (n: number | null) => (n === null ? null : n >= 1_000_000 ? `about £${(n / 1_000_000).toFixed(1)}m` : `about £${Math.round(n / 1000)}k`);
 
-export async function buildFacts(companyId: number, r: Research): Promise<{ text: string; offerNames: string[]; findingIds: string[] }> {
+export async function buildFacts(companyId: number, r: Research): Promise<{ text: string; offerNames: string[]; findingIds: string[]; notes: OwnerNote[] }> {
   const [c] = await query<any>(`SELECT display_name AS name, niche, postcode, company_type, to_char(incorporated_on, 'YYYY') AS inc, accounts_type, employees, est_revenue_gbp::float AS est, fit_notes FROM companies WHERE id = $1`, [companyId]);
   const offers = await query<{ name: string; outcome: string | null; niche: string | null }>(`SELECT name, outcome, niche FROM offers WHERE active AND NOT is_bundle ORDER BY sort_order, id`);
   const pitch = await nichePitch(c.niche);
+  const [saved] = await query<{ notes: string }>(`SELECT notes FROM company_research_notes WHERE company_id = $1`, [companyId]);
+  const notes = toOwnerNotes(saved?.notes);
   const s = r.site;
   const lines = [
     `COMPANY: ${c.name}${c.niche ? ` (niche: ${String(c.niche).replace(/_/g, " ")})` : ""}${c.postcode ? `, area ${String(c.postcode).split(" ")[0]}` : ""}`,
@@ -41,12 +44,13 @@ export async function buildFacts(companyId: number, r: Research): Promise<{ text
     s ? `WEBSITE (${r.domain}): title “${s.title ?? "none"}”; description “${s.description ?? "none"}”; headings: ${[...s.h1, ...s.h2].slice(0, 10).map((h) => `“${h}”`).join(", ") || "none"}; ${s.words} words on the home page; calls to action seen: ${s.ctas.join(", ") || "none"}; pages read: ${s.pagesRead.filter((p) => p.ok).map((p) => p.path).join(", ")}`
       : `WEBSITE: ${r.domain ? "could not be read" : "none saved"}`,
     `FINDINGS (cite these ids):\n${r.findings.map((f) => `${f.id} [${f.kind}, ${f.severity}, ${f.area}] ${f.title}: ${f.detail} (evidence: ${f.evidence})`).join("\n") || "none"}`,
+    ownerNotesFacts(notes),
     r.web && r.web.length ? `WEB SEARCH SNIPPETS (public pages that mention them):\n${r.web.map((h) => `- ${h.host}: ${h.title}${h.snippet ? ` — ${h.snippet}` : ""}`).join("\n")}` : "WEB SEARCH: not run",
     `WHAT COULD NOT BE CHECKED: ${r.limits.join(" ")}`,
     pitch ? `THE CONSULTANT'S USUAL PITCH FOR THIS NICHE: ${pitch}` : "",
     `OFFER CATALOGUE (offer_name must be one of these exactly, or null):\n${offers.map((o) => `- ${o.name}: ${o.outcome ?? ""}`).join("\n")}`,
   ].filter(Boolean);
-  return { text: lines.join("\n\n"), offerNames: offers.map((o) => o.name), findingIds: r.findings.map((f) => f.id) };
+  return { text: lines.join("\n\n"), offerNames: offers.map((o) => o.name), findingIds: [...r.findings.map((f) => f.id), ...notes.map((n) => n.id)], notes };
 }
 
 export async function suggestOffers(companyId: number, r: Research): Promise<{ result: SuggestionResult; model: string; warnings: string[] }> {
@@ -55,5 +59,6 @@ export async function suggestOffers(companyId: number, r: Research): Promise<{ r
   const model = suggestModel();
   const raw = await askStructured<unknown>(`${rules}\n\n${facts.text}`, SCHEMA as never, model, 4000);
   const { result, warnings } = normaliseSuggestions(raw, { findingIds: facts.findingIds, offerNames: facts.offerNames, facts: facts.text });
-  return { result, model, warnings };
+  const owner_notes = citedNotes(facts.notes, [...result.suggestions.flatMap((x) => x.finding_ids), ...result.opener_finding_ids]);
+  return { result: { ...result, owner_notes }, model, warnings };
 }
