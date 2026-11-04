@@ -18,20 +18,26 @@ Run backups from the Mac's own Terminal app (`uname` says `Darwin`), not a VS Co
 
 ## Daily schedule (macOS launchd)
 
-The file `scripts/launchd/com.agencyos.backup.plist` runs `scripts/backup.sh` at 02:30 every day (if the Mac is asleep it runs on wake). It contains this Mac's paths (`/Users/brad/Documents/agency-os`); `backup.sh` uses the repo's `.venv` only if it really runs on this system. The project folder is shared with a Linux dev container whose `.venv` will not run on the Mac, so on the Mac it normally uses `uv` (from Homebrew) with its own environment in `~/.venvs/agency-os`, and neither system rebuilds the other's `.venv`. To switch it on (or, after moving the project, to reload it):
+macOS will not let a background job read `~/Documents` or iCloud Drive (launchd exit code 126, `Operation not permitted`; the Terminal app has that permission, so a hand run works and proves nothing about the job). So `scripts/launchd/install-backup.sh` builds a tiny app, `~/Applications/AgencyOSBackup.app`, whose only job is to run `scripts/backup.sh`, and Full Disk Access goes to that app alone, never to `/bin/sh`. launchd opens it at 02:30 every day (if the Mac is asleep it runs on wake).
+
+To switch it on, from the Mac's Terminal app in the project folder:
 
 ```
-launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.plist 2>/dev/null
-cp scripts/launchd/com.agencyos.backup.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.agencyos.backup.plist
-launchctl start com.agencyos.backup   # run once now to check
+sh scripts/launchd/install-backup.sh
 ```
 
-**If the project moves** (for example off the T7), update the two paths in the plist and reload it. Until 4 Nov 2026 it still pointed at `/Volumes/T7/agency-os 2` and `~/.local/bin/uv`, so the nightly job failed silently from 21 Oct; the Dashboard's red "Last backup" line is the warning to watch.
+Then drag `AgencyOSBackup` into System Settings > Privacy & Security > Full Disk Access (the script opens both). To check it:
 
-To switch it off: `launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.plist`. Output goes to `~/Library/Logs/agencyos-backup.log`.
+```
+open -g -a ~/Applications/AgencyOSBackup.app; sleep 30
+tail -5 ~/Library/Logs/agencyos-backup.log
+```
 
-The job reads `.env` itself. The Mac must be logged in and able to reach the internet at that time.
+Look for `Backup written` in the log. `launchctl list` always shows 0 for this job, because it only reports that the app was opened; the log, the new file and the Dashboard are the real checks.
+
+To switch it off: `launchctl unload ~/Library/LaunchAgents/com.agencyos.backup.plist`, then remove the app from Full Disk Access and delete it.
+
+**Running the install script again rebuilds the app, so remove it from Full Disk Access and add it again.** Run it again if the project moves. Output goes to `~/Library/Logs/agencyos-backup.log`. The job reads `.env` itself. The Mac must be logged in and able to reach the internet at that time. The Dashboard's red "Last backup" line is the warning to watch: until 4 Nov 2026 the nightly job failed silently from 21 Oct.
 
 ## What is kept
 
