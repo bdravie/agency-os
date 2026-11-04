@@ -27,3 +27,8 @@ entities.json
 
 # Local MCP wiring (MemPalace lives in the dev container, not on other machines)
 .mcp.json
+
+# Database backups hold real business data: never in the repo, wherever they end up
+agency-*.tar.gz
+agency-*.tar.partial
+BACKUP_DIR=*/

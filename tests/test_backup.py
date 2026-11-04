@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from agency import backup
+import pytest
+
+from agency import backup, config
 
 
 def names(start: datetime, days: int) -> list[Path]:
@@ -26,3 +28,20 @@ def test_ignores_files_it_did_not_create():
 
 def test_few_files_are_all_kept():
     assert backup.files_to_delete(names(datetime(2026, 1, 1), 5)) == []
+
+
+@pytest.mark.parametrize("raw, platform", [
+    ("BACKUP_DIR=~/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups", "darwin"),  # name typed twice
+    ("backups", "darwin"),  # relative, so it would land inside the project
+    (str(config.ROOT / "backups"), "darwin"),  # inside the project
+    ("~/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups", "linux"),  # Mac folder, in the container
+])
+def test_a_bad_backup_folder_is_refused(raw: str, platform: str):
+    with pytest.raises(SystemExit):
+        backup.backup_folder(raw, platform)
+
+
+def test_a_good_backup_folder_is_accepted():
+    good = "~/Library/Mobile Documents/com~apple~CloudDocs/agency-os-backups"
+    assert backup.backup_folder(good, "darwin") == Path(good).expanduser()
+    assert backup.backup_folder("/mnt/backups", "linux") == Path("/mnt/backups")

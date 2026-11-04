@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 import tarfile
 import tempfile
 from datetime import datetime, timezone
@@ -106,12 +107,26 @@ def run(dest: Path) -> Path:
     return final
 
 
+def backup_folder(raw: str, platform: str = sys.platform) -> Path:
+    """Check the backup folder before anything is written or recorded. A backup in the wrong place must fail
+    loudly, because a recorded backup turns the Dashboard's warning off."""
+    folder = Path(raw.strip()).expanduser()
+    if raw.strip().startswith("BACKUP_DIR="):
+        sys.exit("BACKUP_DIR in .env has its name typed twice. The line should read BACKUP_DIR=<folder>, once.")
+    if not folder.is_absolute():
+        sys.exit(f"The backup folder must be a full path (starting with / or ~), not: {raw}")
+    if folder.resolve().is_relative_to(config.ROOT):
+        sys.exit("The backup folder must be outside the project: backups hold real business data and must never reach git.")
+    if "Library" in folder.parts and platform != "darwin":
+        sys.exit("BACKUP_DIR is a Mac folder, and this is not the Mac (probably the dev container). Run this in the Mac's Terminal app.")
+    return folder
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Back up the database to BACKUP_DIR.")
     p.add_argument("--dir", type=Path, help="Backup folder (default: BACKUP_DIR from .env)")
     a = p.parse_args()
-    folder = a.dir or (Path(config.require("BACKUP_DIR")).expanduser())
-    run(folder)
+    run(backup_folder(str(a.dir) if a.dir else config.require("BACKUP_DIR")))
 
 
 if __name__ == "__main__":
