@@ -1,0 +1,25 @@
+{
+  "id": "a",
+  "angle": "hours back",
+  "headline": "Get your evenings back from the admin that eats your week",
+  "sub": "I improve the systems behind small businesses so quotes, bookings and reporting run without you chasing them. You spend your time on the work, not the paperwork.",
+  "cta": "Book a free 30-minute call",
+  "changes": {
+    "title": "Less admin, more of the work you enjoy",
+    "cards": [
+      {
+        "title": "Quotes that chase themselves",
+        "text": "Follow-ups on quotes are set up once, so you stop having to remember to send them."
+      },
+      {
+        "title": "Bookings without the back and forth",
+        "text": "Confirmations and reminders go out on their own, so fewer messages land on your phone."
+      },
+      {
+        "title": "Reports that appear",
+        "text": "The weekly numbers are pulled together for you, so your Friday evening is your own."
+      }
+    ]
+  },
+  "closing": "Ready to get your evenings back?"
+}

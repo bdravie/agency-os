@@ -1,0 +1,9 @@
+---
+import Landing from "../../layouts/Landing.astro";
+// One page per content file (a.json, b.json, ...), so adding a version is just adding a file and listing it in config/experiments.yaml.
+export function getStaticPaths() {
+  return Object.values(import.meta.glob("../../content/[a-z].json", { eager: true }) as Record<string, { default: { id: string } }>).map((m) => ({ params: { id: m.default.id }, props: { v: m.default } }));
+}
+const { v } = Astro.props;
+---
+<Landing v={v} />

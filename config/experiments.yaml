@@ -1,0 +1,20 @@
+# Split tests for the public site (clrsweb.uk). Read by the site build (site/scripts/buildWorker.mjs) and by the CRM's /site-tests page.
+# Run ONE experiment at a time and compare big ideas, not small tweaks: cold email brings hundreds of visitors, not thousands.
+# A result is only called when every variant has the minimum visitors AND the test has run the minimum days AND the
+# chance that the leader is best reaches the threshold. Until then the CRM says "too early".
+
+defaults:
+  min_visitors_per_variant: 150   # visitors each version must have had before any result is called
+  min_days: 14                    # the test must have run at least this long
+  decision_threshold: 0.95        # chance (0 to 1) that the leading version is truly best before it is called
+  metric: booked                  # what counts as a win: booked (a Cal.com booking) or cta_click
+
+experiments:
+  - id: headline-angle
+    status: running               # running | paused | finished (finished and paused tests serve the control only)
+    started: 2026-11-10           # first day the test counts (UK date); events before it are ignored
+    hypothesis: Which result do owners respond to most, hours back, more booked work, or money kept?
+    variants:                     # id matches site/src/content/<id>.json; the first is the control; weights are relative
+      - { id: a, weight: 34 }     # hours back
+      - { id: b, weight: 33 }     # more booked work
+      - { id: c, weight: 33 }     # money kept

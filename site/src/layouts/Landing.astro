@@ -1,0 +1,64 @@
+---
+// One landing page, filled from a variant file. The same markup serves every variant so a test changes only the words:
+// the headline, the line under it, the three "what changes" cards and the closing line all follow the version's angle.
+import Base from "./Base.astro";
+import site from "../content/site.json";
+const { v } = Astro.props;
+const cta = site.calLink;
+const calPath = new URL(site.calLink).pathname.replace(/^\//, "");
+---
+<Base title={`${site.businessName}: ${v.headline}`} description={v.sub}>
+  <main data-variant={v.id}>
+    <section class="hero"><div class="wrap">
+      <div class="label">{site.businessName}</div>
+      <h1>{v.headline}</h1>
+      <p class="sub">{v.sub}</p>
+      <a class="btn" href={cta} data-cta="hero">{v.cta}</a>
+    </div></section>
+
+    <section><div class="wrap">
+      <div class="label">What changes</div>
+      <h2>{v.changes.title}</h2>
+      <div class="grid">
+        {v.changes.cards.map((c: { title: string; text: string }) => <div class="card"><h3>{c.title}</h3><p>{c.text}</p></div>)}
+      </div>
+    </div></section>
+
+    <section><div class="wrap">
+      <div class="label">How it works</div>
+      <h2>Three steps, no jargon</h2>
+      <div class="grid">
+        <div class="card"><div class="n">1</div><h3>A short call</h3><p>You tell me where the week goes. I listen and ask questions.</p></div>
+        <div class="card"><div class="n">2</div><h3>A clear plan</h3><p>I show you what I would change, what it should do and what it costs, in plain English.</p></div>
+        <div class="card"><div class="n">3</div><h3>I build it</h3><p>I set it up, show you how it works and stay on hand if you want it adjusted.</p></div>
+      </div>
+    </div></section>
+
+    {site.demoVideoUrl && (
+      <section><div class="wrap">
+        <div class="label">See it</div>
+        <h2>A two-minute walk-through</h2>
+        <p><a class="btn" href={site.demoVideoUrl} data-cta="demo">Watch the demo</a></p>
+      </div></section>
+    )}
+
+    <section><div class="wrap">
+      <div class="label">Questions</div>
+      <h2>Straight answers</h2>
+      <details><summary>Do I need to be technical?</summary><p>No. I explain everything in plain English and set it up for you.</p></details>
+      <details><summary>What does the call cost?</summary><p>Nothing. It is 30 minutes to see if I can help, with no obligation.</p></details>
+      <details><summary>Will this touch my customers' personal details?</summary><p>I start with your business's own numbers and admin. Anything that handles your customers' personal details is only done with the proper agreements in place first.</p></details>
+    </div></section>
+
+    <section><div class="wrap">
+      <h2>{v.closing}</h2>
+      <p><a class="btn" href={cta} data-cta="final">{v.cta}</a></p>
+      <div id="book"><div id="cal" data-cal-link={calPath}></div></div>
+      <p class="muted">Booking opens a calendar from Cal.com. <a href="/privacy">What is counted</a>.</p>
+    </div></section>
+  </main>
+  <footer><div class="wrap">
+    {site.businessName} · run by {site.ownerName} · Company number {site.companyNumber} · <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> · <a href="/privacy">Privacy</a>
+  </div></footer>
+  <script is:inline src="/t.js" defer></script>
+</Base>

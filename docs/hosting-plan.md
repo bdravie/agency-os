@@ -38,7 +38,7 @@ Status: plan only, nothing built or changed yet. Decisions are marked **Decide**
 - [ ] Add `crm.clrsweb.uk` to the checks in the backup doc so a restore test covers the hosted setup.
 
 ### 4. Holding page for `clrsweb.uk`
-- [ ] A one-page placeholder (business name, one line, contact email) or a redirect to wherever you want cold-email recipients to land. Static, on Cloudflare Pages (free).
+- [ ] A one-page placeholder (business name, one line, contact email) or a redirect to wherever you want cold-email recipients to land. Static, on Cloudflare Pages (free). **Decided 4 Nov 2026: this becomes the real landing page with split tests, built in `site/`; see `docs/site-tests.md` for setup.**
 - Later: the proper front-facing site replaces this page. **Decide** its stack and design then.
 
 ## Changes to the project's rules (not made yet)

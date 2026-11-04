@@ -1,0 +1,25 @@
+{
+  "id": "b",
+  "angle": "more booked work",
+  "headline": "Win more of the work that already comes in",
+  "sub": "Enquiries go cold when nobody follows them up in time. I improve the systems behind your business so fewer quotes and customers slip away.",
+  "cta": "Book a free 30-minute call",
+  "changes": {
+    "title": "Fewer enquiries going cold",
+    "cards": [
+      {
+        "title": "A quick, friendly reply",
+        "text": "Every enquiry gets a prompt answer, so fewer people drift off to the next business on their list."
+      },
+      {
+        "title": "Quotes that get followed up",
+        "text": "Quotes are chased at the right time, so fewer of them go quiet."
+      },
+      {
+        "title": "Reviews asked for",
+        "text": "Happy customers are asked for a review at the right moment, so more people find you."
+      }
+    ]
+  },
+  "closing": "Ready to win more of the work you already get?"
+}

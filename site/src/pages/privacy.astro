@@ -1,0 +1,24 @@
+---
+import Base from "../layouts/Base.astro";
+import site from "../content/site.json";
+---
+<Base title={`Privacy | ${site.businessName}`}>
+  <main><section class="hero"><div class="wrap">
+    <div class="label"><a href="/">&larr; {site.businessName}</a></div>
+    <h1>Privacy</h1>
+    <p class="sub">This site counts visits, in a way that cannot identify you. Here is exactly what, and why.</p>
+
+    <h2>What is counted</h2>
+    <p>To find out which version of this page helps people most, the site keeps a daily tally for each version: how many people visited, how many pressed a booking button, how many scrolled most of the way down, and how many booked a call. These are plain totals.</p>
+    <p>The tally holds no names, email addresses, IP addresses or browser details, and nothing in it can be traced back to you.</p>
+
+    <h2>The cookie</h2>
+    <p>When you first visit, this site sets one small cookie called <code>v</code>. It holds only the name of the page version you were shown (for example "headline-angle.b"), so you see the same version if you come back. It has no ID and lasts 30 days. If the site's owner visits with the <code>?me</code> link, a cookie called <code>me</code> stops their own visits being counted.</p>
+
+    <h2>Booking a call</h2>
+    <p>The booking calendar comes from Cal.com and only loads when you press a booking button. If you book, Cal.com handles the details you enter under its own privacy policy, and I receive your name and email to run the call. Until you press the button, nothing is loaded from Cal.com.</p>
+
+    <h2>Who is responsible</h2>
+    <p>{site.businessName}, run by {site.ownerName}. Company number {site.companyNumber}. Questions or requests: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.</p>
+  </div></section></main>
+</Base>

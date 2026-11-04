@@ -17,3 +17,6 @@ crm/next-env.d.ts
 # macOS metadata. On exFAT drives macOS leaves a ._ sidecar next to files; they must never be committed.
 ._*
 .DS_Store
+
+# Personal Claude Code overrides
+.claude/settings.local.json
