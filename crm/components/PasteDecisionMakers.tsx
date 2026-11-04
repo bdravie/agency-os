@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addPastedPeopleAction, type PasteResult } from "@/lib/manualPeopleActions";
-import { parsePastedPeople } from "@/lib/manualPeople";
+import { checkUnverifiedReason, parsePastedPeople, REASON_MAX } from "@/lib/manualPeople";
 import { useToast } from "./Toast";
 
 // Paste decision-makers you found yourself: one person per line (or paste rows straight from a spreadsheet).
@@ -11,12 +11,13 @@ export default function PasteDecisionMakers({ companyId, domain, blocked, unveri
   const toast = useToast(), router = useRouter();
   const [text, setText] = useState("");
   const [result, setResult] = useState<PasteResult | null>(null);
-  const [anyway, setAnyway] = useState(false);
+  const [reason, setReason] = useState("");
+  const reasonCheck = useMemo(() => checkUnverifiedReason(reason), [reason]);
   const [pending, start] = useTransition();
   const preview = useMemo(() => parsePastedPeople(text, domain), [text, domain]);
 
   const save = () => start(async () => {
-    const r = await addPastedPeopleAction(companyId, text, unverifiedOk && anyway);
+    const r = await addPastedPeopleAction(companyId, text, unverifiedOk ? reason : null);
     setResult(r);
     if (r.error) { toast(r.error, "bad"); return; }
     toast(`${r.saved?.length ?? 0} saved as contacts`);
@@ -28,10 +29,16 @@ export default function PasteDecisionMakers({ companyId, domain, blocked, unveri
   return (
     <div className="stack" style={{ gap: 10 }}>
       {unverifiedOk && (
-        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
-          <input type="checkbox" checked={anyway} onChange={(e) => setAnyway(e.target.checked)} style={{ marginTop: 3 }} />
-          <span>This company isn't verified yet (for example, I can't find its company number). Save these people anyway. <span className="muted">Emails and messages stay blocked for this company until it is verified on Companies House.</span></span>
-        </label>
+        <div className="stack" style={{ gap: 6 }}>
+          <label htmlFor={`unverified-reason-${companyId}`}>
+            <b>This company isn't verified yet.</b> Write why you can contact these people, or why the company can't be verified (for example, "Trades as a sole trader under a brand; owner asked me to get in touch at their stand").
+          </label>
+          <textarea id={`unverified-reason-${companyId}`} rows={2} maxLength={REASON_MAX + 20} value={reason} onChange={(e) => { setReason(e.target.value); setResult(null); }}
+            placeholder="Your reason, in a sentence" aria-describedby={`unverified-help-${companyId}`} />
+          <p id={`unverified-help-${companyId}`} className={reason && reasonCheck.error ? "error" : "muted"} style={{ margin: 0 }}>
+            {reason && reasonCheck.error ? reasonCheck.error : `Saved with each person, word for word. Emails and messages stay blocked for this company until it is verified on Companies House. ${reason.trim().length}/${REASON_MAX}`}
+          </p>
+        </div>
       )}
       <p className="muted" style={{ margin: 0 }}>
         One person per line: <b>first name, last name, position, contact detail</b>. You can paste rows straight from a spreadsheet.
@@ -51,7 +58,7 @@ export default function PasteDecisionMakers({ companyId, domain, blocked, unveri
       )}
       {result?.error && <p className="error" role="alert">{result.error}</p>}
       <div className="row">
-        <button type="button" disabled={pending || preview.people.length === 0 || (unverifiedOk && !anyway)} onClick={save}>{pending ? "Saving…" : `Save ${preview.people.length || ""} ${preview.people.length === 1 ? "person" : "people"}`.replace("  ", " ")}</button>
+        <button type="button" disabled={pending || preview.people.length === 0 || (unverifiedOk && !!reasonCheck.error)} onClick={save}>{pending ? "Saving…" : `Save ${preview.people.length || ""} ${preview.people.length === 1 ? "person" : "people"}`.replace("  ", " ")}</button>
         <span className="muted">Each is saved as a contact with how you found them recorded. Nothing is sent.</span>
       </div>
     </div>

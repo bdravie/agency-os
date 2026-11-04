@@ -1,6 +1,7 @@
 // Pure logic for decision-makers pasted in by hand for one company. Nothing here touches the database or the network.
 // Same guardrails as the Apollo import: only a work email on the company's own domain, or a LinkedIn profile link, is kept.
 import { linkedinProfile, workEmail } from "./apolloMath.ts";
+import { containsContactDetails } from "./audit.ts";
 
 export const MAX_PASTED_PEOPLE = 20;
 export const MAX_PASTED_CHARS = 8000;
@@ -50,9 +51,21 @@ export function parsePastedPeople(text: string, companyDomain: string | null): P
   return { people, skipped };
 }
 
-export const manualConsentText = (date: string, unverified = false) =>
+export const REASON_MIN = 15, REASON_MAX = 300;
+
+/** The owner's own reason for saving people at a company that is not verified yet (why they may contact them, or why the company cannot be
+ *  verified). Required, kept short, and never a place for contact details. Returns the cleaned reason or an error. */
+export function checkUnverifiedReason(raw: unknown): { reason?: string; error?: string } {
+  const reason = clean(raw, REASON_MAX + 1);
+  if (reason.length < REASON_MIN) return { error: `Write the reason in a sentence (at least ${REASON_MIN} characters): why you can contact them, or why the company can't be verified yet.` };
+  if (reason.length > REASON_MAX) return { error: `Keep the reason to ${REASON_MAX} characters.` };
+  if (containsContactDetails(reason)) return { error: "Leave email addresses and phone numbers out of the reason." };
+  return { reason };
+}
+
+export const manualConsentText = (date: string, unverifiedReason: string | null = null) =>
   `B2B corporate subscriber + legitimate interest. Work details added by the owner by hand from a public source on ${date}.` +
-  (unverified ? " Saved before the company was verified as a limited company: it stays blocked for outreach until it is." : "");
+  (unverifiedReason ? ` Saved before the company was verified as a limited company (it stays blocked for outreach until it is). Owner's reason: "${unverifiedReason}"` : "");
 
 /** People may be saved for a company that has simply not been verified yet (never looked up, or its number not found). Never for one that was
  *  looked up and is not a limited company, that has opted out, or that is on the suppression list. The outreach gate itself is unchanged. */

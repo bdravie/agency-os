@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parsePastedPeople, splitLine, canSaveUnverified, manualConsentText } from "../lib/manualPeople.ts";
+import { parsePastedPeople, splitLine, canSaveUnverified, manualConsentText, checkUnverifiedReason } from "../lib/manualPeople.ts";
 
 const D = "oakwood-heating.co.uk";
 test("a spreadsheet paste (tabs) and a comma list both work, and the position may contain commas", () => {
@@ -46,5 +46,15 @@ test("people can be saved for a company that is only unverified, never for one t
 });
 test("the recorded basis says when a person was saved before the company was verified", () => {
   assert.doesNotMatch(manualConsentText("4 Nov 2026"), /not yet verified|before the company was verified/);
-  assert.match(manualConsentText("4 Nov 2026", true), /before the company was verified.*blocked for outreach/);
+  const text = manualConsentText("4 Nov 2026", "Owner asked me to follow up after the trade show");
+  assert.match(text, /before the company was verified.*blocked for outreach/);
+  assert.match(text, /Owner's reason: "Owner asked me to follow up after the trade show"/);
+});
+test("saving for an unverified company needs a written reason, with no contact details in it", () => {
+  assert.match(checkUnverifiedReason("").error, /at least 15 characters/);
+  assert.match(checkUnverifiedReason("   because   ").error, /at least 15 characters/);
+  assert.match(checkUnverifiedReason("x".repeat(301)).error, /300 characters/);
+  assert.match(checkUnverifiedReason("They said email sam@gmail.com any time").error, /email addresses and phone numbers/);
+  assert.match(checkUnverifiedReason("They said call 07700 900123 any time").error, /email addresses and phone numbers/);
+  assert.deepEqual(checkUnverifiedReason("  Trades under a brand name;\n number not found yet <b>x</b> "), { reason: "Trades under a brand name; number not found yet x" });
 });
