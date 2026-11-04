@@ -28,6 +28,9 @@ export default function AppShell({ children, demo, signOut, theme }: { children:
     return () => window.removeEventListener("keydown", onKey);
   }, [palette]);
 
+  // The password page never shows the app. This layout stays mounted during in-app navigation (Sign out, an expired session), so check the path here too.
+  if (pathname === "/login") return <>{children}</>;
+
   return (
     <ToastProvider>
     <ReplyFeedProvider>
