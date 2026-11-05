@@ -11,7 +11,7 @@ defaults:
 
 experiments:
   - id: headline-angle
-    status: running               # running | paused | finished (finished and paused tests serve the control only)
+    status: paused                # paused 5 Nov 2026: the page goes live first, and the cookie question in docs/site-tests.md is still open. running | paused | finished (finished and paused tests serve the control only)
     started: 2026-11-10           # first day the test counts (UK date); events before it are ignored
     hypothesis: Which result do owners respond to most, hours back, more booked work, or money kept?
     variants:                     # id matches site/src/content/<id>.json; the first is the control; weights are relative

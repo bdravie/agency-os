@@ -1,8 +1,10 @@
 {
-  "_note": "Fill every CHANGE ME before launch. `npm run build:release` fails while any remain.",
+  "_note": "Fill every CHANGE ME before launch. `npm run build:release` fails while any remain. Leave companyNumber empty until the company is registered; the footer and privacy page then show the full name and address instead.",
   "ownerName": "Bradley",
   "businessName": "CLRS Web",
-  "companyNumber": "CHANGE ME",
+  "ownerFullName": "CHANGE ME",
+  "businessAddress": "CHANGE ME",
+  "companyNumber": "",
   "contactEmail": "bradley@clrsweb.uk",
   "calLink": "https://cal.com/bradley-dravie-11qlta/30min",
   "demoVideoUrl": ""

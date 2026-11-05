@@ -145,3 +145,10 @@ test("stats need the token and return counts per version", async () => {
   assert.equal(b.booked, 1);
   assert.equal(b.clicks, 1);
 });
+
+test("the site names the owner and address until there is a company number, then the company", async () => {
+  const { identityLine } = await import("../src/identity.ts");
+  const s = { businessName: "CLRS Web", ownerFullName: "Sam Example", businessAddress: "1 Example Street, London" };
+  assert.equal(identityLine({ ...s, companyNumber: "" }), "CLRS Web is the trading name of Sam Example, 1 Example Street, London");
+  assert.equal(identityLine({ ...s, companyNumber: "12345678" }), "CLRS Web, company number 12345678, 1 Example Street, London");
+});

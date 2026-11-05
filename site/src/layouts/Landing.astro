@@ -3,6 +3,7 @@
 // the headline, the line under it, the three "what changes" cards and the closing line all follow the version's angle.
 import Base from "./Base.astro";
 import site from "../content/site.json";
+import { identityLine } from "../identity";
 const { v } = Astro.props;
 const cta = site.calLink;
 const calPath = new URL(site.calLink).pathname.replace(/^\//, "");
@@ -58,7 +59,7 @@ const calPath = new URL(site.calLink).pathname.replace(/^\//, "");
     </div></section>
   </main>
   <footer><div class="wrap">
-    {site.businessName} · run by {site.ownerName} · Company number {site.companyNumber} · <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> · <a href="/privacy">Privacy</a>
+    {identityLine(site)} · <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> · <a href="/privacy">Privacy</a>
   </div></footer>
   <script is:inline src="/t.js" defer></script>
 </Base>

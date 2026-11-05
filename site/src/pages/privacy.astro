@@ -1,6 +1,7 @@
 ---
 import Base from "../layouts/Base.astro";
 import site from "../content/site.json";
+import { identityLine } from "../identity";
 ---
 <Base title={`Privacy | ${site.businessName}`}>
   <main><section class="hero"><div class="wrap">
@@ -19,6 +20,6 @@ import site from "../content/site.json";
     <p>The booking calendar comes from Cal.com and only loads when you press a booking button. If you book, Cal.com handles the details you enter under its own privacy policy, and I receive your name and email to run the call. Until you press the button, nothing is loaded from Cal.com.</p>
 
     <h2>Who is responsible</h2>
-    <p>{site.businessName}, run by {site.ownerName}. Company number {site.companyNumber}. Questions or requests: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.</p>
+    <p>{identityLine(site)}. Questions or requests: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.</p>
   </div></section></main>
 </Base>
