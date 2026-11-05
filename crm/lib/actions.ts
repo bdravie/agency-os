@@ -298,6 +298,18 @@ export async function generatePackAction(_prev: string | null, form: FormData): 
   return null;
 }
 
+/** The owner says they have recorded the Loom a pitch pack scripted (or takes that back). This is what clears it from the Proposals number. */
+export async function setLoomRecordedAction(form: FormData) {
+  await requireLogin();
+  const id = num(form, "id");
+  const recorded = form.get("recorded") === "1";
+  const done = await query(`UPDATE proposals SET loom_recorded_at = ${recorded ? "now()" : "NULL"} WHERE id = $1 RETURNING id`, [id]);
+  if (!done.length) return { error: "Proposal not found." };
+  await logActivity("proposal_loom", { channel: "upwork", body: `${recorded ? "Loom recorded" : "Loom back to record"} for proposal #${id}` });
+  revalidatePath(`/proposals/${id}`);
+  revalidatePath("/proposals");
+}
+
 /** Click-only: explains the fit score of a saved proposal (factors, benefits, risks). Also refreshes the score, since it is the same judgement. */
 export async function analyseFitAction(_prev: string | null, form: FormData): Promise<string | null> {
   await requireLogin();

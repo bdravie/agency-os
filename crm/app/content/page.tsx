@@ -8,13 +8,14 @@ import { scoreLabel } from "@/lib/contentMath";
 import { audienceText, backlogState, inNiche, nicheLabel, pickNiche } from "@/lib/contentConfigMath";
 import NicheFilter from "@/components/NicheFilter";
 import ContentBoard from "@/components/ContentBoard";
+import NeedsYouCard from "@/components/NeedsYouCard";
 import ActionForm from "@/components/ActionForm";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Content" };
 
-export default async function Content({ searchParams }: { searchParams: Promise<{ more?: string; niche?: string }> }) {
+export default async function Content({ searchParams }: { searchParams: Promise<{ more?: string; niche?: string; open?: string; post?: string; bucket?: string }> }) {
   const sp = await searchParams;
   const override = sp.more === "1";
   const [rows, config, posts, deals] = await Promise.all([
@@ -47,6 +48,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
           </>
         }
       />
+      <NeedsYouCard href="/content" />
       <details className="card" style={{ marginBottom: 16 }}>
         <summary>Generate 10 video ideas{gate.blocked && <span className="muted"> · paused, {open} waiting</span>}</summary>
         <p className="muted" style={{ marginTop: 12 }}>Ideas are built from your best posts, the outliers you broke down, trends you noted and patterns across the businesses you researched, spread across your weekly mix. Each is scored; anything under 5 is set aside. Your niches are set in <code>content:</code> in config/niches.yaml ({audienceText(config)}).</p>
@@ -77,7 +79,7 @@ export default async function Content({ searchParams }: { searchParams: Promise<
         )}
       </details>
       <NicheFilter base="/content" niches={config.niches} current={niche} counts={counts} keep={override ? { more: "1" } : {}} />
-      <ContentBoard initial={items} platforms={config.platforms} niches={config.niches} />
+      <ContentBoard initial={items} platforms={config.platforms} niches={config.niches} openItem={Number(sp.open) || null} openNumbers={sp.post && sp.bucket ? { post: Number(sp.post), bucket: Number(sp.bucket) } : null} />
     </>
   );
 }

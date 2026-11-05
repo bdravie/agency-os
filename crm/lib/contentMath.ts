@@ -10,6 +10,20 @@ export const BUCKETS = [24, 72, 168] as const;
 export type Bucket = (typeof BUCKETS)[number];
 export const BUCKET_LABEL: Record<Bucket, string> = { 24: "24 hours", 72: "72 hours", 168: "7 days" };
 
+/** When each checkpoint stops being asked for: it hands over to the next, and the last one stops a week after it came due. */
+const CHECKPOINT_ENDS: Record<Bucket, number> = { 24: 72, 72: 168, 168: 336 };
+export const CHECKPOINTS_END_HOURS = CHECKPOINT_ENDS[168];
+
+/**
+ * The one set of numbers a post is waiting for right now, or null. A missed checkpoint hands over to the next instead of piling up:
+ * a platform only shows today's totals, so a 24-hour figure cannot be read properly three days later. Numbers saved for a later checkpoint close the earlier ones too.
+ */
+export function dueCheckpoint(ageHours: number, saved: readonly number[]): Bucket | null {
+  const bucket = [...BUCKETS].reverse().find((b) => ageHours >= b);
+  if (bucket === undefined || ageHours >= CHECKPOINT_ENDS[bucket]) return null;
+  return saved.some((s) => s >= bucket) ? null : bucket;
+}
+
 const HOSTS: Record<Platform, RegExp> = {
   tiktok: /(^|\.)tiktok\.com$/, instagram: /(^|\.)instagram\.com$/, youtube: /(^|\.)(youtube\.com|youtu\.be)$/, linkedin: /(^|\.)linkedin\.com$/,
 };

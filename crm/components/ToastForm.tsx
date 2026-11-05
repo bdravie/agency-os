@@ -5,7 +5,8 @@ import { useToast } from "./Toast";
 
 // A normal form that runs a server action and then confirms with a toast ("Notes saved").
 // Do not use it for actions that redirect: those navigate away on their own.
-export default function ToastForm({ action, success, reset, onDone, confirm, children, className, style }: {
+export default function ToastForm({ id, action, success, reset, onDone, confirm, children, className, style }: {
+  id?: string;
   action: (form: FormData) => Promise<unknown>;
   success: string; reset?: boolean; onDone?: () => void; confirm?: string; children: React.ReactNode; className?: string; style?: React.CSSProperties;
 }) {
@@ -13,7 +14,7 @@ export default function ToastForm({ action, success, reset, onDone, confirm, chi
   const ref = useRef<HTMLFormElement>(null);
   return (
     <form
-      ref={ref} className={className} style={style}
+      ref={ref} id={id} className={className} style={style}
       action={async (fd) => {
         if (confirm && !window.confirm(confirm)) return;
         try {

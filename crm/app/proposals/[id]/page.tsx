@@ -51,7 +51,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
         </section>
       </div>
       <PlanPanel id={id} plan={p.plan} planAt={p.plan_at ? String(p.plan_at) : null} rates={rates} />
-      <PackPanel id={id} pack={p.pack} packAt={p.pack_at ? String(p.pack_at) : null} />
+      <PackPanel id={id} pack={p.pack} packAt={p.pack_at ? String(p.pack_at) : null} loomRecordedAt={p.loom_recorded_at ? String(p.loom_recorded_at) : null} />
     </>
   );
 }

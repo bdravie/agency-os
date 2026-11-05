@@ -18,7 +18,7 @@ import { useToast } from "./Toast";
 type Item = { id: number; idea: string; hook: string | null; hook_alt: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null; pillar: string | null; hook_type: string | null; niche: string | null; length_s: number | null };
 
 // Quick view of a content item. "Open full page" goes to /content/[id] in a new tab, where you can edit everything.
-export default function ContentDrawer({ itemId, status, onMove, onClose, onChanged }: { itemId: number; status?: string; onMove: (id: number, status: string) => void; onClose: () => void; onChanged: () => void }) {
+export default function ContentDrawer({ itemId, status, openNumbers = null, onMove, onClose, onChanged }: { itemId: number; status?: string; openNumbers?: { post: number; bucket: number } | null; onMove: (id: number, status: string) => void; onClose: () => void; onChanged: () => void }) {
   const toast = useToast();
   const [item, setItem] = useState<Item | null>(null);
   const [posts, setPosts] = useState<PostView[]>([]);
@@ -93,7 +93,7 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
 
             <ContentTags key={`${itemId}-${item.pillar}-${item.hook_type}-${item.niche}-${item.length_s}`} itemId={itemId} tags={{ pillar: item.pillar, hook_type: item.hook_type, niche: item.niche, length_s: item.length_s }} keyword={current === "Posted" ? item.keyword : null} replies={replies} niches={niches} onChanged={refresh} />
 
-            <PostPerformance itemId={itemId} status={current} posts={posts} platforms={platforms} hook={item.hook} onChanged={refresh} />
+            <PostPerformance key={openNumbers ? `${openNumbers.post}:${openNumbers.bucket}` : "view"} itemId={itemId} status={current} posts={posts} platforms={platforms} hook={item.hook} openNumbers={openNumbers} onChanged={refresh} />
 
             {editing ? (
               <ScriptEditor key={itemId} item={{ ...item, status: current }} onDirty={() => { unsaved.current = true; }} onCancel={stopEditing} onSaved={() => { unsaved.current = false; setEditing(false); refresh(); }} />

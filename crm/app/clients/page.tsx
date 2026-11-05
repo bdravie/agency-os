@@ -5,6 +5,7 @@ import { saveService } from "@/lib/actions";
 import { gbp } from "@/lib/quote";
 import { dateOnly } from "@/lib/format";
 import { EmptyState, PageHeader, Stat } from "@/components/ui";
+import NeedsYouCard from "@/components/NeedsYouCard";
 import ToastForm from "@/components/ToastForm";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export default async function Clients() {
   return (
     <>
       <PageHeader title="Clients" description="Who you work for, what they pay, and when to review." />
+      <NeedsYouCard href="/clients" />
       <section className="stats">
         <Stat label="Monthly recurring revenue" value={gbp(mrr)} hint={`${gbp(mrr * 12)} a year · active services only`} />
         <Stat label="Active clients" value={clients} hint={`${active.length} active service${active.length === 1 ? "" : "s"}`} />
@@ -41,7 +43,7 @@ export default async function Clients() {
               {tracked.has(companyId) ? <Link href={`/outcomes/${tracked.get(companyId)}`} className="muted">Results</Link> : <Link href={`/outcomes/new?company=${companyId}`} className="muted">Start tracking results</Link>}</span>
             </div>
             {services.map((s: any) => (
-              <ToastForm key={s.id} action={saveService} success="Client updated" className="row" style={{ padding: "8px 0", borderTop: "1px solid var(--line-soft)" }}>
+              <ToastForm key={s.id} id={`service-${s.id}`} action={saveService} success="Client updated" className="row" style={{ padding: "8px 0", borderTop: "1px solid var(--line-soft)" }}>
                 <input type="hidden" name="id" value={s.id} />
                 <span style={{ flex: 1, minWidth: 220 }}><b>{s.service}</b><br /><span className="muted">{gbp(s.monthly_fee_gbp)}/mo · setup {gbp(s.setup_fee_gbp)} · started {dateOnly(s.start_date)}</span></span>
                 <select name="status" defaultValue={s.status} aria-label="Status"><option>Active</option><option>Paused</option><option>Ended</option></select>

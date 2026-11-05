@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { ExternalLink, Plus } from "lucide-react";
 import { addPost, removePost, saveMetrics } from "@/lib/contentPostActions";
-import { BUCKETS, BUCKET_LABEL, PLATFORM_LABEL, VIEWS_LABEL, fmtMultiple, fmtPercent, type Platform } from "@/lib/contentMath";
+import { BUCKETS, BUCKET_LABEL, PLATFORM_LABEL, VIEWS_LABEL, dueCheckpoint, fmtMultiple, fmtPercent, type Platform } from "@/lib/contentMath";
 import type { PostView } from "@/lib/contentPerformance";
 import { useToast } from "./Toast";
 
@@ -49,9 +49,9 @@ function Score({ post }: { post: PostView }) {
 }
 
 // The Performance section of the content drawer: where it was posted, numbers at 24h / 72h / 7 days, and the score.
-export default function PostPerformance({ itemId, status, posts, platforms, hook, onChanged }: { itemId: number; status: string; posts: PostView[]; platforms: string[]; hook: string | null; onChanged: () => void }) {
+export default function PostPerformance({ itemId, status, posts, platforms, hook, openNumbers = null, onChanged }: { itemId: number; status: string; posts: PostView[]; platforms: string[]; hook: string | null; openNumbers?: { post: number; bucket: number } | null; onChanged: () => void }) {
   const toast = useToast();
-  const [editing, setEditing] = useState<{ post: number; bucket: number } | null>(null);
+  const [editing, setEditing] = useState<{ post: number; bucket: number } | null>(openNumbers);
   const [confirm, setConfirm] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const missing = platforms.filter((p) => !posts.some((x) => x.platform === p));
@@ -78,7 +78,9 @@ export default function PostPerformance({ itemId, status, posts, platforms, hook
           {error && <p className="error" role="alert">{error}</p>}
         </form>
       )}
-      {posts.map((p) => (
+      {posts.map((p) => {
+        const due = dueCheckpoint((Date.now() - new Date(p.posted_at).getTime()) / 3_600_000, p.metrics.map((m) => m.bucket));
+        return (
         <div key={p.id} className="perf-post">
           <div className="row-between">
             <b>{PLATFORM_LABEL[p.platform as Platform] ?? p.platform}</b>
@@ -101,7 +103,7 @@ export default function PostPerformance({ itemId, status, posts, platforms, hook
                   const m = p.metrics.find((x) => x.bucket === b);
                   return (
                     <tr key={b}>
-                      <td>{BUCKET_LABEL[b]}</td>
+                      <td className="perf-when">{BUCKET_LABEL[b]}{b === due && <span className="badge tone-warn">Due</span>}</td>
                       {FIELDS.map(([k]) => <td key={k} className="num">{cell(m ? (m as any)[k] : null)}</td>)}
                       <td><button type="button" className="link" onClick={() => setEditing({ post: p.id, bucket: b })}>{m ? "Edit" : "Enter numbers"}</button></td>
                     </tr>
@@ -113,7 +115,8 @@ export default function PostPerformance({ itemId, status, posts, platforms, hook
           {editing?.post === p.id && <MetricsForm post={p} bucket={editing.bucket} onCancel={() => setEditing(null)} onSaved={() => { setEditing(null); onChanged(); }} />}
           <Score post={p} />
         </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

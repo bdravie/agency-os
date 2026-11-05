@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en-GB" data-theme={theme} className={`${display.variable} ${text.variable}`}>
       <body>
-        {signedIn ? <AppShell demo={demoMode()} signOut={logout} theme={theme}>{children}</AppShell> : children}
+        {signedIn ? <AppShell demo={demoMode()} signOut={logout} theme={theme} rendered={Date.now()}>{children}</AppShell> : children}
       </body>
     </html>
   );

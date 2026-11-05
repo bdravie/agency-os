@@ -1,15 +1,16 @@
 "use client";
 
 import { useActionState } from "react";
-import { Sparkles } from "lucide-react";
-import { generatePackAction } from "@/lib/actions";
+import { Check, Sparkles } from "lucide-react";
+import { generatePackAction, setLoomRecordedAction } from "@/lib/actions";
 import type { Pack } from "@/lib/upworkPack";
 import CopyButton from "./CopyButton";
+import ToastForm from "./ToastForm";
 
 const loomText = (l: Pack["loom"]) =>
   [`HOOK: ${l.hook}`, ...l.show.map((b, i) => `${i + 1}. SAY: ${b.say}\n   ON SCREEN: ${b.on_screen}`), `CLOSE: ${l.close}`].join("\n\n");
 
-export default function PackPanel({ id, pack, packAt }: { id: number; pack: Pack | null; packAt: string | null }) {
+export default function PackPanel({ id, pack, packAt, loomRecordedAt = null }: { id: number; pack: Pack | null; packAt: string | null; loomRecordedAt?: string | null }) {
   const [message, action, pending] = useActionState(generatePackAction, null);
   return (
     <section className="card stack" style={{ gap: 12, marginTop: 16 }} aria-labelledby="pack-h">
@@ -35,11 +36,22 @@ export default function PackPanel({ id, pack, packAt }: { id: number; pack: Pack
             <div><CopyButton targetId="pack-cover" label="Copy cover letter" /></div>
           </div>
 
-          <div className="stack" style={{ gap: 6 }}>
+          <div id="loom-script" className="stack" style={{ gap: 6 }}>
             <h3>2. Loom script (about 90 seconds)</h3>
             {pack.loom.prep.length > 0 && <p className="muted">Before you record: {pack.loom.prep.join(" · ")}</p>}
             <textarea id="pack-loom" readOnly rows={14} defaultValue={loomText(pack.loom)} aria-label="Loom script" />
-            <div><CopyButton targetId="pack-loom" label="Copy Loom script" /></div>
+            <div className="row">
+              <CopyButton targetId="pack-loom" label="Copy Loom script" />
+              <ToastForm action={setLoomRecordedAction} success={loomRecordedAt ? "Back on your list to record" : "Loom marked as recorded"} className="row" style={{ gap: 8 }}>
+                <input type="hidden" name="id" value={id} />
+                <input type="hidden" name="recorded" value={loomRecordedAt ? "0" : "1"} />
+                {loomRecordedAt ? (
+                  <><span className="badge tone-good"><Check size={13} aria-hidden style={{ marginRight: 4 }} /> Recorded {new Date(loomRecordedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span><button className="link">Undo</button></>
+                ) : (
+                  <button className="secondary"><Check size={15} aria-hidden /> Mark as recorded</button>
+                )}
+              </ToastForm>
+            </div>
           </div>
 
           <div className="stack" style={{ gap: 6 }}>

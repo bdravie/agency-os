@@ -71,9 +71,11 @@ Motion explains a change. It never decorates and never loops. Everything is 150-
 5. **Lift and drop:** a dragged card lifts (scale 1.03, 2 degrees tilt, bigger shadow) and springs into place.
 6. **Panel open (220ms):** drawers slide in from the right; collapsible sections (Recent activity) expand in place.
 
+A sidebar count pops in once (240ms) when it appears or changes. It never pulses or loops.
+
 ## 6. Layout and navigation
 
-- Sidebar grouped under small capital labels, named by what the owner is doing: **Home** (Dashboard, Inbox, Tasks), **Find and win** (Lead Sourcer, Companies, Deals, Proposals), **Sell** (Calls, Quotes, Audits, Objections), **Deliver** (Clients, Outcomes, Enablement), **Grow** (Content, Funnel), **Setup** (Offers, Mailboxes, Suppression). The active item is an Ink pill in light mode and a raised Sand pill in dark mode; an unread count is an Ember badge.
+- Sidebar grouped under small capital labels, named by what the owner is doing: **Home** (Dashboard, Inbox, Tasks), **Find and win** (Lead Sourcer, Companies, Deals, Proposals), **Sell** (Calls, Quotes, Audits, Objections), **Deliver** (Clients, Outcomes, Enablement), **Grow** (Content, Funnel), **Setup** (Offers, Mailboxes, Suppression). The active item is an Ink pill in light mode and a raised Sand pill in dark mode; a count of things waiting on the owner (unread replies, tasks due, post numbers, Looms to record) is an Ember badge against that item, and the page it opens lists what is being counted.
 - The **Dashboard** (`/`) is where every day starts: Today, This week and This month cards (completion ring, bars with a pace tick, projection), then what needs the owner, the pipeline snapshot and the collapsible Recent activity. Targets live in `config/targets.yaml`, never in code.
 - **Deals pipeline format is fixed:** stacked stage bands with a coloured pill, count and total, rows underneath, drag between bands. Only its colours follow the brand.
 - Each screen has one job and one main button. Nothing important is more than two clicks from the dashboard.
@@ -102,6 +104,6 @@ Never:
 
 - Tokens and components: `crm/app/globals.css` (token block at the top, light first, `[data-theme="dark"]` after).
 - Theme switch: `crm/components/ThemeToggle.tsx`, `theme` cookie read in `crm/app/layout.tsx`.
-- Navigation: `crm/components/nav-items.ts` (one place). Stage colours: `crm/lib/stages.ts`.
+- Navigation: `crm/components/nav-items.ts` (one place). Sidebar counts: `crm/lib/needsYou.ts`. Stage colours: `crm/lib/stages.ts`.
 - Dashboard: `crm/app/page.tsx`, targets `config/targets.yaml`, maths `crm/lib/paceMath.ts`.
 - Lead Sourcer keeps its own layout and logic under `.sx` but uses the same tokens (`crm/app/sourcer/sourcer.css`).

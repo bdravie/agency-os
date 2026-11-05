@@ -4,6 +4,7 @@ import { addBundle, addOffer, saveBundle, saveOffer } from "@/lib/offerActions";
 import { BILLING, billingShort } from "@/lib/dealOffers";
 import { gbp } from "@/lib/quote";
 import ToastForm from "@/components/ToastForm";
+import NeedsYouCard from "@/components/NeedsYouCard";
 import { EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function Offers() {
         description="What you sell. Services are priced individually; packages group the services needed to deliver one offer (SEO, website, chatbot…). Both can be added to a deal, where every price can be changed."
       />
 
+      <NeedsYouCard href="/offers" />
       <h2 style={{ margin: "4px 0 4px" }}>Packages</h2>
       <p className="muted" style={{ marginTop: 0 }}>A package has no price of its own: its price is the sum of its services below. Adding one to a deal adds each service as its own line.</p>
       <div className="stack">
@@ -109,7 +111,7 @@ export default async function Offers() {
       <p className="muted" style={{ marginTop: -4 }}>Older all-in-one packages. They work in the quote builder. To carry one on a deal with its own price and checklist, give it a billing type.</p>
       <div className="stack">
         {packages.map((o: any) => (
-          <ToastForm key={o.id} action={saveOffer} success="Offer saved" className="card offer">
+          <ToastForm key={o.id} id={`offer-${o.id}`} action={saveOffer} success="Offer saved" className="card offer">
             <input type="hidden" name="id" value={o.id} />
             <label>Name<input name="name" defaultValue={o.name} /></label>
             <label>Niche<input name="niche" defaultValue={o.niche ?? ""} /></label>

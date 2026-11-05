@@ -16,12 +16,13 @@ export type Item = { id: number; idea: string; hook: string | null; hookAlt?: st
 
 const shortDate = (iso: string) => new Date(iso + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 
-export default function ContentBoard({ initial, platforms, niches }: { initial: Item[]; platforms: string[]; niches: string[] }) {
+// openItem and openNumbers come from the address (a "needs you" link): open that card, on that post's numbers form.
+export default function ContentBoard({ initial, platforms, niches, openItem = null, openNumbers = null }: { initial: Item[]; platforms: string[]; niches: string[]; openItem?: number | null; openNumbers?: { post: number; bucket: number } | null }) {
   const toast = useToast();
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const [over, setOver] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(openItem);
   const [creating, setCreating] = useState(false);
   const [posting, setPosting] = useState<number | null>(null);
   const [filter, setFilter] = useState("");
@@ -32,6 +33,15 @@ export default function ContentBoard({ initial, platforms, niches }: { initial: 
   const [scripting, setScripting] = useState<string | null>(null);
 
   useEffect(() => setItems(initial), [initial]);
+  useEffect(() => { if (openItem !== null) setOpenId(openItem); }, [openItem, openNumbers?.post, openNumbers?.bucket]);
+  // Closing clears the link from the address, so the same row can be clicked again and a reload does not reopen the card.
+  const closeDrawer = () => {
+    setOpenId(null);
+    const q = new URLSearchParams(window.location.search);
+    if (!q.has("open")) return;
+    ["open", "post", "bucket"].forEach((k) => q.delete(k));
+    router.replace(q.size ? `/content?${q}` : "/content", { scroll: false });
+  };
   const needle = filter.trim().toLowerCase();
   const matches = (i: Item) => !needle || `${i.idea} ${i.format ?? ""} ${i.keyword ?? ""}`.toLowerCase().includes(needle);
   const archivedCount = items.filter((i) => i.status === ARCHIVED).length;
@@ -171,7 +181,7 @@ export default function ContentBoard({ initial, platforms, niches }: { initial: 
       </div>
 
       {openId !== null && (
-        <ContentDrawer itemId={openId} status={items.find((i) => i.id === openId)?.status} onMove={move} onClose={() => setOpenId(null)} onChanged={() => router.refresh()} />
+        <ContentDrawer itemId={openId} status={items.find((i) => i.id === openId)?.status} openNumbers={openId === openItem ? openNumbers : null} onMove={move} onClose={closeDrawer} onChanged={() => router.refresh()} />
       )}
       {posting !== null && (() => {
         const it = items.find((x) => x.id === posting);

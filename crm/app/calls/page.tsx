@@ -3,6 +3,7 @@ import { Phone, Plus } from "lucide-react";
 import { query } from "@/lib/db";
 import { dateOnly } from "@/lib/format";
 import { EmptyState, PageHeader, Pill } from "@/components/ui";
+import NeedsYouCard from "@/components/NeedsYouCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calls" };
@@ -19,6 +20,7 @@ export default async function Calls() {
         description="Upload a transcript or paste your notes, and let AI pull out the pains, budget signals, objections and next step. Objections build up in the Objection Library."
         actions={<><Link href="/objections" className="btn secondary">Objection Library</Link><Link href="/calls/new" className="btn"><Plus size={16} aria-hidden /> Log a call</Link></>}
       />
+      <NeedsYouCard href="/calls" />
       <div className="card table-wrap">
         {rows.length === 0 ? (
           <EmptyState title="No calls yet" icon={<Phone size={22} />}>Open a deal and click <b>Log a call</b>, or use the button above.</EmptyState>

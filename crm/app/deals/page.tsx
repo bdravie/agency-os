@@ -4,6 +4,7 @@ import { STAGES } from "@/lib/stages";
 import { gbp } from "@/lib/quote";
 import Board from "@/components/Board";
 import { PageHeader } from "@/components/ui";
+import NeedsYouCard from "@/components/NeedsYouCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Deals" };
@@ -22,6 +23,7 @@ export default async function Deals() {
         description={`${open.length} open deals · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup + ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo. Click a card for details, or drag it to another stage.`}
         actions={<Link href="/deals/deleted" className="btn secondary">Deletion log</Link>}
       />
+      <NeedsYouCard href="/deals" />
       <Board initial={rows} stages={STAGES} />
     </>
   );

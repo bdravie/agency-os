@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import random
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -57,6 +58,31 @@ def write_csv(path: Path) -> None:
     print(f"Wrote {len(rows)} rows ({len(rows) - 2} unique) to {path}")
 
 
+def seed_needs_you(conn, now: datetime) -> None:
+    """Fake work for the sidebar's numbers to count: posts waiting for their numbers and a pitch Loom to record. Safe to run twice."""
+    if conn.execute("SELECT 1 FROM content_items WHERE idea LIKE 'Demo:%' LIMIT 1").fetchone():
+        return
+    for idea, platform, hours in [("Demo: the one report every trades business should read on Monday", "instagram", 80),
+                                  ("Demo: why good jobs go to whoever answers first", "linkedin", 30)]:
+        item = conn.execute(
+            "INSERT INTO content_items (idea, status, posted_at) VALUES (%s,'Posted',%s) RETURNING id",
+            (idea, now - timedelta(hours=hours)),
+        ).fetchone()
+        conn.execute(
+            "INSERT INTO posts (content_item_id, platform, url, posted_at) VALUES (%s,%s,%s,%s) ON CONFLICT (url) DO NOTHING",
+            (item["id"], platform, f"https://www.{platform}.com/p/demo-{item['id']}", now - timedelta(hours=hours)),
+        )
+    pack = {"client_name": "Demo client", "system_title": "Weekly digest", "what_they_asked": "A weekly summary of jobs and revenue",
+            "explanation": "Demo data.", "steps": ["Read the totals", "Write the summary", "Email it"],
+            "cover_letter": "Demo cover letter.", "diagram": "graph TD; A[Totals] --> B[Summary];", "data_note": "", "fit_note": "Demo data.",
+            "loom": {"hook": "Here is your Monday report.", "show": [{"say": "This is the summary.", "on_screen": "The email"}, {"say": "These are the totals.", "on_screen": "The sheet"}],
+                     "close": "Happy to walk you through it.", "prep": ["Open the sample report"]}}
+    conn.execute(
+        "INSERT INTO proposals (job_title, job_text, fit_score, status, pack, pack_at) VALUES (%s,%s,8,'Draft',%s,%s)",
+        ("Demo: weekly report automation", "Demo job post: a weekly report from our job totals.", json.dumps(pack), now - timedelta(hours=5)),
+    )
+
+
 def seed(dry_run: bool) -> None:
     rng = random.Random(3)
     rows = companies(12)
@@ -68,8 +94,9 @@ def seed(dry_run: bool) -> None:
     with db.connect() as conn:
         for i, r in enumerate(rows):
             c = conn.execute(
-                """INSERT INTO companies (name, domain, phone, postcode, niche, is_ltd, status, source)
-                   VALUES (%s,%s,%s,%s,%s,true,'New','demo')
+                # Fake companies count as verified, as the compliance migration treats source='demo', so the send guard lets their fake logged emails through.
+                """INSERT INTO companies (name, domain, phone, postcode, niche, is_ltd, status, source, compliance_status, company_type, company_status)
+                   VALUES (%s,%s,%s,%s,%s,true,'New','demo','eligible','ltd','active')
                    ON CONFLICT (lower(domain)) WHERE domain IS NOT NULL DO NOTHING RETURNING id""",
                 (r["name"], r["domain"], r["phone"], r["postcode"], r["niche"]),
             ).fetchone()
@@ -98,6 +125,7 @@ def seed(dry_run: bool) -> None:
                 "INSERT INTO tasks (title, due_at, company_id, deal_id) VALUES (%s,%s,%s,%s)",
                 (f"Follow up with {r['name']}", now + timedelta(days=rng.randint(-2, 5)), cid, deal["id"]),
             )
+        seed_needs_you(conn, now)
     print("Demo data inserted (source='demo').")
 
 

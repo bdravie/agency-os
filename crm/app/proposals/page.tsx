@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { dateOnly } from "@/lib/format";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
 import { proposalName } from "@/lib/proposalName";
+import NeedsYouCard from "@/components/NeedsYouCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proposals" };
@@ -22,6 +23,7 @@ export default async function Proposals({ searchParams }: { searchParams: Promis
         description="Upwork proposals: paste a job post, review the draft, copy it, then track the result."
         actions={<Link href="/proposals/new" className="btn"><Plus size={16} aria-hidden /> New proposal</Link>}
       />
+      <NeedsYouCard href="/proposals" />
       <div className="pills" style={{ marginBottom: 16 }} aria-label="Filter by status">
         {["", "Draft", "Sent", "Interview", "Won", "Lost"].map((s) => (
           <Link key={s} href={s ? `/proposals?status=${s}` : "/proposals"} className={`pill${s === status ? " on" : ""}`}>{s || "All"}</Link>

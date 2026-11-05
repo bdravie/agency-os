@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { gbp } from "@/lib/quote";
 import { dateOnly } from "@/lib/format";
 import { Badge, EmptyState, PageHeader } from "@/components/ui";
+import NeedsYouCard from "@/components/NeedsYouCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Quotes" };
@@ -15,6 +16,7 @@ export default async function Quotes() {
   return (
     <>
       <PageHeader title="Quotes" description="To create one, open a company and click Create quote next to its deal." />
+      <NeedsYouCard href="/quotes" />
       <div className="card table-wrap">
         {rows.length === 0 ? (
           <EmptyState title="No quotes yet" icon={<FileText size={22} />}>Quotes you create from a deal appear here.</EmptyState>
