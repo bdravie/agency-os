@@ -203,8 +203,11 @@ Add a line here whenever something breaks and you find the cause.
 
 The CRM can start itself at login and stay running, so `http://127.0.0.1:3000` is always there. It uses the production build.
 
-- Install: `cd crm && npm run build`, then `cp scripts/com.agencyos.crm.plist ~/Library/LaunchAgents/` and `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.agencyos.crm.plist`. Paths in the file are for this Mac; edit them if the project moves.
-- After any code change: `cd crm && npm run build`, then `launchctl kickstart -k gui/$(id -u)/com.agencyos.crm`.
+- Install: `cp scripts/com.agencyos.crm.plist ~/Library/LaunchAgents/` and `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.agencyos.crm.plist`. Paths in the file are for this Mac; edit them if the project moves.
+- After any code change: `bash scripts/update-crm.sh` from the project folder, in the Mac's Terminal app (a VS Code terminal is inside the container). The CRM keeps working until the new version has passed. It runs the tests, builds in a separate folder (`crm/.next-build`), applies database changes, tries the new version on a spare port, swaps it in and restarts, then checks the real CRM and goes back by itself if that check fails. If anything fails before the swap, the live CRM is not touched.
+- Go back to the last version: `bash scripts/update-crm.sh --rollback` (run it again to go forward). This restores the code, not the database, so the command stops before any database change that would break the previous version (removing or renaming things, for example), unless you add `--allow-risky-migration` after a backup.
+- A plain `npm run build` now refuses to run, and `npm run dev` uses its own folder (`crm/.next-dev`), because overwriting `crm/.next` under the running CRM removes the files every page needs: the buttons and live numbers stop working with no error on screen. To only try a build: `NEXT_DIST_DIR=.next-container npm run build`.
+- An `.env` change only needs the restart: `launchctl kickstart -k gui/$(id -u)/com.agencyos.crm`.
 - Stop it: `launchctl bootout gui/$(id -u)/com.agencyos.crm`. Log: `~/Library/Logs/agency-os/crm.log`.
 - `LOCAL_HTTP=1` is set in the file because Safari refuses secure-only cookies on plain http. Do not set it if the app is ever served over https.
 - Use a normal browser window (a private one forgets the login). Chrome: Install page as app. Safari: File, Add to Dock.

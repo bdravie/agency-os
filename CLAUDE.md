@@ -56,6 +56,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - **Database**: hosted Postgres 16+ on **Neon** (free tier, AWS eu-west-2 London), reached via `DATABASE_URL` with `sslmode=require`. The schema lives in SQL migrations in `db/migrations/`, run with dbmate from npm (`npm run db:migrate`; no Docker). Never change the schema any other way; never edit an applied migration, add a new one. Docker Compose (local Postgres/n8n) is optional for later, once there is disk space.
 - **Where the project lives**: on the T7 drive at `/Volumes/T7/agency-os 2` (exFAT). Because exFAT cannot hold macOS metadata, macOS leaves `._*` sidecar files next to files; they are git-ignored and `scripts/clean-sidecars.sh` deletes them. Python's environment lives on the internal disk (`~/.venvs/agency-os`) and `.venv` is a link to it, because installing packages onto exFAT fails when sidecars appear. Use `uv run python` (the bare `python3` on this Mac is Apple's placeholder). On the Mac where the project sits on the internal disk (3 Nov 2026), `uv` comes from Homebrew (`brew install uv`) and `uv sync` builds a normal `.venv` in the repo; the CRM runs its Python tools with `.venv/bin/python` when it exists (`pythonCommand` in `crm/lib/launch.ts`), so it does not need `uv` on its PATH, and a missing environment now says "run uv sync" instead of `spawn uv ENOENT`. The T7 must be plugged in to work on the project.
 - **Git**: no system git (no disk space for Xcode). Commit and push with `node tools/git/sync.mjs "message"` (isomorphic-git) after every change.
+- **Putting a change live**: `bash scripts/update-crm.sh` in the Mac's Terminal app (`tools/crm-update/update.mjs`, rules in `rules.mjs`, details in `docs/SETUP.md`), never a build in place. Only this command may change `crm/.next`, the folder the running CRM serves from: `crm/next.config.mjs` refuses a plain build and gives `npm run dev` its own folder. From the container, use `NEXT_DIST_DIR=.next-container` for any build or `next start`. Database changes must leave the previous version working, because going back restores the code only.
 - **CRM app**: Next.js (App Router, TypeScript) in `crm/`, using the `pg` driver with parameterised queries. Single user: password from `APP_PASSWORD`, signed session cookie. The session lasts 12 hours at most and the cookie ends when the browser closes; opening `/login` always signs you out (`crm/middleware.ts`), so the password page never sits in front of a working app. Every page and API route requires login except `/api/webhooks/*`, and every webhook verifies its signature or secret. Listens on 127.0.0.1:3000.
 - **Python tools**: Python 3.12 with `uv`, code in `src/agency/`, tests in `tests/` (pytest), `psycopg` for the database. All tracking goes through one `log_activity()` function writing to the `activities` table.
 - **AI**: the official `anthropic` SDK. Model choice lives in one place, `src/agency/llm.py` (and a matching `crm/lib/llm.ts` if the app needs AI):
@@ -82,7 +83,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 
 ## Working method (self-annealing)
 
-In this repo, **directives** are the living instruction documents: this file, `BUILD_PLAN.md`, `prompts/*.md`, `docs/*.md` and each demo's `README.md`. **Tools** are the scripts and commands that do the work: `uv run python -m agency.*`, `npm run db:migrate`, `node tools/git/sync.mjs`, `scripts/*`.
+In this repo, **directives** are the living instruction documents: this file, `BUILD_PLAN.md`, `prompts/*.md`, `docs/*.md` and each demo's `README.md`. **Tools** are the scripts and commands that do the work: `uv run python -m agency.*`, `npm run db:migrate`, `node tools/git/sync.mjs`, `bash scripts/update-crm.sh`, `scripts/*`.
 
 **1. Self-anneal when things break** - Read error messages. Check logs. Update the script that failed. Add test cases. Fix the root cause. Don't just try the same thing again.
 - Update the directive with what you learned (API limits, timing, edge cases).
@@ -100,7 +101,7 @@ Errors are learning opportunities. When something breaks:
 
 ## Safety & grounding
 
-**Always use the tools** - Never bypass execution tools. They exist for reliability and auditability. (For example: change the schema only through a migration, commit only through `tools/git/sync.mjs`, back up only through `agency.backup`.)
+**Always use the tools** - Never bypass execution tools. They exist for reliability and auditability. (For example: change the schema only through a migration, commit only through `tools/git/sync.mjs`, put the CRM live only through `scripts/update-crm.sh`, back up only through `agency.backup`.)
 
 ## Owner preferences
 

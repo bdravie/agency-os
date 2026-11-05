@@ -1,4 +1,5 @@
 import path from "node:path";
+import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from "next/constants.js";
 import { fileURLToPath } from "node:url";
 
 // The single .env lives in the repo root. In Codespaces the values come from secrets instead.
@@ -26,10 +27,21 @@ if (inCodespace) {
   if (name) allowedOrigins.push(`${name}-3000.${domain || "app.github.dev"}`);   // this Codespace's own address, exactly
 }
 
-/** @type {import('next').NextConfig} */
-export default {
-  // The Mac's running CRM serves from .next. Anything run from the container sets NEXT_DIST_DIR=.next-container, so it can never overwrite that build.
-  distDir: process.env.NEXT_DIST_DIR || ".next",
+// The running CRM serves from .next, and replacing that folder while it runs breaks every open page. So only the update command may change it:
+// it builds in .next-build and swaps the folder in once the new version has passed its checks (scripts/update-crm.sh). npm run dev has its own folder.
+function outputFolder(phase) {
+  const chosen = process.env.NEXT_DIST_DIR;
+  if (phase === PHASE_PRODUCTION_BUILD && (!chosen || chosen === ".next")) {
+    throw new Error("To put a change live, run: bash scripts/update-crm.sh (in the Mac's Terminal app). A plain build would overwrite the running CRM. To only try a build, set NEXT_DIST_DIR=.next-container.");
+  }
+  if (phase === PHASE_DEVELOPMENT_SERVER && (!chosen || chosen === ".next")) return ".next-dev";
+  return chosen || ".next";
+}
+
+/** @type {(phase: string) => import('next').NextConfig} */
+export default (phase) => ({
+  distDir: outputFolder(phase),
+  typescript: { tsconfigPath: process.env.NEXT_DIST_DIR === ".next-build" ? "tsconfig.build.json" : "tsconfig.json" },   // the live folder's old route types must not fail a new build
   poweredByHeader: false,
   devIndicators: false,
   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
@@ -39,4 +51,4 @@ export default {
       allowedOrigins,
     },
   },
-};
+});

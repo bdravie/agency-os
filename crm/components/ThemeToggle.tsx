@@ -13,8 +13,8 @@ export default function ThemeToggle({ initial }: { initial: "light" | "dark" }) 
   };
   return (
     <div className="seg" role="group" aria-label="Colour theme">
-      <button type="button" aria-selected={theme === "light"} aria-label="Light theme" onClick={() => choose("light")}><Sun size={15} aria-hidden /> Light</button>
-      <button type="button" aria-selected={theme === "dark"} aria-label="Dark theme" onClick={() => choose("dark")}><Moon size={15} aria-hidden /> Dark</button>
+      <button type="button" aria-selected={theme === "light"} aria-label="Light theme" onClick={() => choose("light")}><Sun size={15} aria-hidden /> <span className="nav-label">Light</span></button>
+      <button type="button" aria-selected={theme === "dark"} aria-label="Dark theme" onClick={() => choose("dark")}><Moon size={15} aria-hidden /> <span className="nav-label">Dark</span></button>
     </div>
   );
 }

@@ -17,13 +17,17 @@ export function NeedsYouProvider({ rendered, children }: { rendered: number; chi
   const pathname = usePathname();
   const [counts, setCounts] = useState<Counts>({});
   const latest = useRef(0);
+  const loadedBuild = useRef<string | null>(null);
+  const [outdated, setOutdated] = useState(false);
 
   const load = useCallback(async () => {
     const mine = ++latest.current;
     try {
       const r = await fetch("/api/needs-you", { cache: "no-store" });
       if (!r.ok || mine !== latest.current) return;
-      const j: { counts: Counts; failed: string[] } = await r.json();
+      const j: { counts: Counts; failed: string[]; build: string } = await r.json();
+      loadedBuild.current ??= j.build;
+      setOutdated(j.build !== loadedBuild.current);
       setCounts((old) => {
         const next = { ...j.counts };
         for (const href of j.failed) if (old[href]) next[href] = old[href];   // could not be checked: keep the last number rather than look all clear
@@ -40,5 +44,16 @@ export function NeedsYouProvider({ rendered, children }: { rendered: number; chi
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", tick); };
   }, [load]);
 
-  return <Ctx.Provider value={counts}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={counts}>
+      {children}
+      {/* A tab left open across an update runs old code against the new server, and that can throw errors. It never reloads by itself, in case something is half typed. */}
+      {outdated && (
+        <div className="update-bar noprint" role="status">
+          <span>A new version of the CRM is ready.</span>
+          <button type="button" className="secondary" onClick={() => window.location.reload()}>Refresh</button>
+        </div>
+      )}
+    </Ctx.Provider>
+  );
 }

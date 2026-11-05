@@ -6,7 +6,8 @@
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:status": "dbmate --migrations-dir db/migrations status",
     "db:new": "dbmate --migrations-dir db/migrations new",
-    "push": "node tools/git/sync.mjs"
+    "push": "node tools/git/sync.mjs",
+    "crm:update": "bash scripts/update-crm.sh"
   },
   "devDependencies": {
     "dbmate": "^2.21.0"

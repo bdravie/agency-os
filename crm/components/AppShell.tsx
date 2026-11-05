@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "./Sidebar";
@@ -26,22 +26,29 @@ function MenuButton({ open, onClick }: { open: boolean; onClick: () => void }) {
 }
 
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
-export default function AppShell({ children, demo, signOut, theme, rendered }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void>; theme: "light" | "dark"; rendered: number }) {
+export default function AppShell({ children, demo, signOut, theme, collapsed, rendered }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void>; theme: "light" | "dark"; collapsed: boolean; rendered: number }) {
   const [open, setOpen] = useState(false);
+  const [rail, setRail] = useState(collapsed);   // the menu shrunk to icons on a wide screen; kept in a cookie so the server draws it right first time
   const [palette, setPalette] = useState(false);
   const pathname = usePathname();
+
+  const toggleRail = useCallback(() => {
+    setRail(!rail);
+    document.cookie = `sidebar=${rail ? "open" : "collapsed"}; path=/; max-age=31536000; samesite=lax`;
+  }, [rail]);
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement)?.tagName ?? "");
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((p) => !p); }
+      else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b" && window.matchMedia("(min-width: 901px)").matches) { e.preventDefault(); toggleRail(); }
       else if (e.key === "/" && !typing && !palette) { e.preventDefault(); setPalette(true); }
       else if (e.key === "Escape") { setOpen(false); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [palette]);
+  }, [palette, toggleRail]);
 
   // The password page never shows the app. This layout stays mounted during in-app navigation (Sign out, an expired session), so check the path here too.
   if (pathname === "/login") return <>{children}</>;
@@ -50,14 +57,14 @@ export default function AppShell({ children, demo, signOut, theme, rendered }: {
     <ToastProvider>
     <ReplyFeedProvider>
     <NeedsYouProvider rendered={rendered}>
-    <div className="app">
+    <div className={`app${rail ? " rail" : ""}`}>
       <a href="#main" className="skip">Skip to content</a>
       <div className="topbar">
         <MenuButton open={open} onClick={() => setOpen(!open)} />
         <strong>Agency OS</strong>
       </div>
-      <aside className={`sidebar${open ? " open" : ""}`}>
-        <Sidebar demo={demo} signOut={signOut} theme={theme} onSearch={() => { setOpen(false); setPalette(true); }} />
+      <aside id="main-menu" className={`sidebar${open ? " open" : ""}`}>
+        <Sidebar demo={demo} signOut={signOut} theme={theme} rail={rail} onToggleRail={toggleRail} onSearch={() => { setOpen(false); setPalette(true); }} />
       </aside>
       {open && <div className="scrim" onClick={() => setOpen(false)} aria-hidden />}
       <main id="main" className="main"><HashScroll /><LiveCalendar />{children}</main>

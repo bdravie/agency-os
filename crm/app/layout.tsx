@@ -17,10 +17,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const jar = await cookies();
   const signedIn = await verifyToken(jar.get(COOKIE)?.value);
   const theme = jar.get("theme")?.value === "dark" ? "dark" : "light";
+  const collapsed = jar.get("sidebar")?.value === "collapsed";
   return (
     <html lang="en-GB" data-theme={theme} className={`${display.variable} ${text.variable}`}>
       <body>
-        {signedIn ? <AppShell demo={demoMode()} signOut={logout} theme={theme} rendered={Date.now()}>{children}</AppShell> : children}
+        {signedIn ? <AppShell demo={demoMode()} signOut={logout} theme={theme} collapsed={collapsed} rendered={Date.now()}>{children}</AppShell> : children}
       </body>
     </html>
   );

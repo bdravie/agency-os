@@ -52,6 +52,7 @@
   --radius-md: 14px;
   --radius-sm: 10px;
   --sidebar: 248px;
+  --sidebar-rail: 72px;
   --ease: 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -152,6 +153,35 @@ kbd { font: 12px var(--font); color: var(--muted); background: var(--surface); b
 .signout { color: var(--muted); }
 .main { padding: 32px clamp(20px, 4vw, 48px) 64px; max-width: 1360px; width: 100%; }
 .topbar, .scrim { display: none; }
+
+/* Collapsed menu: an icon rail on wide screens. The narrow-screen drawer always shows the whole menu. */
+.app { transition: grid-template-columns 220ms var(--ease-out); }
+.sidebar-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.sidebar-head .brand { min-width: 0; }
+button.rail-toggle { flex: none; color: var(--muted); }
+button.rail-toggle:hover { color: var(--text); }
+@media (max-width: 900px) { .rail-toggle { display: none !important; } }
+@media screen and (min-width: 901px) {
+  .app.rail { grid-template-columns: var(--sidebar-rail) minmax(0, 1fr); }
+  .rail .sidebar { overflow-x: hidden; scrollbar-width: none; }
+  .rail .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .rail .sidebar-head { flex-direction: column; gap: 8px; }
+  .rail .search-btn { justify-content: center; padding: 10px 0; }
+  .rail .search-btn kbd { display: none; }
+  .rail .nav-group { margin-bottom: 6px; }
+  .rail .nav-group:first-child .nav-title { display: none; }
+  .rail .nav-title { height: 1px; margin: 4px 10px 8px; padding: 0; overflow: hidden; font-size: 0; background: var(--line-soft); }
+  .rail .nav-link { position: relative; justify-content: center; padding: 10px 0; }
+  .rail .nav-count { position: absolute; top: 1px; right: 1px; margin: 0; min-width: 17px; padding: 0 4px; font-size: 10.5px; line-height: 17px; box-shadow: 0 0 0 2px var(--surface); }
+  .rail .sidebar-foot { align-items: center; }
+  .rail .sidebar-foot form { width: 100%; }
+  .rail .sidebar-foot .badge { align-self: center; padding: 1px 6px; font-size: 10.5px; }
+  .rail .seg { flex-direction: column; align-self: center; border-radius: 16px; }
+  .rail .seg button { padding: 4px 9px; }
+}
+
+/* A tab that was open when the CRM was updated. */
+.update-bar { position: fixed; z-index: 60; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 24px); padding: 8px 8px 8px 18px; background: var(--surface); border: 1px solid var(--card-line); border-radius: 999px; box-shadow: var(--shadow-2); font-size: 14px; white-space: nowrap; animation: settle 220ms var(--ease-out); }
 
 @media (max-width: 900px) {
   .app { grid-template-columns: minmax(0, 1fr); }
