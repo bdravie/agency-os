@@ -7,6 +7,6 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "clrsweb-site-events"
-database_id = "CHANGE ME"
+database_id = "dc2e5bf6-3a89-4ca3-8485-7eeec2771971"
 
 # Secret (never in this file): npx wrangler pages secret put SITE_STATS_TOKEN   (32+ random characters; the same value goes in crm .env)

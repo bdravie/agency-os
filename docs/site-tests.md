@@ -12,6 +12,9 @@ The static site lives in `site/` (Astro). A split test is a list in `config/expe
 7. **Visit `https://clrsweb.uk/?me` once on every browser you use**, so your own visits are never counted.
 8. **Connect Cal.com to Google Calendar** (conflict checking on, destination calendar set).
 
+## Rules for building
+- **Install on the machine that builds.** `site/` pins its own Node through the `node` package (Astro needs a newer one than the container has), and that copy and Astro's other native parts are made for one system. The Mac and the Linux container share this folder, so a `node_modules` installed on one gives `cannot execute binary file` on the other. Fix: `cd site && rm -rf node_modules && npm install`, then build. Deploy from the Mac.
+
 ## Running a test
 - `headline-angle` is paused for the first launch: everyone sees version A with no cookie and no counting. Before setting it to `running`, answer the cookie question below and add the free opt-out the exemption asks for.
 - Only one experiment may be `running`. Change its `started` date to the day you go live; events before it are ignored.
