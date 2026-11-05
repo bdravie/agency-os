@@ -28,6 +28,8 @@ if (inCodespace) {
 
 /** @type {import('next').NextConfig} */
 export default {
+  // The Mac's running CRM serves from .next. Anything run from the container sets NEXT_DIST_DIR=.next-container, so it can never overwrite that build.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   devIndicators: false,
   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
