@@ -26,7 +26,8 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
           <h2>Script and caption</h2>
           <input name="idea" defaultValue={c.idea} aria-label="Idea" />
           <input name="hook" defaultValue={c.hook ?? ""} placeholder="Chosen hook" aria-label="Hook" />
-          <textarea id="script" name="script" rows={16} defaultValue={c.script ?? ""} placeholder="Script" aria-label="Script" />
+          <input name="hook_alt" defaultValue={c.hook_alt ?? ""} placeholder="Alternative hook (B), optional" aria-label="Alternative hook" />
+          <textarea id="script" name="script" rows={16} defaultValue={c.script ?? ""} placeholder="Write your script here, or let the AI draft it" aria-label="Script" />
           <textarea id="caption" name="caption" rows={3} defaultValue={c.caption ?? ""} placeholder="Caption" aria-label="Caption" />
           <input name="keyword" defaultValue={c.keyword ?? ""} placeholder="Comment keyword" aria-label="Keyword" />
           <div className="row"><button>Save</button><CopyButton targetId="script" /></div>
@@ -35,7 +36,7 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
           <section className="card">
             <h2>Write it with AI</h2>
             <p className="muted">Writes 5 hooks, a 30–45 second script, on-screen text and a caption. It overwrites the fields on the left.</p>
-            <ActionForm action={writeScriptAction} label={c.script ? "Rewrite script" : "Write script"} busyLabel="Writing… (about 15 seconds)">
+            <ActionForm action={writeScriptAction} label={c.script ? "Rewrite script" : "Write script"} busyLabel="Writing… (about 15 seconds)" confirm={c.script ? "This replaces the script, hooks, caption and keyword with a new AI version. Anything you wrote yourself will be lost. Carry on?" : undefined}>
               <input type="hidden" name="id" value={id} />
             </ActionForm>
           </section>

@@ -5,7 +5,7 @@ import { PLATFORM_LABEL, type Platform } from "./contentMath.ts";
 
 export type ParsedScript = { hooks: string[]; script: string; onScreen: string[] };
 
-/** Splits a saved script (HOOK OPTIONS, SCRIPT, ON-SCREEN TEXT / SCREEN RECORDING) into the parts the teleprompter shows. Text with no headings is treated as the script itself. */
+/** Splits a saved script (HOOK OPTIONS, SCRIPT, ON-SCREEN TEXT / SCREEN RECORDING) into the parts the teleprompter shows. Text with no headings, or with words before the first heading (a script you wrote yourself), is treated as the script itself. */
 export function parseScript(saved: string | null): ParsedScript {
   const text = (saved ?? "").replace(/\r/g, "").trim();
   if (!text) return { hooks: [], script: "", onScreen: [] };
@@ -17,6 +17,7 @@ export function parseScript(saved: string | null): ParsedScript {
     if (h === "SCRIPT") { current = "script"; parts[current] = []; continue; }
     if (h.startsWith("ON-SCREEN TEXT")) { current = "screen"; parts[current] = []; continue; }
     if (current) parts[current].push(line);
+    else if (h) return { hooks: [], script: text, onScreen: [] };
   }
   if (!parts.script) return { hooks: [], script: text, onScreen: [] };
   const bullets = (lines: string[] | undefined, re: RegExp) => (lines ?? []).map((l) => l.trim().replace(re, "").trim()).filter(Boolean);

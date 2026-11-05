@@ -12,7 +12,7 @@ type Result = { ok: true; message?: string } | { ok: false; error: string };
 export async function scriptOneAction(id: number): Promise<Result> {
   await requireLogin();
   try {
-    const r = await scriptItem(id);
+    const r = await scriptItem(id, { keepExisting: true });
     if (!r.ok) return r;
     revalidatePath("/content"); revalidatePath("/content/film");
     return { ok: true };

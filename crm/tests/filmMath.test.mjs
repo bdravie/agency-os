@@ -15,6 +15,10 @@ test("a script with no headings is read as it is, and empty is safe", () => {
   assert.deepEqual(parseScript(null), { hooks: [], script: "", onScreen: [] });
   assert.deepEqual(parseScript("  \r\n "), { hooks: [], script: "", onScreen: [] });
 });
+test("a hand-written script keeps all its words even if a line happens to say Script", () => {
+  const own = "Here is my opening.\n\nScript\nThe rest of what I say.";
+  assert.deepEqual(parseScript(own), { hooks: [], script: own, onScreen: [] });
+});
 test("teleprompter controls stay in range and moving between scripts stops at the ends", () => {
   assert.deepEqual([clampSpeed(-5), clampSpeed(42.4), clampSpeed(900)], [0, 42, 300]);
   assert.deepEqual([clampFont(5), clampFont(60), clampFont(500)], [24, 60, 120]);

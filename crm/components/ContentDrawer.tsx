@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarDays, Copy, ExternalLink, X } from "lucide-react";
+import { CalendarDays, Copy, ExternalLink, PenLine, X } from "lucide-react";
 import { scheduleContent, writeScriptAction } from "@/lib/actions";
 import { repurposeItemAction } from "@/lib/contentFilmActions";
 import { ago } from "@/lib/format";
@@ -11,6 +11,7 @@ import ActionForm from "./ActionForm";
 import ToastForm from "./ToastForm";
 import PostPerformance from "./PostPerformance";
 import ContentTags from "./ContentTags";
+import ScriptEditor from "./ScriptEditor";
 import type { PostView } from "@/lib/contentPerformance";
 import { useToast } from "./Toast";
 
@@ -25,6 +26,8 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
   const [niches, setNiches] = useState<string[]>([]);
   const [replies, setReplies] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const unsaved = useRef(false);
   const panel = useRef<HTMLElement>(null);
 
   const load = useCallback(() => {
@@ -33,13 +36,17 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
   }, [itemId]);
   const refresh = () => { load(); onChanged(); };
 
-  useEffect(() => { setItem(null); setPosts([]); load(); }, [load]);
+  useEffect(() => { setItem(null); setPosts([]); setEditing(false); unsaved.current = false; load(); }, [load]);
   useEffect(() => { panel.current?.focus(); }, [itemId]);
+  // A script you are typing is not lost to a stray Escape or a click outside the panel.
+  const mayLeave = () => !unsaved.current || window.confirm("Discard the changes to this script?");
+  const close = useCallback(() => { if (mayLeave()) onClose(); }, [onClose]);
+  const stopEditing = () => { if (mayLeave()) { unsaved.current = false; setEditing(false); } };
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [close]);
 
   const current = (status ?? item?.status ?? "Idea") as ContentStatus;
   const meta = CONTENT_META[current] ?? ARCHIVED_META;
@@ -47,7 +54,7 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
 
   return (
     <>
-      <div className="drawer-scrim" onClick={onClose} aria-hidden />
+      <div className="drawer-scrim" onClick={close} aria-hidden />
       <aside className="drawer" role="dialog" aria-modal="true" aria-label={item ? `Content: ${item.idea}` : "Content"} tabIndex={-1} ref={panel}>
         <header className="drawer-head">
           <div style={{ minWidth: 0 }}>
@@ -56,7 +63,7 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
           </div>
           <div className="row" style={{ gap: 4, flex: "none" }}>
             <a href={`/content/${itemId}`} target="_blank" rel="noreferrer" className="btn secondary" title="Open the full page in a new tab"><ExternalLink size={15} aria-hidden /> Open full page</a>
-            <button type="button" className="icon-btn" onClick={onClose} aria-label="Close"><X size={18} /></button>
+            <button type="button" className="icon-btn" onClick={close} aria-label="Close"><X size={18} /></button>
           </div>
         </header>
 
@@ -88,13 +95,18 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
 
             <PostPerformance itemId={itemId} status={current} posts={posts} platforms={platforms} hook={item.hook} onChanged={refresh} />
 
-            {!item.script ? (
+            {editing ? (
+              <ScriptEditor key={itemId} item={{ ...item, status: current }} onDirty={() => { unsaved.current = true; }} onCancel={stopEditing} onSaved={() => { unsaved.current = false; setEditing(false); refresh(); }} />
+            ) : !item.script ? (
               <section>
                 <div className="field-label">Script</div>
-                <p className="muted">No script yet. The AI writes 5 hooks, a 30–45 second script, on-screen text and a caption.</p>
-                <ActionForm action={writeScriptAction} label="Write script with AI" busyLabel="Writing… (about 15 seconds)" onDone={refresh}>
-                  <input type="hidden" name="id" value={itemId} />
-                </ActionForm>
+                <p className="muted">No script yet. Write your own, or the AI writes 5 hooks, a 30–45 second script, on-screen text and a caption.</p>
+                <div className="row" style={{ alignItems: "flex-start" }}>
+                  <button type="button" className="secondary" onClick={() => setEditing(true)}><PenLine size={15} aria-hidden /> Write it myself</button>
+                  <ActionForm action={writeScriptAction} label="Write script with AI" busyLabel="Writing… (about 15 seconds)" onDone={refresh}>
+                    <input type="hidden" name="id" value={itemId} />
+                  </ActionForm>
+                </div>
               </section>
             ) : (
               <>
@@ -121,8 +133,9 @@ export default function ContentDrawer({ itemId, status, onMove, onClose, onChang
                     <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{item.caption}</p>
                   </section>
                 )}
-                <section>
-                  <ActionForm action={writeScriptAction} label="Rewrite script" busyLabel="Writing… (about 15 seconds)" onDone={refresh} secondary>
+                <section className="row" style={{ alignItems: "flex-start" }}>
+                  <button type="button" className="secondary" onClick={() => setEditing(true)}><PenLine size={15} aria-hidden /> Edit script</button>
+                  <ActionForm action={writeScriptAction} label="Rewrite with AI" busyLabel="Writing… (about 15 seconds)" onDone={refresh} secondary confirm="This replaces the script, hooks, caption and keyword with a new AI version. Anything you wrote yourself will be lost. Carry on?">
                     <input type="hidden" name="id" value={itemId} />
                   </ActionForm>
                 </section>

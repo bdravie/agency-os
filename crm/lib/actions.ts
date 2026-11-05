@@ -475,8 +475,12 @@ export async function saveContent(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
   await query(
-    `UPDATE content_items SET idea = COALESCE($2, idea), hook = $3, script = $4, caption = $5, keyword = $6 WHERE id = $1`,
-    [id, str(form, "idea"), str(form, "hook"), str(form, "script"), str(form, "caption"), str(form, "keyword")],
+    // A hand-written script counts the same as an AI one: a waiting idea moves to Script ready, so it reaches Filming day.
+    `UPDATE content_items SET idea = COALESCE($2, idea), hook = $3, script = $4, caption = $5, keyword = $6, hook_alt = $7,
+            status = CASE WHEN status = 'Idea' AND $4::text IS NOT NULL THEN 'Scripted' ELSE status END
+      WHERE id = $1`,
+    // Browsers send line breaks as \r\n; keep the saved text the same as the AI's, so a copied caption has plain line breaks.
+    [id, str(form, "idea"), str(form, "hook"), str(form, "script")?.replace(/\r\n/g, "\n") ?? null, str(form, "caption")?.replace(/\r\n/g, "\n") ?? null, str(form, "keyword"), str(form, "hook_alt")],
   );
   revalidatePath(`/content/${id}`);
   revalidatePath("/content");
