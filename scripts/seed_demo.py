@@ -83,6 +83,23 @@ def seed_needs_you(conn, now: datetime) -> None:
     )
 
 
+def seed_flowcharts(conn) -> None:
+    """A fake process diagram for the flowchart builder. Safe to run twice."""
+    if conn.execute("SELECT 1 FROM flowcharts WHERE title LIKE 'Demo:%' LIMIT 1").fetchone():
+        return
+    code = (
+        "flowchart TD\n"
+        "  A[Enquiry received] --> B[Reply and offer a consultation]\n"
+        "  B --> C{Consultation booked?}\n"
+        "  C -- No --> D[Follow up]\n"
+        "  D --> B\n"
+        "  C -- Yes --> E[Consultation]\n"
+        "  E --> F[Treatment]\n"
+        "  F --> G[Aftercare and review request]"
+    )
+    conn.execute("INSERT INTO flowcharts (title, code) VALUES (%s,%s)", ("Demo: clinic enquiry to review", code))
+
+
 def seed(dry_run: bool) -> None:
     rng = random.Random(3)
     rows = companies(12)
@@ -126,6 +143,7 @@ def seed(dry_run: bool) -> None:
                 (f"Follow up with {r['name']}", now + timedelta(days=rng.randint(-2, 5)), cid, deal["id"]),
             )
         seed_needs_you(conn, now)
+        seed_flowcharts(conn)
     print("Demo data inserted (source='demo').")
 
 

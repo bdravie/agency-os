@@ -1,4 +1,4 @@
-import { Building2, Inbox, Mail, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Radar, Phone, ShieldBan, TrendingUp, Funnel, FileSignature, FileText, CalendarDays, Kanban, LayoutDashboard, FlaskConical, Package, Users, Video, type LucideIcon } from "lucide-react";
+import { Building2, Inbox, Mail, CheckSquare, ClipboardCheck, MessageSquareWarning, GraduationCap, Radar, Phone, ShieldBan, TrendingUp, Funnel, FileSignature, FileText, CalendarDays, Kanban, LayoutDashboard, FlaskConical, Package, Users, Video, Workflow, type LucideIcon } from "lucide-react";
 
 // One place that defines where everything lives. Grouped by what you are doing (BRAND_SHEET.md section 6).
 export type NavItem = { href: string; label: string; icon: LucideIcon; hint: string };
@@ -25,6 +25,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     { href: "/clients", label: "Clients", icon: Users, hint: "Revenue and reviews" },
     { href: "/outcomes", label: "Outcomes", icon: TrendingUp, hint: "Before-and-after results per client" },
     { href: "/enablement", label: "Enablement", icon: GraduationCap, hint: "Client training, sessions and files" },
+    { href: "/flowcharts", label: "Flowcharts", icon: Workflow, hint: "Map a process as a diagram and export it" },
   ] },
   { title: "Grow", items: [
     { href: "/content", label: "Content", icon: Video, hint: "Ideas, scripts, calendar" },

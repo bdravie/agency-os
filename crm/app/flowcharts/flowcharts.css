@@ -1,0 +1,83 @@
+/* Flowchart builder. Scoped under .fc, on the brand tokens only (light and dark, see BRAND_SHEET.md). */
+
+/* The workspace uses the whole window, so it lifts the page's width limit. */
+.main:has(> .fc-workspace) { max-width: none; padding: 16px clamp(16px, 2vw, 24px); }
+.fc-workspace { display: flex; flex-direction: column; gap: 12px; height: calc(100dvh - 32px); min-height: 0; }
+
+/* ---------- Toolbar ---------- */
+.fc-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fc-back { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--text-2); transition: background var(--ease); flex: none; }
+.fc-back:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
+.fc input.fc-title { flex: 1 1 220px; min-width: 0; max-width: 460px; font-family: var(--font-head); font-size: 20px; font-weight: 700; background: transparent; border-color: transparent; padding: 4px 10px; }
+.fc input.fc-title:hover { background: var(--surface-2); }
+.fc-toolbar-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.fc-theme { display: inline-flex; align-items: center; gap: 8px; }
+.fc-theme select { padding: 6px 10px; }
+
+.fc-status { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.fc-status-good { color: var(--good); }
+.fc-status-warn { color: var(--accent-text); }
+.fc-status-quiet { color: var(--muted); }
+.fc-status-bad { color: var(--bad); }
+
+/* Export is the screen's one Ember button. */
+.fc-menu { position: relative; }
+.fc-menu > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 7px 18px; list-style: none; cursor: pointer; font-size: 14.5px; font-weight: 600; color: var(--on-accent); background: var(--accent-strong); border-radius: 999px; box-shadow: var(--btn-shadow); transition: background var(--ease), transform 160ms var(--ease-out); }
+.fc-menu > summary::-webkit-details-marker { display: none; }
+.fc-menu > summary::before, .fc-menu > summary::after { content: none; }   /* the app's other details rows draw a + here */
+.fc-menu > summary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.fc-menu > summary:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.fc-menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: grid; min-width: 200px; padding: 6px; background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); }
+.fc button.fc-menu-item { justify-content: flex-start; width: 100%; min-height: 34px; padding: 6px 12px; font-weight: 500; font-size: 14px; color: var(--text); background: transparent; border-radius: var(--radius-sm); }
+.fc button.fc-menu-item:hover { background: var(--surface-2); }
+
+.fc-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0; padding: 8px 14px; font-size: 14px; border-radius: var(--radius-md); }
+.fc-banner-bad { color: var(--bad); background: var(--bad-soft); }
+
+/* ---------- Panes ---------- */
+.fc-split { flex: 1; min-height: 0; display: flex; }
+.fc-split.dragging { user-select: none; cursor: col-resize; }
+.fc-pane { min-width: 0; min-height: 0; display: flex; }
+.fc-pane-left { flex: 0 0 var(--fc-left); }
+.fc-pane-right { flex: 1 1 0; }
+.fc-divider { flex: none; width: 14px; cursor: col-resize; display: grid; place-items: center; touch-action: none; border-radius: var(--radius-sm); }
+.fc-divider::after { content: ""; width: 4px; height: 40px; border-radius: 999px; background: var(--line-strong); transition: background var(--ease), height 160ms var(--ease-out); }
+.fc-divider:hover::after, .fc-split.dragging .fc-divider::after, .fc-divider:focus-visible::after { background: var(--accent); height: 64px; }
+.fc-divider:focus-visible { outline: none; }
+
+.fc-code.card { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.fc-editor { flex: 1; min-height: 0; padding: 8px 4px 8px 0; }
+.fc-error { flex: none; max-height: 34%; margin: 0; padding: 10px 14px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; color: var(--bad); background: var(--bad-soft); }
+
+/* ---------- Preview ---------- */
+.fc-canvas { position: relative; flex: 1; min-width: 0; overflow: hidden; color: var(--text); background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--radius); box-shadow: var(--shadow-1); cursor: grab; touch-action: none; user-select: none; }
+.fc-canvas.dragging { cursor: grabbing; }
+.fc-canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fc-stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.fc-stage svg { display: block; }
+.fc-canvas-note { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; text-align: center; }
+.fc-stale { position: absolute; top: 12px; left: 12px; }
+.fc-controls { position: absolute; right: 12px; bottom: 12px; display: inline-flex; align-items: center; gap: 2px; padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow-1); cursor: default; }
+.fc-zoom { min-width: 44px; text-align: center; font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.fc-controls button.icon-btn { min-height: 30px; width: 30px; }
+
+/* ---------- List and templates ---------- */
+.fc-list td { vertical-align: middle; }
+.fc-list-title { font-weight: 600; }
+.fc-actions { display: inline-flex; gap: 2px; }
+.fc-group { margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.fc-templates { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.fc button.fc-template { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 6px; padding: 16px 18px; text-align: left; font-weight: 400; color: var(--text); background: var(--surface); border-radius: var(--radius-md); }
+.fc button.fc-template:hover { background: var(--surface); }
+.fc button.fc-template strong { font-size: 15px; }
+
+/* ---------- Narrow screens: stacked, and the page scrolls ---------- */
+@media (max-width: 900px) {
+  .main:has(> .fc-workspace) { padding: 12px; }
+  .fc-workspace { height: auto; }
+  .fc-split { flex-direction: column; gap: 12px; }
+  .fc-pane-left { flex: none; height: 44dvh; }
+  .fc-pane-right { flex: none; height: 62dvh; }
+  .fc-divider { display: none; }
+  .fc-toolbar-end { margin-left: 0; width: 100%; justify-content: space-between; }
+}

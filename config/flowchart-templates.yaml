@@ -1,0 +1,157 @@
+# Starter diagrams for the CRM's flowchart builder (/flowcharts/new). Edit freely: a change shows the next time the page opens.
+# Business processes and roles only, never a real person's name, email or phone number (the app refuses contact details when saving).
+# Fields: key (unique), group (heading on the page), title, description, code (Mermaid).
+templates:
+  - key: client-journey
+    group: Clinics
+    title: Patient or client journey
+    description: Enquiry to consultation, treatment, aftercare and a review request.
+    code: |
+      flowchart TD
+        A[Enquiry received] --> B[Reply and offer a consultation]
+        B --> C{Consultation booked?}
+        C -- No --> D[Follow up]
+        D --> B
+        C -- Yes --> E[Consultation]
+        E --> F{Going ahead?}
+        F -- No --> G[Add to a later check-in]
+        F -- Yes --> H[Treatment]
+        H --> I[Aftercare]
+        I --> J[Check-in]
+        J --> K[Ask for a review]
+
+  - key: treatment-pathway
+    group: Clinics
+    title: Treatment pathway with decision points
+    description: From assessment through suitability and consent to review. Replace the steps with your own clinical process.
+    code: |
+      flowchart TD
+        A[Initial assessment] --> B{Suitable for treatment?}
+        B -- No --> C[Explain why and suggest alternatives]
+        B -- Unsure --> D[Refer for a clinician's opinion]
+        D --> B
+        B -- Yes --> E[Discuss options and costs]
+        E --> F{Consent given?}
+        F -- No --> G[Time to consider, then follow up]
+        G --> F
+        F -- Yes --> H[Treatment session]
+        H --> I{More sessions needed?}
+        I -- Yes --> J[Book next session]
+        J --> H
+        I -- No --> K[Aftercare and review appointment]
+
+  - key: booking-cancellation
+    group: Clinics
+    title: Booking and cancellation process
+    description: How a slot gets booked, confirmed, moved or given back.
+    code: |
+      flowchart TD
+        A[Booking request] --> B{Slot free?}
+        B -- No --> C[Offer other times]
+        C --> B
+        B -- Yes --> D[Confirm the booking]
+        D --> E[Send a reminder]
+        E --> F{Still coming?}
+        F -- Yes --> G[Appointment]
+        F -- Rebook --> C
+        F -- Cancel --> H{Inside the cancellation window?}
+        H -- Yes --> I[Apply the cancellation policy]
+        H -- No --> J[Release the slot]
+        I --> J
+        J --> K[Offer the slot to the waiting list]
+
+  - key: quote-to-job
+    group: Contractors
+    title: Quote-to-job workflow
+    description: From a new enquiry to a site visit, quote, job, invoice and payment.
+    code: |
+      flowchart TD
+        A[New enquiry] --> B{Worth a site visit?}
+        B -- No --> C[Politely decline]
+        B -- Yes --> D[Book site visit]
+        D --> E[Write the quote]
+        E --> F[Send the quote]
+        F --> G{Accepted?}
+        G -- Not yet --> H[Follow up]
+        H --> G
+        G -- No --> I[Record why it was lost]
+        G -- Yes --> J[Take deposit and schedule]
+        J --> K[Do the job]
+        K --> L[Sign-off and photos]
+        L --> M[Invoice]
+        M --> N{Paid?}
+        N -- No --> O[Chase]
+        O --> N
+        N -- Yes --> P[Ask for a review]
+
+  - key: lead-follow-up
+    group: Any business
+    title: New lead follow-up process
+    description: Who replies, how quickly, and what happens if there is no answer.
+    code: |
+      flowchart TD
+        A[New lead comes in] --> B[Log it in the CRM]
+        B --> C[First reply within the hour]
+        C --> D{Did they respond?}
+        D -- Yes --> E[Qualify and book a call]
+        D -- No --> F[Second follow-up after 2 days]
+        F --> G{Did they respond?}
+        G -- Yes --> E
+        G -- No --> H[Final follow-up after 5 days]
+        H --> I{Did they respond?}
+        I -- Yes --> E
+        I -- No --> J[Close and record the reason]
+        E --> K{Good fit?}
+        K -- Yes --> L[Send a quote]
+        K -- No --> J
+
+  - key: upwork-application
+    group: Upwork
+    title: Upwork application process
+    description: From spotting a job to a proposal, a call and a signed contract.
+    code: |
+      flowchart TD
+        A[Job post spotted] --> B[Score the fit]
+        B --> C{Worth applying?}
+        C -- No --> D[Skip and note why]
+        C -- Yes --> E[Plan and price the milestones]
+        E --> F[Draft the proposal]
+        F --> G[Record a short Loom]
+        G --> H[Review and send by hand]
+        H --> I{Reply?}
+        I -- No --> J[Note the outcome]
+        I -- Yes --> K[Call with the client]
+        K --> L{Offer made?}
+        L -- No --> J
+        L -- Yes --> M[Agree milestones and start]
+
+  - key: blank-flowchart
+    group: Blank
+    title: Flowchart
+    description: An empty flowchart to build from.
+    code: |
+      flowchart TD
+        A[Start] --> B[Next step]
+
+  - key: blank-sequence
+    group: Blank
+    title: Sequence diagram
+    description: Who sends what to whom, in order.
+    code: |
+      sequenceDiagram
+        participant Client
+        participant Business
+        Client->>Business: Sends a request
+        Business-->>Client: Replies
+
+  - key: blank-gantt
+    group: Blank
+    title: Gantt chart
+    description: Tasks and timings on a calendar.
+    code: |
+      gantt
+        title Project plan
+        dateFormat YYYY-MM-DD
+        section Phase 1
+        First task  :a1, 2027-01-04, 5d
+        Second task :after a1, 5d
