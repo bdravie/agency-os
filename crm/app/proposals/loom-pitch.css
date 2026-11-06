@@ -1,0 +1,20 @@
+/* The Loom pitch panel and the proof library. Brand tokens only. */
+.lp-section { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.lp-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.lp-fields { display: grid; gap: 10px; }
+.lp-fields textarea, .lp-fields input, .lp-section textarea, .lp-section input:not([type="checkbox"]) { width: 100%; }
+.lp-beat, .lp-step, .lp-item { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lp-steps { display: flex; flex-direction: column; gap: 8px; margin-left: 12px; }
+.lp-item > summary { cursor: pointer; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lp-item[open] > summary { margin-bottom: 10px; }
+.lp-beat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.lp-seconds { display: inline-flex; align-items: center; gap: 6px; }
+.lp-seconds input { width: 72px !important; }
+.lp-diagram { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; overflow-x: auto; min-height: 100px; }
+.lp-diagram svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+.lp-count { font-variant-numeric: tabular-nums; }
+.lp-count.over-soft { color: var(--warn); font-weight: 600; }
+.lp-count.over-max { color: var(--bad); font-weight: 600; }
+.lp-preview { padding: 10px 12px; border: 1px dashed var(--line); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+.lp-preview mark { background: var(--warn-soft); color: var(--warn); border-radius: 3px; }
+.lp-chip-note { font-size: 0.85em; }

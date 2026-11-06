@@ -40,11 +40,11 @@ const dealsGoingQuiet: Rule = {
 
 const pitchLooms: Rule = {
   heading: "Pitch Looms to record", one: "pitch Loom to record", many: "pitch Looms to record",
-  // Owed once a pitch pack has scripted one. Marking it recorded clears it, and so does the proposal leaving Draft (sent without one, or dropped).
+  // Owed once a pitch pack or Loom pitch has scripted one. Marking it recorded, or pasting the link, clears it, and so does the proposal leaving Draft (sent without one, or dropped).
   load: async () => (await query<any>(
-    `SELECT id, job_title, company_name, pack_at FROM proposals
-      WHERE pack IS NOT NULL AND status = 'Draft' AND loom_recorded_at IS NULL ORDER BY pack_at`))
-    .map((p) => ({ key: `proposal-${p.id}`, title: shortTitle(proposalName(p)), detail: `Script written ${ago(p.pack_at)}`, href: `/proposals/${p.id}#loom-script`, action: "Record" })),
+    `SELECT id, job_title, company_name, loom_pitch IS NOT NULL AS is_loom_pitch, COALESCE(loom_pitch_at, pack_at) AS written_at FROM proposals
+      WHERE (pack IS NOT NULL OR loom_pitch IS NOT NULL) AND status = 'Draft' AND loom_recorded_at IS NULL ORDER BY written_at`))
+    .map((p) => ({ key: `proposal-${p.id}`, title: shortTitle(proposalName(p)), detail: `Script written ${ago(p.written_at)}`, href: `/proposals/${p.id}#${p.is_loom_pitch ? "loom-pitch" : "loom-script"}`, action: "Record" })),
 };
 
 const callsToAnalyse: Rule = {

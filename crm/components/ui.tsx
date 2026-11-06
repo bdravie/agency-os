@@ -29,7 +29,7 @@ export function PageHeader({ title, description, actions, back }: {
 
 const TONES: Record<string, string> = {
   New: "neutral", Draft: "neutral", Idea: "neutral", Paused: "warn",
-  Contacted: "blue", Sent: "blue", Scripted: "blue",
+  Contacted: "blue", Sent: "blue", Scripted: "blue", Viewed: "blue",
   Replied: "violet", Interview: "violet",
   "Call booked": "warn", Filmed: "warn",
   "Audit sold": "orange", "Proposal sent": "cyan",

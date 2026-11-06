@@ -83,6 +83,23 @@ def seed_needs_you(conn, now: datetime) -> None:
     )
 
 
+def seed_pitch_library(conn) -> None:
+    """A fake profile, proof item and answer for the Loom pitch. Insert-only, so a real profile is left alone. Safe to run twice."""
+    conn.execute(
+        """INSERT INTO pitch_profile (name, positioning_line, short_positioning, strong_tools, familiar_tools, preferred_defaults, facts)
+           VALUES ('Demo Owner', 'I help small businesses get hours back by improving their systems.', 'help firms get hours back',
+                   ARRAY['Make.com','Google Drive'], ARRAY['Dropbox'], 'Google Drive over Dropbox', ARRAY['Demo fact: I have demos I can show'])
+           ON CONFLICT (id) DO NOTHING"""
+    )
+    conn.execute(
+        """INSERT INTO proof_items (name, kind, one_line, problem_solved, tools, tags)
+           VALUES ('Demo: weekly report', 'demo', 'A weekly report from sample job totals.', 'Reports were written by hand.', ARRAY['Make.com'], ARRAY['reporting'])
+           ON CONFLICT (name) DO NOTHING"""
+    )
+    if not conn.execute("SELECT 1 FROM answer_bank WHERE question = 'Demo: what certifications do you have?'").fetchone():
+        conn.execute("INSERT INTO answer_bank (category, question, answer) VALUES ('certifications', 'Demo: what certifications do you have?', 'Demo answer: none yet.')")
+
+
 def seed_flowcharts(conn) -> None:
     """A fake process diagram for the flowchart builder. Safe to run twice."""
     if conn.execute("SELECT 1 FROM flowcharts WHERE title LIKE 'Demo:%' LIMIT 1").fetchone():
@@ -143,6 +160,7 @@ def seed(dry_run: bool) -> None:
                 (f"Follow up with {r['name']}", now + timedelta(days=rng.randint(-2, 5)), cid, deal["id"]),
             )
         seed_needs_you(conn, now)
+        seed_pitch_library(conn)
         seed_flowcharts(conn)
     print("Demo data inserted (source='demo').")
 

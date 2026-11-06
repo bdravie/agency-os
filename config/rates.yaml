@@ -14,3 +14,6 @@ ease_multiplier:
   easy: 1.0
   medium: 1.0
   hard: 1.25
+
+# Used only to compare a job's dollar budget with your rate in the Loom pitch's budget check. A rough starting figure: update it now and then.
+usd_to_gbp: 0.75

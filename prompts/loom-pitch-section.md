@@ -1,0 +1,1 @@
+Rewrite only the part of the pitch named below, following the same rules. CURRENT PITCH shows the other sections, which may include the consultant's own edits: stay consistent with them and do not contradict them. Call the submit tool with just the requested part.

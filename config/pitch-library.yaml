@@ -1,0 +1,60 @@
+# Starting data for the Loom pitch: your profile, proof library and answer bank. Seeded insert-only by crm/scripts/seedPitchLibrary.mts,
+# so anything you have changed in the CRM (Proposals > Proof and answers) is never overwritten. After seeding, edit them in the CRM, not here.
+# Only true things. Leave a field out rather than guess: the generator uses nothing else.
+
+profile:
+  # name comes from SENDER_NAME in .env when this is seeded.
+  positioning_line: "I've got over 11 years of software development experience, plus UI/UX design experience."
+  # Finishes the sentence "Hi, I love [work] and ___." in the cover letter, so it stays short.
+  short_positioning: "have 11 years in software"
+  strong_tools: [Make.com, n8n, Google Drive, Google Workspace, Google Sheets, Google APIs, Google Maps, Google Admin Console, MCP, Adobe XD, Figma, Webflow, Claude]
+  familiar_tools: [Dropbox, Google Cloud Vision, React, Codex, Retell, GoHighLevel]
+  preferred_defaults: "Google Drive over Dropbox. Make.com or n8n for the workflow, depending on what the client already uses."
+  portfolio_links: []    # everything is local for now, so the script offers to show work on a call. Any public links can be added in the CRM.
+  facts:
+    - Started coding on my Information Technology foundation degree in 2015
+    - Over 11 years of software development experience
+    - UI/UX design experience, with an Adobe XD certificate and experience using Figma
+    - Over 6 years in web design (including Webflow) and over 2 years building automations behind the scenes
+    - Software developer certificate (YSYS bootcamp), Google Cloud Platform Cloud Essentials qualification and an Information Technology foundation degree
+    - I've read the ICO's guidance on AI and data protection, so I design with UK data protection in mind and flag early when a job needs a data processing agreement
+    - I have trades websites and automation demos I can show
+
+# Projects not in portfolio/portfolio.md. Details are the owner's own words (6 Nov 2026); fields left out are still to be filled in.
+proof:
+  - name: Indulging Beauty OS
+    kind: client
+    one_line: A CRM for beauty clinics that shows their revenue, appointments, communications and website all in one place.
+    problem_solved: Beauty clinics use many different apps for different things.
+    tags: [crm, beauty, all-in-one, real-client]
+  - name: Clinic Buddy
+    kind: demo
+    one_line: A CRM for dental clinics, built to handle patient data alongside ICO and GDPR rules.
+    tags: [crm, dental, patient-data, data-protection, demo]
+    notes: A demo, planned to be sold as a SaaS once completed. Not yet sold or used by a real clinic, as far as the owner has said.
+  - name: TBG Website
+    kind: client
+    one_line: A ticketing website with custom seating workflows (areas, tables and seats per table), a theme builder for a custom customer-facing site and a Partiful-style chat window showing who's attending.
+    problem_solved: Bypasses ticketing platform fees and connects directly to Stripe for payment.
+    tools: [Stripe]
+    tags: [ticketing, payments, custom-workflow, real-client]
+
+# How each portfolio/portfolio.md entry is labelled when copied in (matched on the start of its heading).
+portfolio:
+  "Agency OS": { kind: internal_tool, tags: [crm, sales, google-apis, gmail, data-protection, internal] }
+  "Weekly client report": { kind: demo, tags: [reporting, n8n, marketing, demo] }
+  "Summit Roofing": { kind: demo, tags: [trades, quote-funnel, sms, webhook, demo] }
+  "Greenline Gardens": { kind: demo, tags: [trades, website, demo] }
+  "Trades Mode": { kind: demo, tags: [trades, mobile-app, follow-up, demo] }
+  "Salon website": { kind: demo, tags: [beauty, website, demo] }
+  "Lash academy": { kind: demo, tags: [beauty, landing-page, demo] }
+  "Local SEO report": { kind: demo, tags: [dental, reporting, seo, demo] }
+  "Demo capture kit": { kind: internal_tool, tags: [tooling, internal] }
+
+answers:
+  - category: certifications
+    question: What certifications do you have?
+    answer: "A software developer certificate (YSYS bootcamp), the Google Cloud Platform Cloud Essentials qualification, an Adobe XD certificate and an Information Technology foundation degree."
+  - category: experience
+    question: How much relevant experience do you have?
+    answer: "Over 11 years of software development since I started coding on my IT foundation degree in 2015, over 6 years in web design and over 2 years building automations."

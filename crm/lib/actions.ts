@@ -12,6 +12,7 @@ import { draftProposal } from "./proposal";
 import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposalPlan";
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
+import { PROPOSAL_STATUSES } from "./proposalStatus";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
 import { loadContentConfig, repurpose } from "./content";
 import { scriptItem } from "./scriptItem";
@@ -234,13 +235,11 @@ export async function addLooseTask(form: FormData) {
   revalidatePath("/");
 }
 
-const PROPOSAL_STATUSES = ["Draft", "Sent", "Interview", "Won", "Lost"];
-
 export async function saveProposal(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
   const status = str(form, "status") ?? "Draft";
-  if (!PROPOSAL_STATUSES.includes(status)) return;
+  if (!(PROPOSAL_STATUSES as readonly string[]).includes(status)) return;
   const connects = str(form, "connects_used");
   const rows = await query<{ old: string }>(
     `UPDATE proposals p SET draft = $2, status = $3, connects_used = $4,
