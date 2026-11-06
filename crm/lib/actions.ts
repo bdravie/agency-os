@@ -12,7 +12,6 @@ import { draftProposal } from "./proposal";
 import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposalPlan";
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
-import { PROPOSAL_STATUSES } from "./proposalStatus";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
 import { loadContentConfig, repurpose } from "./content";
 import { scriptItem } from "./scriptItem";
@@ -235,20 +234,13 @@ export async function addLooseTask(form: FormData) {
   revalidatePath("/");
 }
 
+/** Saves the draft text and Connects count. The status is changed from the pipeline or the stage bar (moveProposal), which also asks why a proposal was lost. */
 export async function saveProposal(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
-  const status = str(form, "status") ?? "Draft";
-  if (!(PROPOSAL_STATUSES as readonly string[]).includes(status)) return;
   const connects = str(form, "connects_used");
-  const rows = await query<{ old: string }>(
-    `UPDATE proposals p SET draft = $2, status = $3, connects_used = $4,
-            sent_at = CASE WHEN $3::text <> 'Draft' AND p.sent_at IS NULL THEN now() ELSE p.sent_at END
-       FROM (SELECT id, status AS old FROM proposals WHERE id = $1) prev
-      WHERE p.id = prev.id RETURNING prev.old`,
-    [id, str(form, "draft"), status, connects === null ? null : Number(connects)],
-  );
-  if (rows[0] && rows[0].old !== status) await logActivity("proposal_status", { channel: "upwork", body: `Proposal #${id}: ${rows[0].old} → ${status}` });
+  if (connects !== null && (!Number.isInteger(Number(connects)) || Number(connects) < 0)) throw new Error("Connects used must be a whole number.");
+  await query(`UPDATE proposals SET draft = $2, connects_used = $3 WHERE id = $1`, [id, str(form, "draft"), connects === null ? null : Number(connects)]);
   revalidatePath("/proposals");
   revalidatePath(`/proposals/${id}`);
 }

@@ -81,6 +81,27 @@ def seed_needs_you(conn, now: datetime) -> None:
         "INSERT INTO proposals (job_title, job_text, fit_score, status, pack, pack_at) VALUES (%s,%s,8,'Draft',%s,%s)",
         ("Demo: weekly report automation", "Demo job post: a weekly report from our job totals.", json.dumps(pack), now - timedelta(hours=5)),
     )
+    # A spread of statuses so the proposal pipeline has something in every tier. Fake jobs only; skipped if already seeded.
+    if not conn.execute("SELECT 1 FROM proposals WHERE job_title = 'Demo: stock sheet tidy-up'").fetchone():
+        demo = [
+            ("Demo: stock sheet tidy-up", "Draft", 0, None, None),
+            ("Demo: weekly ad metrics email", "Sent", 12, 3, None),
+            ("Demo: monthly sales summary", "Sent", 10, 9, None),
+            ("Demo: content calendar helper", "Viewed", 5, 4, None),
+            ("Demo: invoice chasing reminders", "Replied", 3, 2, None),
+            ("Demo: admin dashboard in Sheets", "Won", 20, 10, None),
+            ("Demo: social post scheduler", "Lost", 40, 25, "no_reply"),
+        ]
+        for title, status, days, spent, lost in demo:
+            conn.execute(
+                """INSERT INTO proposals (job_title, job_text, fit_score, status, connects_used, sent_at, status_changed_at, lost_reason)
+                   VALUES (%s, 'Demo job post: fake text for the pipeline, no real client.', 7, %s, %s,
+                           CASE WHEN %s = 'Draft' THEN NULL ELSE now() - make_interval(days => %s) END, now() - make_interval(days => %s), %s)""",
+                (title, status, spent, status, days, days, lost),
+            )
+        conn.execute(
+            "INSERT INTO proposals (job_title, job_text, fit_score, status, archived_at, archive_reason) VALUES ('Demo: archived custom app job', 'Demo job post: too much custom coding.', 4, 'Draft', now(), 'not_a_fit')"
+        )
 
 
 def seed_pitch_library(conn) -> None:

@@ -1,0 +1,11 @@
+/* Proposal pipeline: the Deals tier layout with a tick box and the columns a proposal has (fit, Connects, time in status). */
+.prop-tiers .tier-cols, .prop-tiers .tier-row { grid-template-columns: 22px minmax(220px, 3fr) 72px 84px 84px minmax(230px, auto); }
+.prop-tiers .tier-row { cursor: pointer; }
+.prop-tiers .tier-row.archived { opacity: .8; }
+.prop-tiers .tier-row input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; accent-color: var(--accent); }
+.prop-tiers .tier-title a { color: inherit; }
+.prop-tiers .tier-title a:hover { color: var(--accent-text); }
+.prop-bulk { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px; margin-bottom: 14px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); border-radius: var(--radius); }
+.prop-bulk b { color: var(--accent-text); }
+.prop-edit summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 900px) { .prop-tiers .tier-cols { display: none; } .prop-tiers .tier-row { grid-template-columns: 22px 1fr auto; } .prop-tiers .tier-fit, .prop-tiers .tier-num { display: none; } }

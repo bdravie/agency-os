@@ -5,7 +5,7 @@ import { LOST_REASONS } from "@/lib/stages";
 
 // Losing a deal needs one of the standard reasons (the database enforces it too) and, optionally, a short note.
 // The reasons feed the Funnel page, so they stay a fixed list.
-export default function LostDialog({ title, onConfirm, onCancel }: { title: string; onConfirm: (reason: string, note: string) => void; onCancel: () => void }) {
+export default function LostDialog({ title, onConfirm, onCancel, reasons = LOST_REASONS }: { title: string; onConfirm: (reason: string, note: string) => void; onCancel: () => void; reasons?: readonly { code: string; label: string }[] }) {
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
   const [tried, setTried] = useState(false);
@@ -15,7 +15,7 @@ export default function LostDialog({ title, onConfirm, onCancel }: { title: stri
         <h2 style={{ margin: 0 }}>Why was it lost?</h2>
         <p className="muted">{title}</p>
         <div className="pills" role="radiogroup" aria-label="Reason">
-          {LOST_REASONS.map((r) => (
+          {reasons.map((r) => (
             <button key={r.code} type="button" role="radio" aria-checked={reason === r.code} className={`pill${reason === r.code ? " on" : ""}`} onClick={() => setReason(r.code)}>{r.label}</button>
           ))}
         </div>

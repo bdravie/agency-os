@@ -7,6 +7,7 @@ import { dueForSession, loadTraining } from "./enablementData";
 import { loadOutcomes, needsAttention } from "./outcomeData";
 import { proposalName } from "./proposalName";
 import { describeNeeds, isDemoFolder, shortTitle } from "./needsYouMath";
+import { FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_UNTIL_DAYS, statusLabel } from "./proposalStatus";
 
 // The one place that says what is outstanding. A number is never stored or marked as read: it is worked out from the data each time,
 // so it goes down by itself when the thing is done. The Inbox count stays in ReplyFeed, which also announces new replies.
@@ -43,8 +44,20 @@ const pitchLooms: Rule = {
   // Owed once a pitch pack or Loom pitch has scripted one. Marking it recorded, or pasting the link, clears it, and so does the proposal leaving Draft (sent without one, or dropped).
   load: async () => (await query<any>(
     `SELECT id, job_title, company_name, loom_pitch IS NOT NULL AS is_loom_pitch, COALESCE(loom_pitch_at, pack_at) AS written_at FROM proposals
-      WHERE (pack IS NOT NULL OR loom_pitch IS NOT NULL) AND status = 'Draft' AND loom_recorded_at IS NULL ORDER BY written_at`))
+      WHERE (pack IS NOT NULL OR loom_pitch IS NOT NULL) AND status = 'Draft' AND archived_at IS NULL AND loom_recorded_at IS NULL ORDER BY written_at`))
     .map((p) => ({ key: `proposal-${p.id}`, title: shortTitle(proposalName(p)), detail: `Script written ${ago(p.written_at)}`, href: `/proposals/${p.id}#${p.is_loom_pitch ? "loom-pitch" : "loom-script"}`, action: "Record" })),
+};
+
+const proposalsGoneQuiet: Rule = {
+  heading: "Worth a nudge", one: "proposal sent a week ago with no news", many: "proposals sent a week ago with no news",
+  // Sent or Viewed, unchanged for a week (proposalStatus.ts needsFollowUp). After a month it is a decision, not a nudge: the pipeline row still shows it, but it stops counting here.
+  // Moving it on, archiving it or marking it lost clears it.
+  load: async () => (await query<any>(
+    `SELECT id, job_title, company_name, status, status_changed_at FROM proposals
+      WHERE status IN ('Sent', 'Viewed') AND archived_at IS NULL
+        AND status_changed_at <= now() - make_interval(days => $1) AND status_changed_at > now() - make_interval(days => $2)
+      ORDER BY status_changed_at`, [FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_UNTIL_DAYS]))
+    .map((p) => ({ key: `proposal-quiet-${p.id}`, title: shortTitle(proposalName(p)), detail: `${statusLabel(p.status)} ${ago(p.status_changed_at)}, no change since`, href: `/proposals/${p.id}`, action: "Follow up" })),
 };
 
 const callsToAnalyse: Rule = {
@@ -132,7 +145,7 @@ const demoLooms: Rule = {
 const CATEGORIES: Record<string, Rule[]> = {
   "/tasks": [tasksDue],
   "/deals": [dealsGoingQuiet],
-  "/proposals": [pitchLooms],
+  "/proposals": [pitchLooms, proposalsGoneQuiet],
   "/calls": [callsToAnalyse],
   "/quotes": [quoteDrafts],
   "/clients": [reviewsDue],
