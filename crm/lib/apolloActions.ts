@@ -31,9 +31,12 @@ export async function apolloStatusAction(companyId: number): Promise<ApolloStatu
   const gate = await loadGate(companyId);
   const used = await creditsUsedToday();
   const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM contacts WHERE company_id = $1 AND source IN ('Apollo', 'Apollo CSV')`, [companyId]);
-  return { configured: !!apolloKey(), domain: c?.domain ?? null, sendable: !!gate?.sendable, blockedReason: gate && !gate.sendable ? gate.reasons.join(" ") : null,
+  return { configured: !!apolloKey(), domain: c?.domain ?? null, sendable: !!gate?.sendable && !gate.bypassed, blockedReason: gate?.bypassed ? APOLLO_NEEDS_REAL_MATCH : gate && !gate.sendable ? gate.reasons.join(" ") : null,
     used, cap: s.dailyCredits, left: Math.max(0, s.dailyCredits - used), maxPerClick: s.maxPerClick, seniorities: roles.seniorities, titles: roles.titles, saved: Number(n) };
 }
+
+// A bypass (owner-approved 6 Nov 2026) opens drafts and one-at-a-time sends only. Apollo spends credits and stores people, so it keeps the strict rule.
+const APOLLO_NEEDS_REAL_MATCH = "Apollo and the Apollo CSV import need a company verified on Companies House. A bypassed company can still be given people by pasting them in.";
 
 type Preflight = { error: string } | { domain: string };
 async function preflight(companyId: number): Promise<Preflight> {
@@ -41,6 +44,7 @@ async function preflight(companyId: number): Promise<Preflight> {
   const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
   if (!c) return { error: "Company not found." };
   const gate = await loadGate(companyId);
+  if (gate?.bypassed) return { error: APOLLO_NEEDS_REAL_MATCH };
   if (!gate?.sendable) return { error: `Apollo is only used for verified active limited companies that can be contacted. ${gate?.reasons.join(" ") ?? ""}`.trim() };
   if (!c.domain) return { error: "Add the company's website first: Apollo finds people by their website address." };
   return { domain: c.domain.toLowerCase().replace(/^www\./, "") };
@@ -119,6 +123,7 @@ export async function apolloImportAction(companyId: number, csvText: string): Pr
   const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
   if (!c) return { error: "Company not found." };
   const gate = await loadGate(companyId);
+  if (gate?.bypassed) return { error: APOLLO_NEEDS_REAL_MATCH };
   if (!gate?.sendable) return { error: `People are only added for verified active limited companies that can be contacted. ${gate?.reasons.join(" ") ?? ""}`.trim() };
   if (!c.domain) return { error: "Add the company's website first: only work emails on that website's domain are accepted." };
   const domain = c.domain.toLowerCase().replace(/^www\./, "");

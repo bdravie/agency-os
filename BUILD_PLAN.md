@@ -165,7 +165,7 @@ Decided 2026-10-15: leave these off until closer to launch. **Anything that spen
 
 ## Extra: Calls and Objection Library (built)
 
-Upload a .vtt/.txt transcript or paste notes against a deal (`/calls/new`). Privacy masking happens before saving; "Analyse with AI" (paid, click-only, `CALLS_DAILY_CAP`) extracts summary, pains, budget signals, objections, next step and follow-up date, and creates the follow-up task. `/objections` aggregates objections across calls with frequency counts and your best response, shown again on any call where it recurs. Migration: `20261019100000_calls_and_objections.sql`.
+Upload a .vtt/.txt transcript or paste notes against a deal (`/calls/new`). Privacy masking happens before saving; "Analyse with AI" (paid, click-only, `CALLS_DAILY_CAP`) extracts summary, pains, budget signals, objections, next step and follow-up date, and creates the follow-up task. `/objections` aggregates objections across calls with frequency counts and your best response, shown again on any call where it recurs. Migration: `20261019100000_calls_and_objections.sql`. **Added 8 Nov 2026:** calls can be phone, video or in-person meetings (`kind`; in-person starts on notes), and your own notes, the title, date and type can be edited after saving; editing notes after an analysis marks the analysis as possibly out of date (migration `20261118100000_call_kind_and_notes_edit.sql`).
 
 ---
 

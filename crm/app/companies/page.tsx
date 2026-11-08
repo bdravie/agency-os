@@ -115,7 +115,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
             <tbody>
               {shown.map((c: any) => {
                 const reasons = gateReasons(c);
-                const n = nextStep({ ...c, gate: { sendable: c.sendable, unchecked: c.compliance_status === "unchecked", reasons } });
+                const n = nextStep({ ...c, gate: { sendable: c.sendable, unchecked: c.compliance_status === "unchecked" && !c.sendable, reasons } });
                 return (
                   <tr key={c.id} className={c.fresh ? "row-new" : undefined}>
                     <td><Link href={`/companies/${c.id}`} style={{ fontWeight: 600 }}>{c.name}</Link>{c.legal_name !== c.name && <span className="muted" style={{ fontWeight: 400 }}> · registered as {c.legal_name}</span>}{c.fresh && <> <Pill label="New today" tone="blue" /></>}<div className="muted">{[c.niche, c.city ?? c.postcode?.split(" ")[0]].filter(Boolean).join(" · ")}</div></td>

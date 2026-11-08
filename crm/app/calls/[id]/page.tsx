@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClock, Quote, X } from "lucide-react";
+import { CalendarClock, Phone, Quote, Users, Video, X } from "lucide-react";
 import { query } from "@/lib/db";
 import { addCallObjection, deleteCall, purgeTranscript, removeCallObjection, saveCallEdits } from "@/lib/callActions";
 import { callsModel } from "@/lib/llm";
+import { KIND_LABEL, analysisIsStale, canEditNotes, kindOf, type CallKind } from "@/lib/callEdit";
 import { dateOnly } from "@/lib/format";
 import CallAnalyseButton from "@/components/CallAnalyseButton";
+import CallEditor from "@/components/CallEditor";
 import ToastForm from "@/components/ToastForm";
 import ConfirmButton from "@/components/ConfirmButton";
 import { EmptyState, PageHeader, Pill } from "@/components/ui";
@@ -17,7 +19,7 @@ export default async function CallPage({ params, searchParams }: { params: Promi
   if (!Number.isInteger(id)) notFound();
   const note = (await searchParams).note;
   const [call] = await query<any>(
-    `SELECT c.*, c.follow_up_on::text AS follow_day, co.name AS company_name, d.title AS deal_title
+    `SELECT c.*, c.follow_up_on::text AS follow_day, to_char(c.occurred_at, 'YYYY-MM-DD') AS day, co.name AS company_name, d.title AS deal_title
        FROM calls c JOIN companies co ON co.id = c.company_id LEFT JOIN deals d ON d.id = c.deal_id WHERE c.id = $1`, [id]);
   if (!call) notFound();
   const [objections, library, [task], [{ n }]] = await Promise.all([
@@ -28,6 +30,10 @@ export default async function CallPage({ params, searchParams }: { params: Promi
   ]);
   const usage = { used: Number(n), cap: Number(process.env.CALLS_DAILY_CAP ?? 20) || 20 };
   const analysed = call.status === "analysed";
+  const kind: CallKind = kindOf(call.kind);
+  const KindIcon = kind === "in_person" ? Users : kind === "video" ? Video : Phone;
+  const editableNotes = canEditNotes(call.source, !!call.transcript);
+  const stale = analysed && analysisIsStale(call.analysed_at, call.notes_edited_at);
   const pains = call.pains as { pain: string; quote: string | null }[], budget = call.budget_signals as { signal: string; quote: string | null }[];
 
   return (
@@ -39,16 +45,23 @@ export default async function CallPage({ params, searchParams }: { params: Promi
           <Link href={`/companies/${call.company_id}`}>{call.company_name}</Link>
           {call.deal_id && <Link href={`/deals/${call.deal_id}`}>Deal: {call.deal_title}</Link>}
           <span>{dateOnly(call.occurred_at)}</span>
-          <Pill label={analysed ? "Analysed" : call.status === "failed" ? "Analysis failed" : "Saved"} tone={analysed ? "good" : call.status === "failed" ? "bad" : "neutral"} />
+          <span className="row muted" style={{ gap: 5 }}><KindIcon size={14} aria-hidden />{KIND_LABEL[kind]}</span>
+          <Pill label={stale ? "Analysed, notes edited since" : analysed ? "Analysed" : call.status === "failed" ? "Analysis failed" : "Saved"} tone={stale ? "warn" : analysed ? "good" : call.status === "failed" ? "bad" : "neutral"} />
         </span>}
       />
       {note && <div className="next" role="status" style={{ marginBottom: 16 }}><div><div className="next-label">Note</div><b style={{ fontWeight: 550 }}>{note}</b></div></div>}
 
       <div className="stack">
+        <CallEditor id={id} title={call.title} day={call.day} kind={kind} notes={editableNotes ? call.transcript : null} edited={!!call.notes_edited_at} />
+
+        {stale && (
+          <div className="next" role="status"><div><div className="next-label">Notes changed</div><b style={{ fontWeight: 550 }}>You edited the notes after the AI analysis, so the summary, pains and objections below may be out of date. Use Analyse again at the bottom to refresh them.</b></div></div>
+        )}
+
         {!analysed && (
           <section className="card">
             <h2>Analyse this call</h2>
-            <p className="muted">{call.source === "notes" ? "Your notes" : "The transcript"} ({call.transcript_chars.toLocaleString("en-GB")} characters) will be read for pains, budget signals, objections and the agreed next step, and a follow-up task is created.</p>
+            <p className="muted">{call.source === "notes" ? (kind === "in_person" ? "Your meeting notes" : "Your notes") : "The transcript"} ({call.transcript_chars.toLocaleString("en-GB")} characters) will be read for pains, budget signals, objections and the agreed next step, and a follow-up task is created.</p>
             <CallAnalyseButton callId={id} again={false} model={callsModel()} usage={usage} hasTranscript={!!call.transcript} />
           </section>
         )}
@@ -120,14 +133,15 @@ export default async function CallPage({ params, searchParams }: { params: Promi
         {analysed && <CallAnalyseButton callId={id} again model={callsModel()} usage={usage} hasTranscript={!!call.transcript} />}
 
         <details className="card">
-          <summary>{call.source === "notes" ? "Your notes" : "Transcript"} ({call.transcript_chars.toLocaleString("en-GB")} characters)</summary>
-          {call.transcript ? <pre className="script-box" style={{ marginTop: 12, maxHeight: 420 }}>{call.transcript}</pre>
-            : <p className="muted" style={{ marginTop: 10 }}>The text was removed. The analysis above is kept.</p>}
+          <summary>{call.source === "notes" ? "Remove or delete" : `Transcript (${call.transcript_chars.toLocaleString("en-GB")} characters)`}</summary>
+          {call.source !== "notes" && (call.transcript ? <pre className="script-box" style={{ marginTop: 12, maxHeight: 420 }}>{call.transcript}</pre>
+            : <p className="muted" style={{ marginTop: 10 }}>The text was removed. The analysis above is kept.</p>)}
+          {call.source === "notes" && !call.transcript && <p className="muted" style={{ marginTop: 10 }}>The notes text was removed. The analysis above is kept.</p>}
           <div className="row" style={{ marginTop: 12 }}>
-            {call.transcript && <ToastForm action={purgeTranscript} success="Transcript text removed" confirm="Remove the transcript text? The analysis stays, but you won't be able to analyse this call again." className="row"><input type="hidden" name="id" value={id} /><button className="secondary">Remove the text, keep the analysis</button></ToastForm>}
-            <form action={deleteCall}><input type="hidden" name="id" value={id} /><ConfirmButton className="link" title="Delete this call completely" message="Delete this call completely, including its transcript and analysis? This can't be undone.">Delete call</ConfirmButton></form>
+            {call.transcript && <ToastForm action={purgeTranscript} success="Text removed" confirm="Remove the saved text? The analysis stays, but you won't be able to analyse this call again or edit the notes." className="row"><input type="hidden" name="id" value={id} /><button className="secondary">Remove the text, keep the analysis</button></ToastForm>}
+            <form action={deleteCall}><input type="hidden" name="id" value={id} /><ConfirmButton className="link" title="Delete this call completely" message="Delete this call completely, including its notes or transcript and analysis? This can't be undone.">Delete call</ConfirmButton></form>
           </div>
-          <p className="muted" style={{ marginBottom: 0 }}>Contact details and speaker names were masked before this was saved. The original upload was not kept.</p>
+          <p className="muted" style={{ marginBottom: 0 }}>Contact details {call.source === "notes" ? "" : "and speaker names "}were masked before this was saved. The original upload was not kept.</p>
         </details>
       </div>
     </>

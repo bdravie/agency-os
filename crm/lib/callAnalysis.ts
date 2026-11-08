@@ -16,11 +16,14 @@ const SCHEMA = {
   },
 } as const;
 
-export async function analyseTranscript(i: { transcript: string; source: string; library: string[]; callDate: string; client: string }) {
+const KIND_WORDS: Record<string, string> = { call: "Phone call", video: "Video call", in_person: "In-person meeting" };
+
+export async function analyseTranscript(i: { transcript: string; source: string; kind?: string; library: string[]; callDate: string; client: string }) {
   const rules = await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts", "call-analysis.md"), "utf8");
   const weekday = new Date(`${i.callDate}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
   const prompt = [
     rules,
+    `TYPE: ${KIND_WORDS[i.kind ?? "call"] ?? "Call"}`,
     `CALL DATE: ${i.callDate} (${weekday})`,
     `CLIENT: ${i.client}`,
     `EXISTING OBJECTIONS:\n${i.library.length ? i.library.map((n) => `- ${n}`).join("\n") : "(none yet)"}`,

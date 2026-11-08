@@ -42,7 +42,7 @@ export default async function Objections() {
       </details>
 
       {rows.length === 0 ? (
-        <div className="card"><EmptyState title="No objections yet" icon={<MessageSquareWarning size={22} />}>They appear here as you analyse calls. <Link href="/calls/new">Log a call</Link> to start.</EmptyState></div>
+        <div className="card"><EmptyState title="No objections yet" icon={<MessageSquareWarning size={22} />}>They appear here as you analyse calls. <Link href="/calls/new">Log a call or meeting</Link> to start.</EmptyState></div>
       ) : (
         <div className="stack">
           {rows.map((o: any) => (

@@ -7,6 +7,7 @@ import { requireLogin } from "./auth";
 import { logActivity } from "./activity";
 import { MAX_CHARS, prepareTranscript } from "./transcript";
 import { analyseTranscript } from "./callAnalysis";
+import { canEditNotes, defaultTitle, isKind, prepareNotesEdit } from "./callEdit";
 
 const str = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const num = (f: FormData, k: string) => Number(str(f, k) ?? 0) || 0;
@@ -39,11 +40,13 @@ export async function createCall(_prev: string | null, form: FormData): Promise<
   if (p.tooLong) return `That's over ${MAX_CHARS.toLocaleString("en-GB")} characters. Trim it or split the call.`;
   const on = str(form, "occurred_on");
   const day = isDate(on) ? on : new Date().toISOString().slice(0, 10);
-  const title = str(form, "title")?.slice(0, 200) ?? `Call with ${co.name}`;
+  const kindRaw = str(form, "kind") ?? "call";
+  if (!isKind(kindRaw)) return "Choose phone call, video call or in-person meeting.";
+  const title = str(form, "title")?.slice(0, 200) ?? defaultTitle(kindRaw, co.name);
 
   const [call] = await query<{ id: number }>(
-    `INSERT INTO calls (company_id, deal_id, title, occurred_at, source, transcript, transcript_chars) VALUES ($1,$2,$3,($4::date + time '12:00')::timestamptz,$5,$6,$7) RETURNING id`,
-    [companyId, dealId, title, day, p.source, p.text, p.chars]);
+    `INSERT INTO calls (company_id, deal_id, title, occurred_at, source, transcript, transcript_chars, kind) VALUES ($1,$2,$3,($4::date + time '12:00')::timestamptz,$5,$6,$7,$8) RETURNING id`,
+    [companyId, dealId, title, day, p.source, p.text, p.chars, kindRaw]);
   await logActivity("call_logged", { company_id: companyId, deal_id: dealId, channel: "call", body: title });
   revalidatePath("/calls");
   let note = p.masked ? `${p.masked} email address${p.masked === 1 ? "" : "es"} or phone number${p.masked === 1 ? "" : "s"} masked.` : "";
@@ -68,7 +71,7 @@ async function runAnalysis(callId: number): Promise<{ error?: string; note?: str
 
   let result;
   try {
-    result = await analyseTranscript({ transcript: call.transcript, source: call.source, library, callDate: call.day, client: call.company_name });
+    result = await analyseTranscript({ transcript: call.transcript, source: call.source, kind: call.kind, library, callDate: call.day, client: call.company_name });
   } catch (err) {
     await query(`UPDATE calls SET status = CASE WHEN status = 'analysed' THEN status ELSE 'failed' END WHERE id = $1`, [callId]);
     return { error: err instanceof Error ? err.message : String(err) };
@@ -125,6 +128,42 @@ export async function saveCallEdits(form: FormData): Promise<{ error?: string } 
   }
   revalidatePath(`/calls/${id}`);
   revalidatePath("/tasks");
+}
+
+/** Edits what was saved about a call or meeting: its title, date and type, and (for the owner's own notes) the notes themselves.
+ *  The AI analysis is left exactly as it was; if the notes changed after it ran, the page says it may be out of date.
+ *  Edited notes are masked the same way as new ones. Nothing here uses AI credits. */
+export async function saveCallDetails(form: FormData): Promise<{ error?: string; note?: string }> {
+  await requireLogin();
+  const id = num(form, "id");
+  const [call] = await query<any>(`SELECT id, source, transcript, to_char(occurred_at, 'YYYY-MM-DD') AS day FROM calls WHERE id = $1`, [id]);
+  if (!call) return { error: "Call not found." };
+  const title = str(form, "title")?.slice(0, 200);
+  if (!title) return { error: "Give it a title." };
+  const kind = str(form, "kind");
+  if (!isKind(kind)) return { error: "Choose phone call, video call or in-person meeting." };
+  const on = str(form, "occurred_on");
+  if (!isDate(on)) return { error: "Use a valid date." };
+
+  let text: string | null = null, chars = 0, changed = false, note: string | undefined;
+  if (form.get("notes") !== null) {
+    if (!canEditNotes(call.source, !!call.transcript)) return { error: "Only your own notes can be edited, and only while their text is saved." };
+    const n = prepareNotesEdit(String(form.get("notes")), call.transcript);
+    if ("error" in n) return { error: n.error };
+    text = n.text; chars = n.chars; changed = n.changed;
+    if (n.masked) note = `${n.masked} email address${n.masked === 1 ? "" : "es"} or phone number${n.masked === 1 ? "" : "s"} masked.`;
+  }
+  // The time of day is kept unless the date itself changed.
+  await query(
+    `UPDATE calls SET title = $2, kind = $3,
+            occurred_at = CASE WHEN $4::date = occurred_at::date THEN occurred_at ELSE ($4::date + time '12:00')::timestamptz END,
+            transcript = CASE WHEN $5::boolean THEN $6 ELSE transcript END,
+            transcript_chars = CASE WHEN $5::boolean THEN $7 ELSE transcript_chars END,
+            notes_edited_at = CASE WHEN $5::boolean THEN now() ELSE notes_edited_at END
+      WHERE id = $1`,
+    [id, title, kind, on, changed, text, chars]);
+  for (const p of ["/calls", `/calls/${id}`]) revalidatePath(p);
+  return { note };
 }
 
 export async function addCallObjection(form: FormData): Promise<{ error?: string } | void> {

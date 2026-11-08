@@ -66,7 +66,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   const recipients = await query<any>(`SELECT ct.id, ct.name, ct.role, ct.email FROM contacts ct JOIN contact_gate cg ON cg.contact_id = ct.id WHERE ct.company_id = $1 AND NOT cg.blocked_person ORDER BY ct.name`, [id]);
 
   const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
-  const next = nextStep({ ...company, gate: { sendable: gate.sendable, unchecked: company.compliance_status === "unchecked", reasons: gate.reasons }, followup_due: followUp?.due_at ?? null });
+  const next = nextStep({ ...company, gate: { sendable: gate.sendable, unchecked: company.compliance_status === "unchecked" && !gate.bypassed, reasons: gate.reasons }, followup_due: followUp?.due_at ?? null });
 
   return (
     <>
@@ -80,6 +80,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
             <Badge value={company.status} />
             {company.trading_name && <span className="muted">registered as {company.name}</span>}
             {company.niche && <span>{company.niche}</span>}
+            {gate.bypassed && <Badge value="Bypassed" />}
             {!gate.sendable && <Badge value={company.opted_out ? "Opted out" : company.compliance_status === "unchecked" ? "Not verified" : "Blocked"} />}
             {company.domain && <a href={`https://${company.domain}`} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}><Globe size={14} aria-hidden />{company.domain}</a>}
             {company.generic_email && <span className="row" style={{ gap: 4 }}><Mail size={14} aria-hidden />{company.generic_email}</span>}

@@ -6,7 +6,7 @@ import CompanyPicker from "@/components/CompanyPicker";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Log a call" };
+export const metadata = { title: "Log a call or meeting" };
 
 export default async function NewCall({ searchParams }: { searchParams: Promise<{ deal?: string; company?: string }> }) {
   const sp = await searchParams;
@@ -27,9 +27,9 @@ export default async function NewCall({ searchParams }: { searchParams: Promise<
 
   return (
     <>
-      <PageHeader back={{ href: "/calls", label: "Calls" }} title="Log a call" description={label ? `Against ${label}.` : "Choose the company this call was with."} />
+      <PageHeader back={{ href: "/calls", label: "Calls" }} title="Log a call or meeting" description={label ? `Against ${label}.` : "Choose the company this call or meeting was with."} />
       {companyId && company ? (
-        <CallUploadForm companyId={companyId} dealId={dealId} defaultTitle={`Call with ${company}`} model={callsModel()} usage={usage} />
+        <CallUploadForm companyId={companyId} dealId={dealId} companyName={company} model={callsModel()} usage={usage} />
       ) : (
         <CompanyPicker action="/calls/new" />
       )}

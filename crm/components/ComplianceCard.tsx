@@ -1,8 +1,11 @@
 import { ShieldAlert, ShieldCheck } from "lucide-react";
 import { clearOptOutAction, optOutAction, saveComplianceNotes } from "@/lib/complianceActions";
+import { removeBypassAction } from "@/lib/gateBypassActions";
+import { canBypass } from "@/lib/gateBypass";
 import { STALE_DAYS, typeLabel } from "@/lib/compliance";
 import type { Gate } from "@/lib/complianceGate";
 import { dateOnly } from "@/lib/format";
+import BypassPanel from "./BypassPanel";
 import LookupPanel from "./LookupPanel";
 import ToastForm from "./ToastForm";
 import { Pill } from "./ui";
@@ -14,11 +17,11 @@ type Company = {
 
 // Who this lead is on the public register, whether it may be contacted, and why not if it may not.
 export default function ComplianceCard({ company: c, gate }: { company: Company; gate: Gate }) {
-  const tone = gate.sendable ? "good" : c.compliance_status === "unchecked" ? "warn" : "bad";
+  const tone = gate.bypassed ? "warn" : gate.sendable ? "good" : c.compliance_status === "unchecked" ? "warn" : "bad";
   return (
-    <details className="card" id="compliance" open={!gate.sendable || gate.stale}>
+    <details className="card" id="compliance" open={!gate.sendable || gate.stale || gate.bypassed}>
       <summary>
-        Compliance <Pill label={gate.sendable ? "Can be contacted" : "Blocked"} tone={tone} />
+        Compliance <Pill label={gate.bypassed ? "Bypassed" : gate.sendable ? "Can be contacted" : "Blocked"} tone={tone} />
         <span className="muted" style={{ fontWeight: 400 }}> · {c.compliance_status === "unchecked" ? "not verified yet" : `${typeLabel(c.company_type)}, ${c.company_status ?? "status unknown"}`}</span>
       </summary>
       <div className="stack" style={{ gap: 14, marginTop: 14 }}>
@@ -28,7 +31,14 @@ export default function ComplianceCard({ company: c, gate }: { company: Company;
             <span className="muted">Emails, social messages and texts are all blocked while this applies. Nothing is ever sent from the CRM; this stops you logging or drafting a send.</span>
           </div>
         )}
-        {gate.sendable && <div className="row" style={{ gap: 8, color: "var(--good)" }}><ShieldCheck size={16} aria-hidden /> Active {typeLabel(c.company_type).toLowerCase()}, not opted out, not on the suppression list.</div>}
+        {gate.bypassed && (
+          <div className="stack" style={{ gap: 6 }}>
+            <div className="row" style={{ gap: 8, color: "var(--warn)" }}><ShieldAlert size={16} aria-hidden /> Not verified on Companies House. You bypassed the check{gate.bypassAt && ` on ${dateOnly(gate.bypassAt)}`}.</div>
+            {gate.bypassReason && <span className="muted">Your reason: “{gate.bypassReason}”</span>}
+            <ToastForm action={removeBypassAction} success="Bypass removed" confirm="Remove the bypass? This company will be blocked again until it is verified on Companies House."><input type="hidden" name="company_id" value={c.id} /><button className="link">Remove the bypass</button></ToastForm>
+          </div>
+        )}
+        {gate.sendable && !gate.bypassed && <div className="row" style={{ gap: 8, color: "var(--good)" }}><ShieldCheck size={16} aria-hidden /> Active {typeLabel(c.company_type).toLowerCase()}, not opted out, not on the suppression list.</div>}
         {gate.stale && <div className="muted" style={{ color: "var(--warn)" }}>Last checked {gate.checkedAt && dateOnly(gate.checkedAt)}, more than {STALE_DAYS} days ago. Check again before you send: companies can be struck off.</div>}
 
         <LookupPanel companyId={c.id} number={c.company_number} checked={c.compliance_status !== "unchecked"} />
@@ -40,6 +50,8 @@ export default function ComplianceCard({ company: c, gate }: { company: Company;
           <label className="stack" style={{ gap: 4 }}><span className="field-label">Where their contact details came from</span><input name="contact_source" defaultValue={c.contact_source ?? ""} maxLength={200} placeholder="e.g. Company website contact page" /></label>
           <button className="secondary" style={{ alignSelf: "flex-start" }}>Save</button>
         </ToastForm>
+
+        {canBypass({ compliance_status: c.compliance_status, opted_out: c.opted_out, suppressed: gate.reasons.some((r) => /suppression/i.test(r)), bypassed: gate.bypassed }) && <BypassPanel companyId={c.id} />}
 
         <div className="stack" style={{ gap: 8, paddingTop: 10, borderTop: "1px solid var(--line-soft)" }}>
           {c.opted_out ? (
