@@ -38,7 +38,7 @@ def card_date(start: str) -> str:
 
 
 def facts(listing: dict) -> str:
-    return (f"KIND: motorcycle event\nEVENT: {listing['post_title']}\nWHEN: {when(listing['post_start_date'])}\n"
+    return (f"DIRECTORY: motorcycle events (context for tone and hashtags only, do not repeat it)\nEVENT: {listing['post_title']}\nWHEN: {when(listing['post_start_date'])}\n"
             f"WHERE: {listing['post_location']}\nDESCRIPTION: {listing['post_content']}")
 
 

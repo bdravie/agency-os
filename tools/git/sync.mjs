@@ -75,6 +75,12 @@ async function main() {
   const all = process.argv.slice(2);
   const skip = all.filter((a) => a.startsWith("--skip=")).map((a) => a.slice(7).replace(/^\.\//, ""));
   const args = all.filter((a) => !a.startsWith("--skip="));
+  // An unknown flag (--help, a typo) used to become the commit message and push everything. Refuse it before staging.
+  const unknown = args.filter((a) => a.startsWith("--") && a !== "--status");
+  if (unknown.length) {
+    console.error(`Unknown option: ${unknown.join(" ")}\nUsage: node tools/git/sync.mjs "commit message" | --status | --skip=path "commit message"`);
+    process.exit(1);
+  }
   await ensureRepo();
   const changed = await stageAll(skip);
 
