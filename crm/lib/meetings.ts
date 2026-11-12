@@ -46,7 +46,7 @@ async function loadRange({ days, from, to }: { days: string[]; from: Date; to: D
          FROM meetings m LEFT JOIN companies c ON c.id = m.company_id LEFT JOIN contacts ct ON ct.id = m.contact_id
         WHERE m.status = 'scheduled' AND m.starts_at < $2 AND m.ends_at > $1`, [from, to]),
     query<any>(`SELECT t.id, t.title, t.due_at, t.company_id FROM tasks t WHERE t.done_at IS NULL AND t.due_at >= $1 AND t.due_at < $2 ORDER BY t.due_at`, [from, to]),
-    query<any>(`SELECT id, idea, scheduled_for::text AS day, status FROM content_items WHERE scheduled_for >= $1::date AND scheduled_for <= $2::date AND status <> 'Archived' ORDER BY scheduled_for`, [days[0], days[days.length - 1]]),
+    query<any>(`SELECT id, idea, format, scheduled_for::text AS day, status FROM content_items WHERE scheduled_for >= $1::date AND scheduled_for <= $2::date AND status <> 'Archived' ORDER BY scheduled_for`, [days[0], days[days.length - 1]]),
     query<any>(`SELECT s.last_sync_at, s.last_error FROM calendar_sync_state s JOIN calendar_connections c ON c.id = s.connection_id WHERE c.refresh_token_enc IS NOT NULL ORDER BY c.connected_at DESC LIMIT 1`),
   ]);
 
@@ -65,7 +65,7 @@ async function loadRange({ days, from, to }: { days: string[]; from: Date; to: D
       start: new Date(m.starts_at), end: new Date(m.ends_at), allDay: false, meetUrl: m.meet_url, link: m.html_link, href: m.company_id ? `/companies/${m.company_id}#meetings` : null,
     })),
     ...tasks.map((t: any): CalendarItem => ({ key: `t${t.id}`, kind: "task", title: t.title, sub: null, ...allDay(dayKey(new Date(t.due_at))), href: t.company_id ? `/companies/${t.company_id}#tasks` : "/tasks" })),
-    ...content.map((c: any): CalendarItem => ({ key: `c${c.id}`, kind: "content", title: c.idea.length > 70 ? c.idea.slice(0, 67) + "…" : c.idea, sub: c.status, ...allDay(c.day), href: `/content/${c.id}`, done: c.status === "Posted" })),
+    ...content.map((c: any): CalendarItem => ({ key: `c${c.id}`, kind: "content", title: c.idea.length > 70 ? c.idea.slice(0, 67) + "…" : c.idea, sub: c.format === "LinkedIn post" ? `LinkedIn · ${c.status}` : c.status, ...allDay(c.day), href: c.format === "LinkedIn post" ? `/content/linkedin/${c.id}` : `/content/${c.id}`, done: c.status === "Posted" })),
   ];
   const byDay = groupByDay(items, days);
   const upcoming = items.filter((i) => (i.kind === "meeting" || i.kind === "event") && !i.allDay && i.end > now).sort((a, b) => a.start.getTime() - b.start.getTime());

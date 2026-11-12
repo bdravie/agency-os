@@ -14,6 +14,14 @@ import QuickCaptureBox from "@/components/QuickCaptureBox";
 import FootageManager from "@/components/FootageManager";
 import ThumbnailBuilder from "@/components/ThumbnailBuilder";
 import FollowerTracker from "@/components/FollowerTracker";
+import LinkedInPanel, { type LinkedInRow } from "@/components/LinkedInPanel";
+import LinkedInInsights from "@/components/LinkedInInsights";
+import LinkedInSwipe, { type SwipeRow } from "@/components/LinkedInSwipe";
+import { loadLinkedInInsights } from "@/lib/linkedinInsights";
+import LinkedInAccountCard, { type AccountState } from "@/components/LinkedInAccountCard";
+import { getLinkedInConnection } from "@/lib/linkedinApi";
+import { dailyCap, linkedinConfigured, tokenUsable } from "@/lib/linkedinApiMath";
+import { LINKEDIN_FORMAT, openingLine, postStage, wordCount } from "@/lib/linkedinMath";
 import { loadFollowerDashboard } from "@/lib/followerTracking";
 import { calculateChecklistProgress } from "@/lib/quickCaptureMath";
 import NeedsYouCard from "@/components/NeedsYouCard";
@@ -23,9 +31,10 @@ import { Badge, EmptyState, PageHeader, Stat } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Content dashboard" };
 
-export default async function Content({ searchParams }: { searchParams: Promise<{ tab?: string; more?: string; niche?: string; open?: string; post?: string; bucket?: string; stage?: string }> }) {
+export default async function Content({ searchParams }: { searchParams: Promise<{ tab?: string; more?: string; niche?: string; open?: string; post?: string; bucket?: string; stage?: string; view?: string; linkedin?: string; name?: string; reason?: string }> }) {
   const sp = await searchParams;
-  const tab = sp.tab && ["overview", "board", "projects", "followers", "footage", "thumbnails"].includes(sp.tab) ? sp.tab : "overview";
+  // A link that opens a video (?open=, e.g. "Enter numbers" in the sidebar card) needs the Board, the only tab with the drawer.
+  const tab = sp.tab && ["overview", "board", "projects", "linkedin", "followers", "footage", "thumbnails"].includes(sp.tab) ? sp.tab : sp.open ? "board" : "overview";
   const override = sp.more === "1";
   const validStages: Record<string, string> = {
     all: "all",
@@ -77,6 +86,31 @@ export default async function Content({ searchParams }: { searchParams: Promise<
   ]);
   // The logo library for covers, only read when that tab is open.
   const coverAssets = tab === "thumbnails" ? (await query<any>(`SELECT id, name FROM thumbnail_assets ORDER BY lower(name)`).catch(() => [])).map((a: any) => ({ id: Number(a.id), name: a.name as string })) : [];
+  // LinkedIn posts (content items with the LinkedIn format) and how far each has got, only read when that tab is open.
+  // The LinkedIn tab has three views: the posts, What's working on LinkedIn, and the swipe file.
+  const liView = sp.view === "working" || sp.view === "swipe" ? sp.view : "posts";
+  const liInsights = tab === "linkedin" && liView === "working" ? await loadLinkedInInsights() : null;
+  const swipes: SwipeRow[] = tab === "linkedin" && liView === "swipe" ? (await query<any>(
+    `SELECT p.id, p.url, p.caption, p.post_type, p.likes, p.comments, p.shares, p.posted_at, p.breakdown, c.handle, c.display_name, c.why_i_follow
+       FROM creator_posts p JOIN creators c ON c.id = p.creator_id WHERE p.platform = 'linkedin' ORDER BY p.fetched_at DESC, p.id DESC LIMIT 100`)).map((r: any) => ({
+    id: Number(r.id), url: r.url, text: r.caption ?? "", type: r.post_type, reactions: r.likes === null ? null : Number(r.likes), comments: r.comments === null ? null : Number(r.comments),
+    reposts: r.shares === null ? null : Number(r.shares), postedAt: r.posted_at ? String(r.posted_at) : null, handle: r.handle, name: r.display_name, why: r.why_i_follow, breakdown: r.breakdown ?? null,
+  })) : [];
+  const liConn = tab === "linkedin" && liView === "posts" ? await getLinkedInConnection() : null;
+  const liAccount: AccountState = {
+    configured: linkedinConfigured(), cap: dailyCap(),
+    connected: liConn ? { name: liConn.display_name ?? "your LinkedIn profile", expiresAt: liConn.expires_at, usable: tokenUsable(liConn.expires_at) && !!liConn.access_token_enc, lastError: liConn.last_error } : null,
+    status: sp.linkedin ? { kind: sp.linkedin, name: sp.name?.slice(0, 120), reason: sp.reason?.slice(0, 240) } : null,
+  };
+  const linkedin: LinkedInRow[] = tab === "linkedin" && liView === "posts" ? (await query<any>(
+    `SELECT i.id, i.idea, i.script, i.status, i.scheduled_for::text AS day, left(i.scheduled_time::text, 5) AS time,
+            EXISTS (SELECT 1 FROM tasks t WHERE t.id = i.reminder_task_id AND t.done_at IS NULL) AS reminder,
+            (SELECT count(*) FROM post_images m WHERE m.content_item_id = i.id) AS images,
+            EXISTS (SELECT 1 FROM post_images m WHERE m.content_item_id = i.id AND m.selected) AS chosen
+       FROM content_items i WHERE i.format = $1 AND i.status <> 'Archived' ORDER BY i.created_at DESC, i.id DESC`, [LINKEDIN_FORMAT])).map((r: any) => ({
+    id: Number(r.id), title: r.idea, opening: openingLine(r.script ?? ""), words: wordCount(r.script ?? ""), day: r.day, time: r.time, reminder: r.reminder === true, images: Number(r.images), hasImage: r.chosen === true,
+    stage: postStage({ status: r.status, day: r.day, hasImage: r.chosen === true }),
+  })) : [];
   const niche = pickNiche(sp.niche, config.niches);
   const live = rows.filter((r: any) => r.status !== "Archived");
   const counts: Record<string, number> = { all: live.length, untagged: inNiche(live, "untagged").length, ...Object.fromEntries(config.niches.map((n) => [n, inNiche(live, n).length])) };
@@ -283,6 +317,26 @@ export default async function Content({ searchParams }: { searchParams: Promise<
               </table>
             )}
           </div>
+        </div>
+      )}
+
+      {tab === "linkedin" && (
+        <div className="stack" style={{ gap: 16 }}>
+          <div className="pills" role="group" aria-label="LinkedIn views">
+            {([["posts", "Posts"], ["working", "What's working"], ["swipe", "Swipe file"]] as const).map(([k, label]) => (
+              <Link key={k} href={k === "posts" ? "/content?tab=linkedin" : `/content?tab=linkedin&view=${k}`} className={`pill${liView === k ? " on" : ""}`} aria-current={liView === k ? "page" : undefined}>{label}</Link>
+            ))}
+          </div>
+          {liView === "posts" && <LinkedInAccountCard a={liAccount} />}
+          {liView === "posts" && (
+            <LinkedInPanel
+              posts={linkedin}
+              sources={live.filter((l: any) => l.format !== LINKEDIN_FORMAT).slice(0, 80).map((l: any) => ({ id: Number(l.id), idea: l.idea }))}
+              aiReady={!!process.env.ANTHROPIC_API_KEY}
+            />
+          )}
+          {liView === "working" && liInsights && <LinkedInInsights data={liInsights} />}
+          {liView === "swipe" && <LinkedInSwipe rows={swipes} aiReady={!!process.env.ANTHROPIC_API_KEY} />}
         </div>
       )}
 

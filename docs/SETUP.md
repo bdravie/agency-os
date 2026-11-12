@@ -75,6 +75,23 @@ Notes
 - The saved Google access is encrypted with a key made from `SESSION_SECRET` (as for the mailboxes). If you change it, connect the calendar again.
 - If you see "Google Calendar is switched off for your Google Cloud project", step 1 is not done (or needs a minute to take effect).
 
+## 2d. Posting to LinkedIn from the CRM (optional)
+
+Content > LinkedIn works without this: you copy the text and download the image or PDF. With it, a finished post has **Post to LinkedIn now** (one post, only on your click, after a confirmation naming your profile). The CRM never reads LinkedIn.
+
+1. Go to https://www.linkedin.com/developers/apps and **Create app**. LinkedIn asks for a Company Page to link it to: use your business page (create one if you have none). The app is only for you; nobody else signs in to it.
+2. In the app: **Products** > request **Sign In with LinkedIn using OpenID Connect** and **Share on LinkedIn** (both are usually granted straight away).
+3. **Auth** > Authorized redirect URLs > add `http://127.0.0.1:3000/api/linkedin/callback` exactly. Copy the **Client ID** and **Primary Client Secret** into the env file as `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`. Optionally set `LINKEDIN_DAILY_CAP` (default 3 posts a day).
+4. Put the change live (`bash scripts/update-crm.sh`), then on the Mac (not the phone, because the redirect address is 127.0.0.1) open CRM > Content > LinkedIn > **Connect LinkedIn** and allow it.
+5. Try it once with a post you are happy to have public, then check it on your profile.
+
+Notes
+- The permissions asked for are `openid` and `profile` (your LinkedIn id and name) and `w_member_social` (post as you). Nothing that reads your feed, posts, comments or numbers.
+- LinkedIn's access lasts about 60 days and cannot be renewed in the background: the CRM says when it has expired, and you click Connect again.
+- The access is encrypted with a key made from `SESSION_SECRET`, like the Google tokens.
+- If posting fails with a version error, LinkedIn has retired the API version: set `LINKEDIN_API_VERSION` to a recent month (YYYYMM, see learn.microsoft.com/linkedin "versioning").
+- To remove the app's access on LinkedIn's side: LinkedIn > Settings > Data privacy > Permitted services.
+
 ## 3. Accounts and API keys, in the order you need them
 
 | When | Service | Sign up | `.env` key | Cost |

@@ -8,6 +8,10 @@ import { loadContentConfig } from "@/lib/content";
 import { loadInsights } from "@/lib/contentInsights";
 import { suggestSlots } from "@/lib/filmMath";
 import ContentTabs from "@/components/ContentTabs";
+import { LINKEDIN_FORMAT } from "@/lib/linkedinMath";
+
+/** A LinkedIn post opens its own page (text, image and plan); everything else opens the video page. */
+const itemHref = (i: { id: number | string; format: string | null }) => (i.format === LINKEDIN_FORMAT ? `/content/linkedin/${i.id}` : `/content/${i.id}`);
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +25,8 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
 
   const [scheduled, unscheduled] = await Promise.all([
-    query<any>(`SELECT id, idea, status, scheduled_for::text AS day FROM content_items WHERE scheduled_for BETWEEN $1 AND $2 AND status <> 'Archived' ORDER BY id`, [iso(days[0]), iso(days[6])]),
-    query<any>(`SELECT id, idea, status FROM content_items WHERE scheduled_for IS NULL AND status IN ('Idea','Scripted','Filmed') ORDER BY (status = 'Scripted') DESC, id DESC LIMIT 30`),
+    query<any>(`SELECT id, idea, status, format, scheduled_for::text AS day, left(scheduled_time::text, 5) AS time FROM content_items WHERE scheduled_for BETWEEN $1 AND $2 AND status <> 'Archived' ORDER BY scheduled_time NULLS LAST, id`, [iso(days[0]), iso(days[6])]),
+    query<any>(`SELECT id, idea, status, format FROM content_items WHERE scheduled_for IS NULL AND status IN ('Idea','Scripted','Filmed') ORDER BY (status = 'Scripted') DESC, id DESC LIMIT 30`),
   ]);
 
   const [config, ins] = await Promise.all([loadContentConfig(), loadInsights("all")]);
@@ -68,8 +72,8 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
             <h2>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</h2>
             {scheduled.filter((s: any) => s.day === iso(d)).map((s: any) => (
               <article key={s.id} className="deal cal-card" style={{ cursor: "default" }}>
-                <Link href={`/content/${s.id}`}>{s.idea}</Link>
-                <span className="muted">{s.status}</span>
+                <Link href={itemHref(s)}>{s.idea}</Link>
+                <span className="muted">{[s.time, s.format === LINKEDIN_FORMAT ? "LinkedIn post" : null, s.status === "Scripted" && s.format === LINKEDIN_FORMAT ? null : s.status].filter(Boolean).join(" · ")}</span>
               </article>
             ))}
           </section>
@@ -81,7 +85,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
         <ul>
           {unscheduled.map((u: any) => (
             <li key={u.id} style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-              <span><Link href={`/content/${u.id}`}>{u.idea}</Link> <span className="muted">{u.status}</span></span>
+              <span><Link href={itemHref(u)}>{u.idea}</Link> <span className="muted">{u.status}</span></span>
               <ToastForm action={scheduleContent} success="Date saved" style={{ display: "flex", gap: 6 }}>
                 <input type="hidden" name="id" value={u.id} />
                 <input type="date" name="date" defaultValue={days.some((d) => iso(d) === iso(new Date())) ? iso(new Date()) : iso(days[0])} aria-label="Date" required />

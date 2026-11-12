@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { query, tx } from "./db";
+import { applyReminder, closeReminder } from "./linkedinSchedule";
 import { logActivity } from "./activity";
 import { assertSendable } from "./complianceGate";
 import { requireLogin } from "./auth";
@@ -454,6 +455,7 @@ export async function moveContent(id: number, status: string) {
     `UPDATE content_items SET status = $2, posted_at = CASE WHEN $2::text = 'Posted' THEN COALESCE(posted_at, now()) ELSE posted_at END WHERE id = $1`,
     [id, status],
   );
+  if (status === "Posted" || status === "Archived") await closeReminder(id);
   revalidatePath("/content");
 }
 
@@ -536,9 +538,12 @@ export async function scheduleContent(form: FormData) {
   await requireLogin();
   const date = str(form, "date");
   if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-  await query(`UPDATE content_items SET scheduled_for = $2 WHERE id = $1`, [num(form, "id"), date]);
+  // Clearing the day clears its time; a LinkedIn post's reminder (if it has one) moves with the day.
+  await query(`UPDATE content_items SET scheduled_for = $2, scheduled_time = CASE WHEN $2::date IS NULL THEN NULL ELSE scheduled_time END WHERE id = $1`, [num(form, "id"), date]);
+  await applyReminder(num(form, "id"), "keep");
   revalidatePath("/content/calendar");
   revalidatePath(`/content/${num(form, "id")}`);
+  revalidatePath(`/content/linkedin/${num(form, "id")}`);
 }
 
 export async function setWebsite(_prev: string | null, form: FormData): Promise<string | null> {

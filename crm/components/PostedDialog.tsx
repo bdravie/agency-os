@@ -10,11 +10,12 @@ import { useToast } from "./Toast";
 const localNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 
 // Opens when a card is moved to Posted. Paste the link for each platform you posted on and the hook you used. You post by hand: this only records it.
-export default function PostedDialog({ itemId, idea, hook: initialHook, hookAlt, platforms, onClose, onDone }: { itemId: number; idea: string; hook: string | null; hookAlt: string | null; platforms: string[]; onClose: () => void; onDone: () => void }) {
+// `used` preselects which hook went on each platform (a LinkedIn post knows which opening line is in its text).
+export default function PostedDialog({ itemId, idea, hook: initialHook, hookAlt, platforms, used, onClose, onDone }: { itemId: number; idea: string; hook: string | null; hookAlt: string | null; platforms: string[]; used?: Record<string, "A" | "B">; onClose: () => void; onDone: () => void }) {
   const toast = useToast();
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [hook, setHook] = useState(initialHook ?? "");
-  const [ab, setAb] = useState<Record<string, "A" | "B">>({});
+  const [ab, setAb] = useState<Record<string, "A" | "B">>(used ?? {});
   const test = !!(initialHook && hookAlt);
   const [at, setAt] = useState(localNow());
   const [error, setError] = useState<string | null>(null);

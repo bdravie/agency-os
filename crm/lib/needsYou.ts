@@ -123,9 +123,9 @@ const videosPastDate: Rule = {
   heading: "Past their posting date", one: "video past its posting date", many: "videos past their posting date",
   // The same rule as Scripts overdue on the Dashboard.
   load: async () => (await query<any>(
-    `SELECT id, idea, status, scheduled_for::text AS day FROM content_items
+    `SELECT id, idea, status, format, scheduled_for::text AS day FROM content_items
       WHERE scheduled_for < ${TODAY_UK} AND status NOT IN ('Posted','Archived') ORDER BY scheduled_for`))
-    .map((c) => ({ key: `content-${c.id}`, title: shortTitle(c.idea), detail: `${c.status} · planned for ${shortDate(`${c.day}T12:00:00`)}`, href: `/content?open=${c.id}`, action: "Open" })),
+    .map((c) => ({ key: `content-${c.id}`, title: shortTitle(c.idea), detail: `${c.format === "LinkedIn post" ? "LinkedIn post" : c.status} · planned for ${shortDate(`${c.day}T12:00:00`)}`, href: c.format === "LinkedIn post" ? `/content/linkedin/${c.id}#plan` : `/content?open=${c.id}`, action: "Open" })),
 };
 
 const demoLooms: Rule = {

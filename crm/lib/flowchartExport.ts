@@ -15,7 +15,7 @@ function download(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-async function standaloneSvg({ code, theme, background }: ExportSource) {
+export async function standaloneSvg({ code, theme, background }: ExportSource) {
   // Parsed as HTML then written back as XML, so tags Mermaid leaves unclosed can't make the file invalid.
   const holder = document.createElement("div");
   holder.innerHTML = await renderDiagram(code, theme, true);

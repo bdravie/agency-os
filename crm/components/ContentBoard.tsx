@@ -78,6 +78,7 @@ export default function ContentBoard({
     const q = new URLSearchParams(window.location.search);
     if (!q.has("open")) return;
     ["open", "post", "bucket"].forEach((k) => q.delete(k));
+    if (!q.has("tab")) q.set("tab", "board"); // stay on the Board: without ?open the page would fall back to Overview
     router.replace(q.size ? `/content?${q}` : "/content", { scroll: false });
   };
 

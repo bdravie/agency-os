@@ -15,7 +15,7 @@ const cap = () => { const n = Number(process.env.BREAKDOWN_DAILY_CAP); return Nu
 export async function breakDownOutlier(postId: number, transcript: string): Promise<Done> {
   await requireLogin();
   const [post] = await query<any>(
-    `SELECT p.id, p.platform, p.caption, p.views, p.likes, p.comments, p.saves, p.outlier_score::float8 AS score, p.duration_s, p.sound, p.post_type, p.hashtags, p.cta_keyword,
+    `SELECT p.id, p.platform, p.caption, p.views, p.likes, p.comments, p.saves, p.shares, p.outlier_score::float8 AS score, p.duration_s, p.sound, p.post_type, p.hashtags, p.cta_keyword,
             c.handle, c.display_name, c.why_i_follow, c.niche FROM creator_posts p JOIN creators c ON c.id = p.creator_id WHERE p.id = $1`, [postId]);
   if (!post) return { ok: false, error: "That post no longer exists." };
   const [{ n }] = await query<{ n: string }>(`SELECT count(*) AS n FROM activities WHERE type = 'outlier_breakdown' AND occurred_at > now() - interval '24 hours'`);
@@ -24,7 +24,7 @@ export async function breakDownOutlier(postId: number, transcript: string): Prom
   try {
     const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
     const r = await breakDown({
-      platform: post.platform, caption: post.caption, views: num(post.views), likes: num(post.likes), comments: num(post.comments), saves: num(post.saves), score: post.score,
+      platform: post.platform, caption: post.caption, views: num(post.views), likes: num(post.likes), comments: num(post.comments), saves: num(post.saves), shares: num(post.shares), score: post.score,
       durationS: post.duration_s, sound: post.sound, postType: post.post_type, hashtags: post.hashtags ?? [], ctaKeyword: post.cta_keyword,
       creatorHandle: post.handle, creatorName: post.display_name, whyIFollow: post.why_i_follow, creatorNiche: post.niche,
     }, transcript.trim() || null);
@@ -32,6 +32,7 @@ export async function breakDownOutlier(postId: number, transcript: string): Prom
     await query(`UPDATE creator_posts SET breakdown = $2 WHERE id = $1`, [postId, JSON.stringify(r.breakdown)]);
     await logActivity("outlier_breakdown", { channel: post.platform, body: `Broke down a post by @${post.handle}`, meta: { creator_post_id: postId } });
     revalidatePath("/content/outliers");
+    if (post.platform === "linkedin") revalidatePath("/content");
     return { ok: true, breakdown: r.breakdown };
   } catch (err) {
     return { ok: false, error: `Something went wrong: ${err instanceof Error ? err.message : String(err)}` };

@@ -30,6 +30,9 @@ export const upworkModel = () => resolve(process.env.UPWORK_MODEL?.trim() || "so
 /** The model for content insights and other content tasks: set CONTENT_MODEL in .env (an alias or a full model id). Defaults to Haiku, since it only words numbers the code already worked out. */
 export const contentModel = () => resolve(process.env.CONTENT_MODEL?.trim() || "haiku");
 
+/** The model for drafting LinkedIn posts: set LINKEDIN_MODEL in .env (an alias or a full model id). Defaults to Sonnet, since it writes copy people will read. The image wording uses Haiku. */
+export const linkedinModel = () => resolve(process.env.LINKEDIN_MODEL?.trim() || "sonnet");
+
 /** The model for breaking down a creator's outlier post: set BREAKDOWN_MODEL in .env (an alias or a full model id). Defaults to Sonnet, since it has to judge structure and write original ideas. */
 export const breakdownModel = () => resolve(process.env.BREAKDOWN_MODEL?.trim() || "sonnet");
 

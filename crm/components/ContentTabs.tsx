@@ -6,6 +6,7 @@ export const CONTENT_TABS: SectionTab[] = [
   { key: "overview", label: "Overview", href: "/content" },
   { key: "board", label: "Board", href: "/content?tab=board" },
   { key: "projects", label: "Projects", href: "/content?tab=projects" },
+  { key: "linkedin", label: "LinkedIn", href: "/content?tab=linkedin" },
   { key: "calendar", label: "Calendar", href: "/content/calendar" },
   { key: "analytics", label: "Analytics", href: "/content/insights" },
   { key: "research", label: "Research", href: "/content/creators" },

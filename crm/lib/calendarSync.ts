@@ -111,7 +111,15 @@ async function applyBatch(conn: Connection, token: string, events: SyncEvent[]):
     if (task) {
       const c = applyIncomingTask(task, ev);
       if (c.action === "unlink") { await query(`UPDATE tasks SET google_unlinked = true, google_event_id = NULL, google_hash = NULL WHERE id = $1`, [task.id]); changed = true; }
-      else if (c.action === "update") { await query(`UPDATE tasks SET title = $2, due_at = $3, google_hash = $4 WHERE id = $1`, [task.id, c.title, c.due, c.hash]); changed = true; }
+      else if (c.action === "update") {
+        await query(`UPDATE tasks SET title = $2, due_at = $3, google_hash = $4 WHERE id = $1`, [task.id, c.title, c.due, c.hash]);
+        // A "post this" reminder moved in Google moves the LinkedIn post's planned day and time with it (an all-day event has no time).
+        await query(
+          `UPDATE content_items SET scheduled_for = ($2::timestamptz AT TIME ZONE 'Europe/London')::date,
+                  scheduled_time = NULLIF(($2::timestamptz AT TIME ZONE 'Europe/London')::time, time '00:00')
+            WHERE reminder_task_id = $1 AND status NOT IN ('Posted','Archived')`, [task.id, c.due]);
+        changed = true;
+      }
       continue;
     }
     if (ev.crmKind === "task") { if (ev.status !== "cancelled") orphans.push(ev.id); continue; }   // the task is gone: clean up its event

@@ -900,6 +900,25 @@ button.cover-logo-add { display: flex; align-items: center; gap: 8px; min-height
 .cover-logo-add img { width: 34px; height: 34px; object-fit: contain; border-radius: 6px; background: var(--surface); }
 @media (max-width: 1000px) { .cover-editor-body, .cover-editor-body.tall { grid-template-columns: minmax(0, 1fr); } .cover-stage { position: static; } .cover-editor-body.tall .cover-stage { max-width: 300px; } }
 
+/* ---------- LinkedIn posts and their images (Content > LinkedIn). Previews reuse the cover classes above. ---------- */
+.li-page { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 24px; align-items: start; }
+.li-post-text { font-size: 15px; line-height: 1.55; min-height: 320px; }
+.li-swipe-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.li-swipe-nums { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 12px; }
+.li-swipe-text { margin: 0; white-space: pre-wrap; max-height: 18em; overflow: auto; }
+@media (max-width: 760px) { .li-swipe-fields { grid-template-columns: minmax(0, 1fr); } .li-swipe-nums { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.li-account { display: flex; flex-direction: column; gap: 8px; padding: 14px 18px; }
+.li-publish { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.li-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.li-checks li { display: flex; gap: 8px; align-items: flex-start; color: var(--text-2); }
+.li-checks li svg { flex: none; margin-top: 2px; color: var(--muted); }
+.li-checks li.done { color: var(--text); }
+.li-checks li.done svg { color: var(--good); }
+.li-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.5; white-space: pre; overflow-x: auto; }
+.li-image-editor { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .li-page { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .li-image-editor { grid-template-columns: minmax(0, 1fr); } .li-image-editor .cover-stage { position: static; max-width: 300px; } }
+
 /* ---------- Month calendar (Calendar page and the Dashboard's This month tab) ---------- */
 .month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .mo-dow { padding: 0 6px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }

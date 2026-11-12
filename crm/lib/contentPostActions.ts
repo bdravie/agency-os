@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { query, tx } from "./db";
 import { logActivity } from "./activity";
 import { requireLogin } from "./auth";
+import { closeReminder } from "./linkedinSchedule";
 import { loadContentConfig } from "./content";
 import { BUCKETS, PLATFORM_LABEL, cleanMetrics, cleanPostEntries, cleanPostUrl, type Platform } from "./contentMath";
 
@@ -37,6 +38,7 @@ export async function markPosted(contentId: number, entries: { platform: string;
         await c.query(`INSERT INTO posts (content_item_id, platform, url, hook_used, posted_at) VALUES ($1,$2,$3,$4,$5)`, [contentId, e.platform, e.url, (hookBy[e.platform] || hook).trim().slice(0, 300) || null, when]);
       }
       await c.query(`UPDATE content_items SET status = 'Posted', posted_at = COALESCE(posted_at, $2) WHERE id = $1`, [contentId, when]);
+      await closeReminder(contentId, (sql, params) => c.query(sql, params as any[]));   // a LinkedIn post's "post this" reminder is done
     });
   } catch (err) {
     return fail(isDuplicate(err) ? DUPLICATE : err instanceof Error ? err.message : "Could not save.");

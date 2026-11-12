@@ -10,7 +10,7 @@ import type { Breakdown } from "./breakdownMath";
  * What has worked, for the script prompt: your own hooks that beat your usual numbers and the structures from outliers you have broken down.
  * Every line is scrubbed against the CRM's business and contact names in code. With nothing to go on (or if it cannot be read) the script is written from the idea alone.
  */
-async function scriptEvidence(): Promise<string> {
+export async function scriptEvidence(): Promise<string> {
   try {
     const [banned, ins, rows] = await Promise.all([
       loadBanned(),
