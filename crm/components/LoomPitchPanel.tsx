@@ -5,7 +5,7 @@ import { RefreshCw, Sparkles } from "lucide-react";
 import "@/app/proposals/loom-pitch.css";
 import { generateLoomPitchAction, regenerateLoomSectionAction, saveAnswerToBankAction, saveLoomSectionAction, saveLoomUrlAction } from "@/lib/loomPitchActions";
 import {
-  coverLength, fillLoomLink, scriptToText, walkthroughMismatch, COVER_MAX, COVER_SOFT, SCRIPT_MAX_SECONDS, SCRIPT_MIN_SECONDS, SECTION_LABELS,
+  coverLength, fillLoomLink, scriptToTeleprompter, scriptToText, teleprompterFileName, walkthroughMismatch, COVER_MAX, COVER_SOFT, SCRIPT_MAX_SECONDS, SCRIPT_MIN_SECONDS, SECTION_LABELS,
   type Beat, type JobAnalysis, type LoomInputs, type LoomPitch, type LoomScript, type ScreeningAnswer, type Section, type WalkStep,
 } from "@/lib/loomPitchMath";
 import CopyButton from "./CopyButton";
@@ -122,7 +122,27 @@ function BeatEditor({ b, onChange, footer, children }: { b: Beat; onChange: (b: 
   );
 }
 
-function Script({ id, value, nodes, toolLine }: { id: number; value: LoomScript; nodes: LoomPitch["workflow_diagram"]["nodes"]; toolLine: string }) {
+function TeleprompterExport({ text, title }: { text: string; title: string }) {
+  const download = () => {
+    const url = URL.createObjectURL(new Blob([text + "\n"], { type: "text/plain;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = teleprompterFileName(title);
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+  return (
+    <div className="lp-item stack" style={{ gap: 6 }}>
+      <div className="row">
+        <CopyButton targetId="lp-teleprompter-text" label="Copy for teleprompter" />
+        <button type="button" className="secondary" onClick={download}>Download .txt</button>
+      </div>
+      <p className="muted">The whole script in speaking order, walkthrough steps and proof drop included, with no timings or labels. Includes edits you haven&apos;t saved yet.</p>
+      <textarea id="lp-teleprompter-text" readOnly hidden value={text} />
+    </div>
+  );
+}
+
+function Script({ id, title, value, nodes, toolLine }: { id: number; title: string; value: LoomScript; nodes: LoomPitch["workflow_diagram"]["nodes"]; toolLine: string }) {
   const s = useSection(id, "loom_script");
   const [script, set] = useState(value);
   const total = script.beats.reduce((n, b) => n + b.target_seconds, 0);
@@ -137,6 +157,7 @@ function Script({ id, value, nodes, toolLine }: { id: number; value: LoomScript;
         <span className={out ? "over-soft" : ""}>{Math.floor(total / 60)}m {total % 60}s in total</span> (target 2.5 to 4 minutes).{" "}
         {script.proof ? <>Proof: <b>{script.proof.name}</b> ({script.proof.kind === "client" ? "real client: say \"a client\", never the name" : script.proof.kind === "demo" ? "demo" : script.proof.kind === "internal_tool" ? "your own tool" : "your own business"}, {script.proof.match} match).</> : <>No proof used: nothing relevant in your library.</>}
       </p>
+      <TeleprompterExport text={scriptToTeleprompter({ ...script, total_seconds: total }, nodes, toolLine)} title={title} />
       <textarea id="lp-script-text" readOnly hidden value={scriptToText(script, nodes, toolLine)} />
       {script.beats.map((b, i) => (b.key === "proof_drop" ? null : (
         <BeatEditor key={b.key} b={b} onChange={(x) => setBeat(i, x)}
@@ -161,7 +182,7 @@ function Script({ id, value, nodes, toolLine }: { id: number; value: LoomScript;
           )}
         </BeatEditor>
       )))}
-      <div className="row"><CopyButton targetId="lp-script-text" label="Copy script" /><SaveButton s={s} value={{ ...script, total_seconds: total }} /></div>
+      <div className="row"><CopyButton targetId="lp-script-text" label="Copy as notes" /><SaveButton s={s} value={{ ...script, total_seconds: total }} /></div>
     </Frame>
   );
 }
@@ -281,7 +302,7 @@ export default function LoomPitchPanel({ id, title, pitch, pitchAt, inputs, loom
     </form>
   );
   return (
-    <section id="loom-pitch" className="card stack" style={{ gap: 14, marginTop: 16 }} aria-labelledby="lp-h">
+    <section id="loom-pitch" className="card stack" style={{ gap: 14 }} aria-labelledby="lp-h">
       <div>
         <h2 id="lp-h">Loom pitch</h2>
         <p className="muted">Everything to record a 3 to 4 minute Loom walking them through a workflow you sketched, plus a very short cover letter. Runs only when you click. You record and send everything yourself.{pitchAt ? ` Last written ${new Date(pitchAt).toLocaleString("en-GB")}.` : ""} Proof, tools and positioning come from <a href="/proposals/library">Proof and answers</a>.</p>
@@ -292,7 +313,7 @@ export default function LoomPitchPanel({ id, title, pitch, pitchAt, inputs, loom
         <>
           <Analysis key={key(pitch.job_analysis)} id={id} value={pitch.job_analysis} />
           <DiagramSection key={key(pitch.workflow_diagram)} id={id} title={title} code={pitch.workflow_diagram.mermaid} steps={pitch.loom_script.walkthrough} />
-          <Script key={key(pitch.loom_script)} id={id} value={pitch.loom_script} nodes={pitch.workflow_diagram.nodes} toolLine={pitch.tool_flexibility_line} />
+          <Script key={key(pitch.loom_script)} id={id} title={title} value={pitch.loom_script} nodes={pitch.workflow_diagram.nodes} toolLine={pitch.tool_flexibility_line} />
           <ToolLine key={key(pitch.tool_flexibility_line)} id={id} value={pitch.tool_flexibility_line} />
           <CoverLetter key={key(pitch.cover_letter) + (loomUrl ?? "")} id={id} title={title} value={pitch.cover_letter} loomUrl={loomUrl} />
           <Screening key={key(pitch.screening_answers)} id={id} value={pitch.screening_answers} />

@@ -4,6 +4,7 @@ import { query } from "@/lib/db";
 import { loadCreatorSettings } from "@/lib/creatorScrape";
 import OutlierActions from "@/components/OutlierActions";
 import BreakdownPanel from "@/components/BreakdownPanel";
+import ContentTabs from "@/components/ContentTabs";
 import { EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +31,13 @@ export default async function Outliers({ searchParams }: { searchParams: Promise
         back={{ href: "/content", label: "Content" }}
         title="Outliers"
         description={`Posts that got ${s.threshold}× or more of that creator's usual views, newest first. See the hook, the format and the keyword they use to bring people in, then make your own version in your own words.`}
-        actions={<Link href="/content/creators" className="btn secondary">Creators</Link>}
       />
+      <ContentTabs current="research" />
+      <div className="pills" style={{ marginBottom: 12 }} aria-label="Research sections">
+        <Link href="/content/creators" className="pill">Creators</Link>
+        <Link href="/content/outliers" className="pill on">Outliers</Link>
+        <Link href="/content/trends" className="pill">Trends</Link>
+      </div>
       <div className="pills" style={{ marginBottom: 16 }} aria-label="Filter">
         {TABS.map(([k, label]) => <Link key={k} href={`/content/outliers?tab=${k}`} className={`pill${k === tab ? " on" : ""}`}>{label} ({counts[k] ?? 0})</Link>)}
       </div>

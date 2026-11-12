@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { query } from "@/lib/db";
-import { STAGES } from "@/lib/stages";
+import { STAGES, type Stage } from "@/lib/stages";
 import { gbp } from "@/lib/quote";
 import Board from "@/components/Board";
 import { PageHeader } from "@/components/ui";
@@ -9,22 +8,26 @@ import NeedsYouCard from "@/components/NeedsYouCard";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Deals" };
 
-export default async function Deals() {
-  const rows = await query<any>(
-    `SELECT d.id, d.title, d.stage::text AS stage, d.company_id, c.name AS company_name,
-            d.setup_value_gbp::float AS setup, d.monthly_value_gbp::float AS monthly, d.updated_at::text AS updated
-       FROM deals d LEFT JOIN companies c ON c.id = d.company_id
-      ORDER BY d.updated_at DESC`);
+export default async function Deals({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const asked = (await searchParams).tab;
+  const tab: "all" | Stage = STAGES.includes(asked as Stage) ? (asked as Stage) : "all";
+  const [rows, [{ n: deletedCount }]] = await Promise.all([
+    query<any>(
+      `SELECT d.id, d.title, d.stage::text AS stage, d.company_id, c.name AS company_name,
+              d.setup_value_gbp::float AS setup, d.monthly_value_gbp::float AS monthly, d.updated_at::text AS updated
+         FROM deals d LEFT JOIN companies c ON c.id = d.company_id
+        ORDER BY d.updated_at DESC`),
+    query<{ n: string }>(`SELECT count(*) AS n FROM deal_deletions`),
+  ]);
   const open = rows.filter((r: any) => r.stage !== "Won" && r.stage !== "Lost");
   return (
     <>
       <PageHeader
         title="Deals"
         description={`${open.length} open deals · ${gbp(open.reduce((s: number, r: any) => s + r.setup, 0))} setup + ${gbp(open.reduce((s: number, r: any) => s + r.monthly, 0))}/mo. Click a card for details, or drag it to another stage.`}
-        actions={<Link href="/deals/deleted" className="btn secondary">Deletion log</Link>}
       />
       <NeedsYouCard href="/deals" />
-      <Board initial={rows} stages={STAGES} />
+      <Board initial={rows} stages={STAGES} tab={tab} deletedCount={Number(deletedCount)} />
     </>
   );
 }

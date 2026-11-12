@@ -351,3 +351,28 @@ test("the prompts carry the rules, and the template holds the placeholder", asyn
   const cover = await readFile(path.join(root, "prompts/loom-cover-letter.md"), "utf8");
   assert.ok(cover.includes("{{LOOM_URL}}"));
 });
+
+test("teleprompter export: speaking order, no timings or labels, proof drop after its step", async () => {
+  const { scriptToTeleprompter, teleprompterFileName } = await import("../lib/loomPitchMath.ts");
+  const nodes = [{ id: "S1", label: "Scan arrives" }, { id: "S2", label: "Read the text" }];
+  const b = (key, label, opening_line, talking_points = [], node_id) => ({ key, label, target_seconds: 20, opening_line, talking_points, node_id });
+  const script = {
+    proof: null, proof_reason: "", positioning_line: "I build systems behind the business.", name: "Sam", total_seconds: 0,
+    beats: [b("hook", "Hook", "Hi there.", ["Point one"]), b("walkthrough", "Walkthrough", "Let's walk through it."), b("proof_drop", "Proof drop", "I did this before.", [], "S2"), b("tool_flexibility", "Tool flexibility", "On tools:", ["hidden"]), b("cta", "Call to action and sign-off", "Speak soon.")],
+    walkthrough: [
+      { node_id: "S1", what_happens: "A scan comes in.", options: [{ name: "Make.com", note: "fits" }], pick: "Make.com", pick_why: "they use it", backup: "n8n", depends_on: "", pick_level: "strong" },
+      { node_id: "S2", what_happens: "OCR reads it.", options: [], pick: "", pick_why: "", backup: "", depends_on: "their volume", pick_level: "general" },
+    ],
+  };
+  const out = scriptToTeleprompter(script, nodes, "I'll use whatever you already use.");
+  assert.doesNotMatch(out, /about \d+s|Open with:|^- /m);
+  assert.match(out, /^HOOK\nHi there\.\nI'm Sam\. I build systems behind the business\.\nPoint one/);
+  assert.match(out, /STEP 1: Scan arrives\nA scan comes in\.\nOptions: Make\.com, fits\.\nMy pick: Make\.com, they use it\nBackup: n8n/);
+  assert.match(out, /STEP 2: Read the text\nOCR reads it\.\nIt depends on: their volume\n\nPROOF DROP\nI did this before\.\n\nTOOL FLEXIBILITY/);
+  assert.match(out, /TOOL FLEXIBILITY\nOn tools:\nI'll use whatever you already use\./);
+  assert.doesNotMatch(out, /hidden/);
+  assert.ok(out.trim().endsWith("Speak soon."));
+  assert.equal(out.match(/PROOF DROP/g).length, 1);
+  assert.equal(teleprompterFileName("Mail scanning: OCR & Drive!"), "loom-script-mail-scanning-ocr-drive.txt");
+  assert.equal(teleprompterFileName("!!!"), "loom-script.txt");
+});

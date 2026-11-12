@@ -28,7 +28,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     { href: "/flowcharts", label: "Flowcharts", icon: Workflow, hint: "Map a process as a diagram and export it" },
   ] },
   { title: "Grow", items: [
-    { href: "/content", label: "Content", icon: Video, hint: "Ideas, scripts, calendar" },
+    { href: "/content", label: "Content dashboard", icon: Video, hint: "Overview, projects, board, calendar, analytics" },
     { href: "/funnel", label: "Funnel", icon: Funnel, hint: "Conversion, lost reasons and channels" },
     { href: "/site-tests", label: "Site tests", icon: FlaskConical, hint: "Which version of clrsweb.uk books more calls" },
   ] },

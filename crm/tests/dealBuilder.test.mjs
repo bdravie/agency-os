@@ -66,3 +66,18 @@ test("catalogue: a service's default price must sit inside its range", () => {
   assert.match(validateOffer(svc("A", { billing: "monthly", monthly_price_gbp: 10, setup_price_gbp: 0 }))[0], /outside/);
   assert.match(validateOffer(svc("A", { deliverables: [] }))[0], /deliverables/);
 });
+
+test("offer tiers: known codes, one offer per tier, and only on something that can be sold on a deal", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { parse } = await import("yaml");
+  const svc = (o) => ({ billing: "one_off", deliverables: ["x"], ...o });
+  assert.deepEqual(validateOffer(svc({ name: "A", tier: "entry" }), []), []);
+  assert.match(validateOffer(svc({ name: "A", tier: "gold" }), []).join(), /tier must be one of/);
+  const two = [svc({ name: "A", tier: "mid" }), svc({ name: "B", tier: "mid" })];
+  assert.match(validateOffer(two[0], two).join(), /more than one offer/);
+  assert.match(validateOffer({ name: "Old", tier: "entry" }, []).join(), /needs a billing type/);
+  // The real catalogue is valid and names exactly one offer for each of the three tiers.
+  const items = parse(readFileSync(new URL("../../config/offers.yaml", import.meta.url), "utf8")).offers;
+  assert.deepEqual(items.flatMap((o) => validateOffer(o, items)), []);
+  assert.deepEqual(items.filter((o) => o.tier).map((o) => o.tier).sort(), ["entry", "mid", "premium"]);
+});

@@ -111,3 +111,20 @@ test("grouping by day: timed events on their UK day, all-day events on every day
   assert.deepEqual(Object.keys(g).length, 7);
   assert.equal(Object.values(g).flat().some((x) => x.id === "o"), false);
 });
+
+test("a month is drawn as whole weeks, Monday to Sunday", async () => {
+  const { monthOf, addMonths } = await import("../lib/meetingMath.ts");
+  const nov = monthOf("2026-11-11");            // 1 Nov 2026 is a Sunday, 30 Nov a Monday
+  assert.equal(nov.month, "2026-11");
+  assert.equal(nov.days[0], "2026-10-26");
+  assert.equal(nov.days.at(-1), "2026-12-06");
+  assert.equal(nov.days.length, 42);
+  assert.equal(nov.to.getTime() - nov.from.getTime(), 42 * 86_400_000);
+  const feb = monthOf("2027-02-15");            // February 2027 starts on a Monday and fills exactly four weeks
+  assert.deepEqual([feb.days[0], feb.days.at(-1), feb.days.length], ["2027-02-01", "2027-02-28", 28]);
+  const mar = monthOf("2026-03-10");            // the clocks change on 29 March: the window is an hour short, the days are not
+  assert.equal(mar.days.length, 42);
+  assert.equal(mar.to.getTime() - mar.from.getTime(), 42 * 86_400_000 - 3_600_000);
+  assert.equal(addMonths("2026-12", 1), "2027-01");
+  assert.equal(addMonths("2026-01", -1), "2025-12");
+});

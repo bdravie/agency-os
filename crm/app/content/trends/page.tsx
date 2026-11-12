@@ -3,6 +3,7 @@ import { query } from "@/lib/db";
 import { loadContentConfig } from "@/lib/content";
 import { nicheLabel } from "@/lib/contentConfigMath";
 import { AddTrend, RemoveTrend } from "@/components/TrendsPanel";
+import ContentTabs from "@/components/ContentTabs";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,13 @@ export default async function Trends() {
         back={{ href: "/content", label: "Content" }}
         title="Trends"
         description="Things you notice in your feed, in TikTok Creative Center or a trending sound. Anything from the last 14 days that you have not used feeds the next batch of ideas and the weekly brief."
-        actions={<Link href="/content/brief" className="btn secondary">Weekly brief</Link>}
       />
+      <ContentTabs current="research" />
+      <div className="pills" style={{ marginBottom: 16 }} aria-label="Research sections">
+        <Link href="/content/creators" className="pill">Creators</Link>
+        <Link href="/content/outliers" className="pill">Outliers</Link>
+        <Link href="/content/trends" className="pill on">Trends</Link>
+      </div>
       <div className="stack">
         <section className="card" aria-labelledby="add-h"><h2 id="add-h">Add a trend</h2><AddTrend niches={config.niches} /></section>
         <section className="card" aria-labelledby="list-h">

@@ -9,7 +9,7 @@ import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
 import { draftProposal } from "./proposal";
-import { analyseFit, buildPlan, loadRates, suggestImprovements } from "./proposalPlan";
+import { analyseFit, buildDemoBrief, buildPlan, loadRates, suggestImprovements } from "./proposalPlan";
 import { buildPack } from "./upworkPack";
 import { proposalName, titleFromJob } from "./proposalName";
 import { deletionLabel, deletionProblem } from "./dealDeletion";
@@ -356,7 +356,24 @@ export async function suggestImprovementsAction(_prev: string | null, form: Form
   return null;
 }
 
-const CONTENT_STATUSES = ["Idea", "Scripted", "Filmed", "Posted"];
+/** Click-only: lists what the job needs that there is nothing to show for yet and plans one small demo, as a brief for Claude Code. Nothing is built or sent. */
+export async function demoBriefAction(_prev: string | null, form: FormData): Promise<string | null> {
+  await requireLogin();
+  const id = num(form, "id");
+  const [p] = await query<{ job_text: string; fit_analysis: any }>(`SELECT job_text, fit_analysis FROM proposals WHERE id = $1`, [id]);
+  if (!p) return "Proposal not found.";
+  try {
+    const result = await buildDemoBrief(p.job_text, p.fit_analysis);
+    await query(`UPDATE proposals SET demo_brief = $2, demo_brief_at = now() WHERE id = $1`, [id, JSON.stringify(result)]);
+    await logActivity("proposal_demo_brief", { channel: "upwork", body: `Demo brief for proposal #${id}` });
+  } catch (err) {
+    return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;
+  }
+  revalidatePath(`/proposals/${id}`);
+  return null;
+}
+
+const CONTENT_STATUSES =["Idea", "Scripted", "Filmed", "Posted"];
 
 /** Saves new ideas on the board, tagged and (if scored) with their score. An idea scoring below 5 is saved already archived. Trend ideas mark their trend as used. */
 async function saveNewIdeas(ideas: NewIdea[], scores: ({ score: number; reason: string } | null)[]): Promise<{ added: number; archived: number }> {
@@ -418,8 +435,9 @@ export async function pipelineIdeasAction(_prev: string | null, form: FormData):
 export async function writeScriptAction(_prev: string | null, form: FormData): Promise<string | null> {
   await requireLogin();
   const id = num(form, "id");
+  const formNotes = form.get("script")?.toString() || form.get("notes")?.toString() || null;
   try {
-    const r = await scriptItem(id);
+    const r = await scriptItem(id, { userNotes: formNotes });
     if (!r.ok) return r.error;
   } catch (err) {
     return `Something went wrong: ${err instanceof Error ? err.message : String(err)}`;

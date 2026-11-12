@@ -1,5 +1,6 @@
 // Seeds the offers table from ../config/offers.yaml. Insert-only: an offer that already exists is never changed,
 // so prices and checklists you have edited in the CRM are safe. Packages (`includes:`) are linked to their services.
+// A `tier:` is only ever filled in where it is empty: it never moves a tier you have given to another offer on the Offers page.
 // Usage (from crm/):  npx tsx --env-file=../.env scripts/seedOffers.mts [--dry-run]
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
@@ -32,7 +33,13 @@ const result = await tx(async (c) => {
       linked += rowCount ?? 0;
     }
   }
-  return { added, linked };
+  let tiered = 0;
+  for (const o of items.filter((x) => x.tier)) {
+    const { rowCount } = await c.query(
+      `UPDATE offers SET tier = $2 WHERE name = $1 AND tier IS NULL AND (is_bundle OR billing IS NOT NULL) AND NOT EXISTS (SELECT 1 FROM offers WHERE tier = $2)`, [o.name, o.tier]);
+    tiered += rowCount ?? 0;
+  }
+  return { added, linked, tiered };
 });
-console.log(`Seeded ${result.added} new offer(s) (${items.length - result.added} already existed and were left alone); ${result.linked} package link(s) made.`);
+console.log(`Seeded ${result.added} new offer(s) (${items.length - result.added} already existed and were left alone); ${result.linked} package link(s) made; ${result.tiered} tier(s) filled.`);
 process.exit(0);

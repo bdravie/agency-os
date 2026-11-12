@@ -13,7 +13,7 @@ export default function PlanPanel({ id, plan, planAt, rates }: { id: number; pla
   const [message, action, pending] = useActionState(generatePlanAction, null);
   const pricing = plan ? priceMilestones(plan.milestones, rates) : null;
   return (
-    <section className="card stack" style={{ gap: 12, marginTop: 16 }} aria-labelledby="plan-h">
+    <section className="card stack" style={{ gap: 12 }} aria-labelledby="plan-h">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
           <h2 id="plan-h">Plan and price</h2>

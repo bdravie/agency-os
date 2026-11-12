@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { jumpTo } from "@/lib/jump";
+import { jumpTo, tabForSection } from "@/lib/jump";
 import type { Target } from "@/lib/activityTarget";
 import { ActivityIcon } from "./activity";
 
@@ -11,8 +11,10 @@ export default function ActivityItem({ type, target, children }: { type: string;
   const router = useRouter();
   const go = () => {
     if (!target) return;
-    if ("href" in target) router.push(target.href);
-    else jumpTo(target.id, target.fallback);
+    if ("href" in target) { router.push(target.href); return; }
+    if (jumpTo(target.id, target.fallback)) return;
+    const tab = tabForSection(window.location.pathname, target.id, target.fallback);
+    if (tab) router.push(`${window.location.pathname}?tab=${tab}#${target.id}`, { scroll: false });
   };
   const label = !target ? undefined : "href" in target ? "Open the page for this change" : "Jump to what changed";
   return (

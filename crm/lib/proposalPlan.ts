@@ -1,12 +1,15 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
 import { askStructured, upworkModel } from "./llm";
 import { aboutMe } from "./upworkPack";
+import { cleanDemoBrief, demoBriefProblems, type DemoBrief } from "./demoBriefMath";
+import { loadProfile, loadProof } from "./pitchLibrary";
 import { cleanImprovements, improveProblems, type Improvements } from "./proposalImproveMath";
 import { cleanFit, cleanPlan, fitProblems, normaliseRates, planProblems, type FitAnalysis, type Plan, type Rates } from "./proposalPlanMath";
 
 export type { Improvements } from "./proposalImproveMath";
+export type { DemoBrief } from "./demoBriefMath";
 export type { FitAnalysis, Plan, Milestone, Rates } from "./proposalPlanMath";
 
 // The CRM runs from crm/, shared files live in the repo root.
@@ -120,6 +123,49 @@ export async function suggestImprovements(job: string, score: number | null, fit
   let r = await run();
   if (improveProblems(r).length) r = await run();
   const bad = improveProblems(r);
+  if (bad.length) throw new Error(`The AI reply was incomplete (${bad.join(", ")}). Try again.`);
+  return r;
+}
+
+const DEMO_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    gaps: { type: "array", maxItems: 5, items: { type: "object", properties: { what: str, kind: { type: "string", enum: ["tool", "work"] }, why: str }, required: ["what", "kind", "why"] } },
+    covered: strings(4),
+    demo: {
+      type: "object",
+      properties: {
+        title: str, outcome: str, covers_gaps: { type: "array", items: { type: "integer", minimum: 1, maximum: 5 }, maxItems: 5 },
+        steps: strings(6), tools: strings(6), sample_data: strings(4), out_of_scope: strings(4), loom_points: strings(3), hours: { type: "number" },
+      },
+      required: ["title", "outcome", "covers_gaps", "steps", "tools", "sample_data", "out_of_scope", "loom_points", "hours"],
+    },
+    data_note: { type: ["string", "null"] },
+  },
+  required: ["gaps", "covered", "demo", "data_note"],
+};
+
+/**
+ * Work out what this job needs that the owner has nothing to show for yet, and plan one small demo that would prove it.
+ * The result becomes a brief for Claude Code (written in code, `demoBriefPrompt`). Nothing is built or sent here.
+ */
+export async function buildDemoBrief(job: string, fit: FitAnalysis | null): Promise<DemoBrief> {
+  const [rules, ctx, portfolioRaw, profile, proof, entries] = await Promise.all([
+    read("prompts/proposal-demo-brief.md"), context(), read("portfolio/portfolio.md").catch(() => ""), loadProfile(), loadProof(),
+    readdir(path.join(ROOT, "demos"), { withFileTypes: true }).catch(() => []),
+  ]);
+  const portfolio = stripComments(portfolioRaw);
+  const existing = entries.filter((e) => e.isDirectory() && !e.name.startsWith(".")).map((e) => e.name).sort();
+  const prompt =
+    `${rules}\n\n${ctx}\n\nPORTFOLIO:\n${/^## /m.test(portfolio) ? portfolio : "(No portfolio items yet.)"}\n\n` +
+    `TOOLS:\nStrong: ${profile.strong_tools.join(", ") || "(none listed)"}\nFamiliar: ${profile.familiar_tools.join(", ") || "(none listed)"}\n\n` +
+    `PROOF:\n${proof.map((p) => `- ${p.name} (${p.kind})${p.one_line ? `: ${p.one_line}` : ""}${p.tools?.length ? ` [tools: ${p.tools.join(", ")}]` : ""}`).join("\n") || "(No proof items yet.)"}\n\n` +
+    `EXISTING DEMOS:\n${existing.map((d) => `- ${d}`).join("\n") || "(None yet.)"}\n\n` +
+    `FIT ANALYSIS:\n${fit ? `${fit.summary}\nRisks:\n${fit.risks.map((r) => `- ${r}`).join("\n")}` : "(None saved.)"}\n\nJOB POST:\n${job}`;
+  const run = async () => cleanDemoBrief(await askStructured(prompt, DEMO_SCHEMA, upworkModel(), 4000), job, existing);
+  let r = await run();
+  if (demoBriefProblems(r).length) r = await run();
+  const bad = demoBriefProblems(r);
   if (bad.length) throw new Error(`The AI reply was incomplete (${bad.join(", ")}). Try again.`);
   return r;
 }

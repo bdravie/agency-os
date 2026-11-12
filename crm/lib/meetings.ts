@@ -1,7 +1,7 @@
 import { query } from "./db";
 import { getConnection, calendarToken } from "./gcalAuth";
 import { listEvents } from "./gcal";
-import { addDays, dayKey, groupByDay, ukDayStart, weekOf, type CalEvent } from "./meetingMath";
+import { addDays, dayKey, groupByDay, monthOf, ukDayStart, weekOf, type CalEvent } from "./meetingMath";
 
 // Reads for the Calendar page and the Dashboard card. Events come from the saved copy of the owner's business calendar (table `calendar_events`,
 // kept up to date by calendarSync.ts about once a minute), so these pages never wait on Google. Meetings booked from the CRM are in `meetings`.
@@ -15,6 +15,8 @@ export type WeekView = {
   connected: boolean; calendarEmail: string | null; error: string | null; lastSync: Date | null;
   days: string[]; today: string; byDay: Record<string, CalendarItem[]>; next: CalendarItem | null;
 };
+/** A month drawn as whole weeks; `month` (YYYY-MM) says which days belong to it and which are the edges of its neighbours. */
+export type MonthView = WeekView & { month: string };
 
 /** Events from Google within a window (for the clash check when booking). Throws if the calendar cannot be read. */
 export async function eventsBetween(from: Date, to: Date): Promise<CalEvent[]> {
@@ -24,8 +26,15 @@ export async function eventsBetween(from: Date, to: Date): Promise<CalEvent[]> {
 }
 
 /** One week (Monday to Sunday, UK time) around `anchor`: calendar events, meetings booked here, tasks due and content scheduled. */
-export async function loadWeekView(anchor: string, now = new Date()): Promise<WeekView> {
-  const { days, from, to } = weekOf(anchor);
+export const loadWeekView = (anchor: string, now = new Date()): Promise<WeekView> => loadRange(weekOf(anchor), now);
+
+/** The whole month around `anchor`, from the same saved data as the week. */
+export async function loadMonthView(anchor: string, now = new Date()): Promise<MonthView> {
+  const m = monthOf(anchor);
+  return { ...(await loadRange(m, now)), month: m.month };
+}
+
+async function loadRange({ days, from, to }: { days: string[]; from: Date; to: Date }, now: Date): Promise<WeekView> {
   const conn = await getConnection();
   const [synced, mine, tasks, content, state] = await Promise.all([
     query<any>(
@@ -37,7 +46,7 @@ export async function loadWeekView(anchor: string, now = new Date()): Promise<We
          FROM meetings m LEFT JOIN companies c ON c.id = m.company_id LEFT JOIN contacts ct ON ct.id = m.contact_id
         WHERE m.status = 'scheduled' AND m.starts_at < $2 AND m.ends_at > $1`, [from, to]),
     query<any>(`SELECT t.id, t.title, t.due_at, t.company_id FROM tasks t WHERE t.done_at IS NULL AND t.due_at >= $1 AND t.due_at < $2 ORDER BY t.due_at`, [from, to]),
-    query<any>(`SELECT id, idea, scheduled_for::text AS day, status FROM content_items WHERE scheduled_for >= $1::date AND scheduled_for <= $2::date AND status <> 'Archived' ORDER BY scheduled_for`, [days[0], days[6]]),
+    query<any>(`SELECT id, idea, scheduled_for::text AS day, status FROM content_items WHERE scheduled_for >= $1::date AND scheduled_for <= $2::date AND status <> 'Archived' ORDER BY scheduled_for`, [days[0], days[days.length - 1]]),
     query<any>(`SELECT s.last_sync_at, s.last_error FROM calendar_sync_state s JOIN calendar_connections c ON c.id = s.connection_id WHERE c.refresh_token_enc IS NOT NULL ORDER BY c.connected_at DESC LIMIT 1`),
   ]);
 

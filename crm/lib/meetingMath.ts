@@ -57,6 +57,23 @@ export function weekOf(date: string): { days: string[]; from: Date; to: Date } {
   return { days: Array.from({ length: 7 }, (_, i) => addDays(monday, i)), from: ukDayStart(monday), to: ukDayStart(addDays(monday, 7)) };
 }
 
+/** The month a day falls in, as whole weeks (Monday to Sunday) so it draws as a grid: 4 to 6 rows, with a few days of the months either side. */
+export function monthOf(date: string): { month: string; days: string[]; from: Date; to: Date } {
+  const month = date.slice(0, 7);
+  const [y, m] = month.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  const start = mondayOf(`${month}-01`), end = addDays(mondayOf(lastDay), 7);
+  const days: string[] = [];
+  for (let d = start; d < end; d = addDays(d, 1)) days.push(d);
+  return { month, days, from: ukDayStart(start), to: ukDayStart(end) };
+}
+
+/** YYYY-MM moved by a number of months. */
+export function addMonths(month: string, n: number): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 7);
+}
+
 export type BookingCheck = { error: string } | { start: Date; end: Date; email: string; title: string; notes: string };
 
 /** Everything the form needs to hold before anything is sent to Google. */

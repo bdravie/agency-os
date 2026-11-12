@@ -3,6 +3,7 @@
 //
 // Usage:  node tools/git/sync.mjs "commit message"
 //         node tools/git/sync.mjs --status
+//         node tools/git/sync.mjs --skip=path/to/file "commit message"   (leave a changed file out; repeat --skip for more)
 //
 // Needs GITHUB_TOKEN in .env (fine-grained token, Contents: read & write on this repo).
 // .gitignore is respected, so .env and node_modules are never committed.
@@ -47,11 +48,17 @@ async function ensureRepo() {
   }
 }
 
-async function stageAll() {
+async function stageAll(skip = []) {
   const matrix = await git.statusMatrix({ fs, dir });
   const changed = [];
   for (const [filepath, head, workdir, stage] of matrix) {
     if (NEVER.some((re) => re.test(filepath))) continue;
+    if (skip.includes(filepath)) {
+      // Left out on purpose: put the index back to the last commit so an earlier staging does not slip it in.
+      if (stage !== 1 || head !== 1) await git.resetIndex({ fs, dir, filepath });
+      if (!(head === 1 && workdir === 1)) console.log(`skipped  ${filepath}`);
+      continue;
+    }
     if (head === 1 && workdir === 1 && stage === 1) continue; // unchanged
     if (workdir === 0) {
       await git.remove({ fs, dir, filepath });
@@ -65,9 +72,11 @@ async function stageAll() {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
+  const all = process.argv.slice(2);
+  const skip = all.filter((a) => a.startsWith("--skip=")).map((a) => a.slice(7).replace(/^\.\//, ""));
+  const args = all.filter((a) => !a.startsWith("--skip="));
   await ensureRepo();
-  const changed = await stageAll();
+  const changed = await stageAll(skip);
 
   if (args[0] === "--status") {
     console.log(changed.length ? changed.join("\n") : "Nothing to commit.");

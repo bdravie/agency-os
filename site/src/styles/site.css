@@ -49,3 +49,8 @@ footer { padding: 40px 0 56px; font-size: 14px; color: var(--muted); }
 a { color: var(--accent-text); }
 .btn, .btn:hover { color: var(--on-accent); }
 @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+/* Post-purchase page: a download button at the foot of each card, and the Notion steps tucked under it. */
+.card .btn { margin-top: 6px; }
+.card details { background: var(--surface-2); box-shadow: none; margin: 16px 0 0; }
+.card details ol { margin: 12px 0 0; padding-left: 1.2em; }
+.card details li { margin-bottom: 6px; }

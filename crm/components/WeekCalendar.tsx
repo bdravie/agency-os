@@ -3,7 +3,7 @@ import { Video, CheckSquare } from "lucide-react";
 import { timeLabel } from "@/lib/meetingMath";
 import type { CalendarItem, WeekView } from "@/lib/meetings";
 
-// A Monday-to-Sunday week (BRAND_SHEET.md): today has an Ember outline, meetings booked here have an Ember edge,
+// A Monday-to-Sunday week (BRAND_SHEET.md): today has a Coral outline, meetings booked here have a Coral edge,
 // other Google events a stone edge, tasks and scheduled content are quieter. Shared by the Dashboard card and the Calendar page.
 
 const dow = (d: string) => new Date(d + "T12:00:00Z").toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });

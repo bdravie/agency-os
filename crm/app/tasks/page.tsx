@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ToastForm from "@/components/ToastForm";
+import SectionTabs from "@/components/SectionTabs";
 import { Check, CheckCheck } from "lucide-react";
 import { query } from "@/lib/db";
 import { addLooseTask, completeTask } from "@/lib/actions";
@@ -9,7 +10,9 @@ import { EmptyState, PageHeader } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Tasks" };
 
-export default async function Tasks() {
+export default async function Tasks({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const asked = (await searchParams).tab;
+  const tab = asked && ["overdue", "today", "later", "none"].includes(asked) ? asked : "all";
   const tasks = await query<any>(
     `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name,
             CASE WHEN t.due_at IS NULL THEN 'none' WHEN t.due_at < now()::date THEN 'overdue'
@@ -20,21 +23,39 @@ export default async function Tasks() {
     { key: "overdue", title: "Overdue", tone: "error" }, { key: "today", title: "Today" },
     { key: "later", title: "Upcoming" }, { key: "none", title: "No date" },
   ];
+  const countOf = (k: string) => tasks.filter((t: any) => t.bucket === k).length;
+  const visibleGroups = tab === "all" ? groups : groups.filter((g) => g.key === tab);
 
   return (
     <>
       <PageHeader title="Tasks" description={`${tasks.length} open`} />
-      <ToastForm action={addLooseTask} success="Task added" reset className="card row" style={{ marginBottom: 20 }}>
+      <ToastForm action={addLooseTask} success="Task added" reset className="card row" style={{ marginBottom: 16 }}>
         <input name="title" placeholder="Add a task…" aria-label="New task" required autoFocus style={{ flex: 1, minWidth: 200 }} />
         <input name="due" type="datetime-local" aria-label="Due date" />
-        <button>Add task</button>
+        <button className="secondary">Add task</button>
       </ToastForm>
+
+      <SectionTabs
+        label="Tasks by due date"
+        current={tab}
+        tabs={[
+          { key: "all", label: "All", href: "/tasks", count: tasks.length },
+          { key: "overdue", label: "Overdue", href: "/tasks?tab=overdue", count: countOf("overdue"), hot: countOf("overdue") > 0 },
+          { key: "today", label: "Today", href: "/tasks?tab=today", count: countOf("today") },
+          { key: "later", label: "Upcoming", href: "/tasks?tab=later", count: countOf("later") },
+          { key: "none", label: "No date", href: "/tasks?tab=none", count: countOf("none") },
+        ]}
+      />
 
       {tasks.length === 0 && <div className="card"><EmptyState title="Nothing to do" icon={<CheckCheck size={22} />}>You&apos;re all caught up.</EmptyState></div>}
       <div className="stack">
-        {groups.map((g) => {
+        {visibleGroups.map((g) => {
           const items = tasks.filter((t: any) => t.bucket === g.key);
-          if (!items.length) return null;
+          if (!items.length) {
+            return tab !== "all" ? (
+              <div key={g.key} className="card"><EmptyState title={`No ${g.title.toLowerCase()} tasks`} icon={<CheckCheck size={22} />}>Nothing in this bucket.</EmptyState></div>
+            ) : null;
+          }
           return (
             <section key={g.key} className="card">
               <h2 className={g.tone}>{g.title} · {items.length}</h2>

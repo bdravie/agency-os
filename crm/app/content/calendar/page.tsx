@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui";
 import { loadContentConfig } from "@/lib/content";
 import { loadInsights } from "@/lib/contentInsights";
 import { suggestSlots } from "@/lib/filmMath";
+import ContentTabs from "@/components/ContentTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
           </>
         }
       />
+      <ContentTabs current="calendar" />
       <section className="card" aria-labelledby="slots-h" style={{ marginBottom: 16 }}>
         <h2 id="slots-h">Suggested slots</h2>
         <p className="muted">{config.posts_per_week} posts a week. Your best days and times once the data is in; until then a labelled starting guess.</p>
@@ -60,7 +62,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
           })}
         </ul>
       </section>
-      <div className="board" style={{ gridTemplateColumns: "repeat(7, minmax(140px, 1fr))" }}>
+      <div className="board cal-board">
         {days.map((d) => (
           <section key={iso(d)} className="col" style={iso(d) === iso(new Date()) ? { borderColor: "var(--accent)" } : undefined} aria-label={d.toDateString()}>
             <h2>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</h2>

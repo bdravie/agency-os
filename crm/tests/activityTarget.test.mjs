@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { activityTarget as t } from "../lib/activityTarget.ts";
+import { tabForSection } from "../lib/jump.ts";
 
 test("company page: each activity points at the section it changed", () => {
   assert.deepEqual(t({ type: "contact_added", contact_id: 15 }, "company"), { id: "contact-15", fallback: "contacts" });
@@ -36,4 +37,20 @@ test("dashboard feed links to the right page and section", () => {
   assert.equal(t({ type: "something_new" }, "feed"), null);
   assert.deepEqual(t({ type: "deal_deleted" }, "feed"), { href: "/deals/deleted" });
   assert.deepEqual(t({ type: "proposal_drafted", company_id: 5 }, "feed"), { href: "/proposals" });
+});
+test("tabForSection maps company and deal section ids to the right tab", () => {
+  assert.equal(tabForSection("/companies/140", "website"), "overview");
+  assert.equal(tabForSection("/companies/140", "filings"), "overview");
+  assert.equal(tabForSection("/companies/140", "compliance"), "overview");
+  assert.equal(tabForSection("/companies/140", "offer"), "research");
+  assert.equal(tabForSection("/companies/140", "contact-15", "contacts"), "people");
+  assert.equal(tabForSection("/companies/140", "outreach"), "outreach");
+  assert.equal(tabForSection("/companies/140", "deal-3", "deals"), "deals");
+  assert.equal(tabForSection("/companies/140", "calls"), "deals");
+  assert.equal(tabForSection("/companies/140", "activity"), "activity");
+  assert.equal(tabForSection("/deals/7", "details"), "overview");
+  assert.equal(tabForSection("/deals/7", "quotes"), "offers");
+  assert.equal(tabForSection("/deals/7", "calls"), "calls");
+  assert.equal(tabForSection("/deals/7", "history"), "activity");
+  assert.equal(tabForSection("/deals/7", "stage"), null);
 });

@@ -3,11 +3,17 @@ import { BarChart3 } from "lucide-react";
 import { loadInsights } from "@/lib/contentInsights";
 import { loadContentConfig } from "@/lib/content";
 import { inNiche, pickNiche } from "@/lib/contentConfigMath";
+import { listContentCategories } from "@/lib/contentCategories";
+import { buildCategoryTimeSeries, type PostRecord } from "@/lib/categoryTimeSeries";
+import { loadPosts } from "@/lib/contentPerformance";
 import NicheFilter from "@/components/NicheFilter";
 import { query } from "@/lib/db";
 import { MIN_GROUP } from "@/lib/insightsMath";
 import { PLATFORM_LABEL, type Platform } from "@/lib/contentMath";
 import ExplainWeek from "@/components/ExplainWeek";
+import ContentTabs from "@/components/ContentTabs";
+import CategoryGraph from "@/components/CategoryGraph";
+import CategoryManager from "@/components/CategoryManager";
 import { EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +22,31 @@ export const metadata = { title: "What's working" };
 const x = (n: number) => `${n.toFixed(1)}×`;
 
 export default async function Insights({ searchParams }: { searchParams: Promise<{ niche?: string }> }) {
-  const config = await loadContentConfig();
+  const [config, categories, rawPosts, items, tagged] = await Promise.all([
+    loadContentConfig(),
+    listContentCategories(true),
+    loadPosts(),
+    query<any>(`SELECT id, niche FROM content_items`),
+    query<{ niche: string | null }>(`SELECT DISTINCT p.content_item_id, c.niche FROM posts p JOIN content_items c ON c.id = p.content_item_id`),
+  ]);
+
   const niche = pickNiche((await searchParams).niche, config.niches);
   const ins = await loadInsights(niche);
-  const tagged = await query<{ niche: string | null }>(`SELECT DISTINCT p.content_item_id, c.niche FROM posts p JOIN content_items c ON c.id = p.content_item_id`);
   const counts: Record<string, number> = { all: tagged.length, untagged: inNiche(tagged, "untagged").length, ...Object.fromEntries(config.niches.map((n) => [n, inNiche(tagged, n).length])) };
   const nothing = ins.scoredPosts === 0;
+
+  const nicheByItem = new Map(items.map((i: any) => [Number(i.id), i.niche]));
+  const postRecords: PostRecord[] = rawPosts.map((p) => {
+    const m72 = p.metrics.find((m) => m.bucket === 72);
+    return {
+      niche: nicheByItem.get(p.content_item_id) ?? null,
+      postedAt: p.posted_at,
+      views72: m72 ? Number(m72.views) : null,
+      multiple: p.performance.status === "ok" ? p.performance.multiple : null,
+    };
+  });
+  const timeSeries = buildCategoryTimeSeries(postRecords, 6);
+
   return (
     <>
       <PageHeader
@@ -29,9 +54,13 @@ export default async function Insights({ searchParams }: { searchParams: Promise
         title="What's working"
         description="How your posts did against your usual, so you film more of what works. 1× is your usual for that platform; every figure is a median. Groups with fewer than 3 posts are greyed out and never ranked."
       />
+      <ContentTabs current="analytics" />
 
       <NicheFilter base="/content/insights" niches={config.niches} current={niche} counts={counts} />
       <div className="stack">
+        <CategoryGraph data={timeSeries} categories={categories.filter((c) => c.active)} />
+        <CategoryManager categories={categories} />
+
         <ExplainWeek disabled={nothing} />
 
         {nothing && (

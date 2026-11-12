@@ -11,6 +11,7 @@ import { NeedsYouProvider, useNeedsYou } from "./NeedsYouFeed";
 import { badgeText } from "@/lib/needsYouMath";
 import HashScroll from "./HashScroll";
 import LiveCalendar from "./LiveCalendar";
+import MobileTables from "./MobileTables";
 
 // On a narrow screen the sidebar is hidden, so the menu button carries the total.
 function MenuButton({ open, onClick }: { open: boolean; onClick: () => void }) {
@@ -67,7 +68,7 @@ export default function AppShell({ children, demo, signOut, theme, collapsed, re
         <Sidebar demo={demo} signOut={signOut} theme={theme} rail={rail} onToggleRail={toggleRail} onSearch={() => { setOpen(false); setPalette(true); }} />
       </aside>
       {open && <div className="scrim" onClick={() => setOpen(false)} aria-hidden />}
-      <main id="main" className="main"><HashScroll /><LiveCalendar />{children}</main>
+      <main id="main" className="main"><HashScroll /><LiveCalendar /><MobileTables />{children}</main>
       <CommandPalette open={palette} onClose={() => setPalette(false)} />
     </div>
     </NeedsYouProvider>

@@ -10,6 +10,8 @@ node_modules/
 .next-*/
 .update-lock
 crm/.env*
+.footage-cache/
+crm/.footage-cache/
 .pytest_cache/
 .ruff_cache/
 output/
@@ -35,3 +37,9 @@ agency-*.tar.gz
 agency-*.tar.gz.enc
 agency-*.partial
 BACKUP_DIR=*/
+
+# Names the private post-purchase address in full; the repo is public.
+docs/WHOP_DELIVERY_EMAIL.md
+
+# Browser check output (screenshots, page snapshots)
+.playwright-mcp/

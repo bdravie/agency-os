@@ -2,6 +2,7 @@ import Link from "next/link";
 import { query } from "@/lib/db";
 import type { BriefNumbers, BriefProse } from "@/lib/briefMath";
 import WriteBrief from "@/components/WriteBrief";
+import ContentTabs from "@/components/ContentTabs";
 import { PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ export default async function Brief({ searchParams }: { searchParams: Promise<{ 
         description={`What last week showed and what to film next. This week starts ${longDate(monday)}. The numbers are worked out in code from the same data as What's working; the AI only writes the words.`}
         actions={<Link href="/content/insights" className="btn secondary">What's working</Link>}
       />
+      <ContentTabs current="brief" />
       <div className="stack">
         <section className="card row-between" style={{ gap: 12, flexWrap: "wrap" }}>
           <span>{all.some((r) => r.week_start === monday) ? "This week's brief is written." : "No brief yet for this week."}</span>

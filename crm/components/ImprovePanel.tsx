@@ -22,7 +22,7 @@ export default function ImprovePanel({ id, score, improvements: imp, at, hourly,
   const chosen = imp ? (best.length ? best : imp.verdict.overall === "worth_it" ? imp.actions : []) : [];
   const sum = imp && score !== null && chosen.length ? effortSummary(chosen, score, hourly, jobPrice) : null;
   return (
-    <section className="card stack" style={{ gap: 12, marginBottom: 16 }} aria-labelledby="imp-h">
+    <section className="card stack" style={{ gap: 12 }} aria-labelledby="imp-h">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
           <h2 id="imp-h">Make this job a better fit</h2>

@@ -2,7 +2,8 @@
 import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/instrument-sans";
 import "../styles/site.css";
-const { title, description = "Systems that bring in more work and give you your time back." } = Astro.props;
+// noindex is for private pages (e.g. the post-purchase page): it asks search engines not to list the page and drops the canonical link to the home page.
+const { title, description = "Systems that bring in more work and give you your time back.", noindex = false } = Astro.props;
 ---
 <!doctype html>
 <html lang="en-GB">
@@ -11,7 +12,9 @@ const { title, description = "Systems that bring in more work and give you your 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={new URL("/", Astro.site).href} />
+    {noindex
+      ? <meta name="robots" content="noindex, nofollow, noarchive" />
+      : <link rel="canonical" href={new URL("/", Astro.site).href} />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body><slot /></body>

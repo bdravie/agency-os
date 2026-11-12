@@ -1,17 +1,31 @@
 // Pure checks for config/offers.yaml, shared by the seeder. No database, so it can be tested on its own.
 export type CatalogueOffer = {
-  name?: string; billing?: string | null; includes?: string[];
+  name?: string; tier?: string | null; billing?: string | null; includes?: string[];
   price_min_gbp?: number | null; price_max_gbp?: number | null; setup_price_gbp?: number; monthly_price_gbp?: number;
   deliverables?: string[]; default_duration_days?: number | null;
 };
 
 const BILLING = ["one_off", "setup", "monthly"];
+
+/** The three offers the Offers page leads with, cheapest first. An offer holds at most one tier and a tier has at most one offer. */
+export const TIERS = [
+  { code: "entry", label: "Entry level" },
+  { code: "mid", label: "Mid-tier" },
+  { code: "premium", label: "Premium" },
+] as const;
+export type Tier = (typeof TIERS)[number]["code"];
+export const isTier = (t: unknown): t is Tier => TIERS.some((x) => x.code === t);
 export const isPackage = (o: CatalogueOffer) => Array.isArray(o.includes);
 
 /** Problems with one offer from the yaml (empty list = fine). Mirrors agency.seed_offers.validate, plus the package rules. */
 export function validateOffer(o: CatalogueOffer, all: CatalogueOffer[] = []): string[] {
   if (!o.name) return ["missing name"];
   const problems: string[] = [];
+  if (o.tier != null) {
+    if (!isTier(o.tier)) problems.push(`tier must be one of ${TIERS.map((t) => t.code).join(", ")}`);
+    else if (all.filter((x) => x.tier === o.tier).length > 1) problems.push(`more than one offer has the tier "${o.tier}"`);
+    if (!isPackage(o) && !o.billing) problems.push("an offer with a tier needs a billing type (or to be a package)");
+  }
   if (isPackage(o)) {
     if (o.billing) problems.push("a package has no billing of its own: its price is the sum of its services");
     if (!o.includes!.length) problems.push("a package needs at least one service");

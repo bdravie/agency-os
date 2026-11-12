@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { redirectTo } from "@/lib/redirectTo";
 import { query } from "@/lib/db";
 import { encryptToken } from "@/lib/mailCrypto";
 import { exchangeCode } from "@/lib/gmail";
 import { exchangeCalendarCode } from "@/lib/gcalAuth";
 
-const back = (req: NextRequest, q: string, page = "/mailboxes") => NextResponse.redirect(new URL(`${page}?${q}`, req.url));
+const back = (req: NextRequest, q: string, page = "/mailboxes") => redirectTo(req, `${page}?${q}`);
 
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;

@@ -24,6 +24,23 @@ export function parseScript(saved: string | null): ParsedScript {
   return { hooks: bullets(parts.hooks, /^\d+[.)]\s*/), script: parts.script.join("\n").trim(), onScreen: bullets(parts.screen, /^[-•*]\s*/) };
 }
 
+/** Openers that make a hook sound like every other video. A hook starting with one is dropped (prompts/video-script.md lists the same ones). */
+export const STOCK_OPENERS = ["did you know", "are you tired of", "in this video", "in today's video", "hey guys", "welcome back", "let me show you", "what if i told you", "ever wondered", "here's how"];
+const plain = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'").replace(/^[^a-z0-9]+/, "").trim();
+
+/**
+ * Hook options with the weak ones removed: stock openers and anything over 14 words (the prompt asks for under 12; two words of slack).
+ * Never leaves fewer than two when there were two to start with, so the A and B hooks survive; if the favourite was dropped, the first one kept takes its place.
+ */
+export function cleanHooks(hooks: string[], favourite: string): { hooks: string[]; favourite: string; dropped: number } {
+  const all = hooks.map((h) => String(h ?? "").trim()).filter(Boolean);
+  const weak = (h: string) => STOCK_OPENERS.some((o) => plain(h).startsWith(o)) || h.split(/\s+/).length > 14;
+  let kept = all.filter((h) => !weak(h));
+  if (kept.length < 2) kept = [...kept, ...all.filter(weak)].slice(0, Math.max(kept.length, Math.min(2, all.length)));
+  const fav = favourite.trim();
+  return { hooks: kept, favourite: kept.includes(fav) ? fav : kept[0] ?? fav, dropped: all.length - kept.length };
+}
+
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 export const clampSpeed = (n: number): number => clamp(Math.round(n), 0, 300);          // pixels a second
 export const clampFont = (n: number): number => clamp(Math.round(n), 24, 120);          // pixels

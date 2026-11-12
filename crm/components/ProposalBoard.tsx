@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Check, ChevronDown, ChevronRight, ChevronUp, Clock, ExternalLink, Plus, Search, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Check, ChevronDown, ChevronRight, ChevronUp, Clock, ExternalLink, Search, Trash2 } from "lucide-react";
 import { moveProposal, restoreProposals } from "@/lib/proposalActions";
 import {
-  PROPOSAL_LOST_REASONS, PROPOSAL_META, PROPOSAL_STATUSES, archiveLabel, cannotDelete, daysSince, isClosed, isQuiet, nextStatus, previousStatus, proposalLostLabel, statusLabel,
+  PROPOSAL_LOST_REASONS, PROPOSAL_META, PROPOSAL_STATUSES, archiveLabel, cannotDelete, daysSince, isClosed, isQuiet, nextStatus, previousStatus, proposalLostLabel, statusLabel, type ProposalStatus,
 } from "@/lib/proposalStatus";
 import { proposalName } from "@/lib/proposalName";
 import { useToast } from "./Toast";
 import LostDialog from "./LostDialog";
 import StatusPicker from "./StatusPicker";
+import SectionTabs from "./SectionTabs";
 import { ArchiveDialog, DeleteDialog } from "./ProposalDialogs";
 import "@/app/proposals/pipeline.css";
 
@@ -23,7 +24,7 @@ export type ProposalRow = {
 const fitTone = (n: number | null) => (n === null ? "neutral" : n >= 8 ? "good" : n >= 6 ? "warn" : "bad");
 const ARCHIVED = "Archived";
 
-export default function ProposalBoard({ initial }: { initial: ProposalRow[] }) {
+export default function ProposalBoard({ initial, tab = "all", deletedCount = 0 }: { initial: ProposalRow[]; tab?: "all" | "archived" | ProposalStatus; deletedCount?: number }) {
   const toast = useToast();
   const router = useRouter();
   const [rows, setRows] = useState(initial);
@@ -165,20 +166,38 @@ export default function ProposalBoard({ initial }: { initial: ProposalRow[] }) {
 
   return (
     <>
+      <SectionTabs
+        label="Proposal pipeline"
+        current={tab}
+        tabs={[
+          { key: "all", label: "All", href: "/proposals", count: open.length },
+          ...PROPOSAL_STATUSES.map((s) => {
+            const inStage = live.filter((r) => r.status === s);
+            return { key: s, label: s, href: `/proposals?tab=${s}`, count: inStage.length, hot: inStage.some((r) => isQuiet(r)) };
+          }),
+        ]}
+        right={[
+          { key: "archived", label: "Archived", href: "/proposals?tab=archived", count: archived.length },
+          { key: "deleted", label: "Deleted", href: "/proposals/deleted", count: deletedCount },
+          { key: "library", label: "Proof and answers", href: "/proposals/library" },
+        ]}
+      />
+
       <div className="board-toolbar">
         <div className="search-field">
           <Search size={15} aria-hidden />
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter proposals…" aria-label="Filter proposals" />
         </div>
-        <div className="row">
-          <button type="button" className="secondary" aria-pressed={showClosed} onClick={() => { const v = !showClosed; setShowClosed(v); remember("proposals.showClosed", v); }}>
-            {showClosed ? "Hide won and lost" : `Show won and lost (${live.filter((r) => isClosed(r.status)).length})`}
-          </button>
-          <button type="button" className="secondary" aria-pressed={showArchived} onClick={() => { const v = !showArchived; setShowArchived(v); remember("proposals.showArchived", v); }}>
-            {showArchived ? "Hide archived" : `Show archived (${archived.length})`}
-          </button>
-          <Link href="/proposals/new" className="btn"><Plus size={16} aria-hidden /> New proposal</Link>
-        </div>
+        {tab === "all" && (
+          <div className="row">
+            <button type="button" className="secondary" aria-pressed={showClosed} onClick={() => { const v = !showClosed; setShowClosed(v); remember("proposals.showClosed", v); }}>
+              {showClosed ? "Hide won and lost" : `Show won and lost (${live.filter((r) => isClosed(r.status)).length})`}
+            </button>
+            <button type="button" className="secondary" aria-pressed={showArchived} onClick={() => { const v = !showArchived; setShowArchived(v); remember("proposals.showArchived", v); }}>
+              {showArchived ? "Hide archived" : `Show archived (${archived.length})`}
+            </button>
+          </div>
+        )}
       </div>
 
       {picked.length > 0 && (
@@ -194,11 +213,17 @@ export default function ProposalBoard({ initial }: { initial: ProposalRow[] }) {
         </div>
       )}
 
-      <p className="muted" style={{ marginTop: 0 }}>{open.length} open · click a job for details, or drag it to another status. Tick boxes to archive or delete several at once.</p>
+      <p className="muted" style={{ marginTop: 0 }}>{open.length} open · click a job for details{tab === "all" ? ", or drag it to another status" : ""}. Tick boxes to archive or delete several at once.</p>
 
       <div className="tiers prop-tiers">
-        {visible.map((s) => renderTier(s, PROPOSAL_META[s].label, PROPOSAL_META[s].hint, PROPOSAL_META[s].colour, live.filter((r) => r.status === s && matches(r)), true))}
-        {showArchived && renderTier(ARCHIVED, "Archived", "Not pursuing. Restore or delete.", "var(--st-new)", archived.filter(matches), false)}
+        {tab === "all" && (
+          <>
+            {visible.map((s) => renderTier(s, PROPOSAL_META[s].label, PROPOSAL_META[s].hint, PROPOSAL_META[s].colour, live.filter((r) => r.status === s && matches(r)), true))}
+            {showArchived && renderTier(ARCHIVED, "Archived", "Not pursuing. Restore or delete.", "var(--st-new)", archived.filter(matches), false)}
+          </>
+        )}
+        {tab === "archived" && renderTier(ARCHIVED, "Archived", "Not pursuing. Restore or delete.", "var(--st-new)", archived.filter(matches), false)}
+        {tab !== "all" && tab !== "archived" && renderTier(tab, PROPOSAL_META[tab].label, PROPOSAL_META[tab].hint, PROPOSAL_META[tab].colour, live.filter((r) => r.status === tab && matches(r)), true)}
       </div>
 
       {lost && <LostDialog title={proposalName(lost)} reasons={PROPOSAL_LOST_REASONS} onCancel={() => setLost(null)} onConfirm={(reason, note) => { const r = lost; setLost(null); move(r.id, "Lost", reason, note); }} />}

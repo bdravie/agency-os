@@ -6,6 +6,7 @@ import { markAllRead } from "@/lib/inboxActions";
 import { ago } from "@/lib/format";
 import ToastForm from "@/components/ToastForm";
 import EnableNotifications from "@/components/EnableNotifications";
+import SectionTabs from "@/components/SectionTabs";
 import { EmptyState, PageHeader } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const box = Number(sp.box) || null;
   const all = sp.show === "all", withAuto = sp.auto === "1";
+  const currentTab = withAuto ? "auto" : all ? "all" : "unread";
   const link = (o: { box?: number | null; show?: string; auto?: string }) => {
     const q = new URLSearchParams();
     const b = o.box === undefined ? box : o.box, s = o.show ?? (all ? "all" : ""), a = o.auto ?? (withAuto ? "1" : "");
@@ -42,13 +44,24 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
           {totalUnread > 0 && <ToastForm action={markAllRead} success="Marked read"><input type="hidden" name="box" value={box ?? ""} /><button className="secondary">Mark {box ? "this inbox" : "all"} read</button></ToastForm>}
         </span>} />
 
-      <div className="row" style={{ marginBottom: 12, flexWrap: "wrap", gap: 8 }} aria-label="Filter by inbox">
-        <Link href={link({ box: null })} className={`badge ${!box ? "tone-blue" : "tone-neutral"}`}>All inboxes{totalUnread > 0 && ` · ${totalUnread}`}</Link>
-        {boxes.map((b: any) => <Link key={b.id} href={link({ box: b.id })} className={`badge ${box === Number(b.id) ? "tone-blue" : "tone-neutral"}`}>{b.email}{b.unread > 0 && ` · ${b.unread}`}</Link>)}
-        <span className="muted">|</span>
-        <Link href={link({ show: all ? "" : "all" })} className="muted">{all ? "Showing all: show unread only" : "Showing unread: show all"}</Link>
-        <Link href={link({ auto: withAuto ? "" : "1" })} className="muted">{withAuto ? "Hide automatic replies" : "Show automatic replies"}</Link>
-      </div>
+      <SectionTabs
+        label="Inbox views"
+        current={currentTab}
+        tabs={[
+          { key: "unread", label: "Unread", href: link({ show: "", auto: "" }), count: totalUnread, hot: totalUnread > 0 },
+          { key: "all", label: "All replies", href: link({ show: "all", auto: "" }) },
+        ]}
+        right={[
+          { key: "auto", label: "Automatic replies", href: link({ auto: withAuto ? "" : "1", show: "all" }) },
+        ]}
+      />
+
+      {boxes.length > 1 && (
+        <div className="row" style={{ marginBottom: 12, flexWrap: "wrap", gap: 8 }} aria-label="Filter by inbox">
+          <Link href={link({ box: null })} className={`badge ${!box ? "tone-blue" : "tone-neutral"}`}>All inboxes</Link>
+          {boxes.map((b: any) => <Link key={b.id} href={link({ box: b.id })} className={`badge ${box === Number(b.id) ? "tone-blue" : "tone-neutral"}`}>{b.email}{b.unread > 0 && ` · ${b.unread}`}</Link>)}
+        </div>
+      )}
       <div style={{ marginBottom: 14 }}><EnableNotifications /></div>
 
       {boxes.length === 0 ? (

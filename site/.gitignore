@@ -3,3 +3,7 @@ dist/
 .astro/
 .wrangler/
 shared/experiments.json
+
+# Private post-purchase page and the paid files it serves. Deployed straight to Cloudflare from the Mac; never commit them (the repo is public).
+public/files/
+src/pages/thanks-*.astro

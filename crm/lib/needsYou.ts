@@ -45,7 +45,7 @@ const pitchLooms: Rule = {
   load: async () => (await query<any>(
     `SELECT id, job_title, company_name, loom_pitch IS NOT NULL AS is_loom_pitch, COALESCE(loom_pitch_at, pack_at) AS written_at FROM proposals
       WHERE (pack IS NOT NULL OR loom_pitch IS NOT NULL) AND status = 'Draft' AND archived_at IS NULL AND loom_recorded_at IS NULL ORDER BY written_at`))
-    .map((p) => ({ key: `proposal-${p.id}`, title: shortTitle(proposalName(p)), detail: `Script written ${ago(p.written_at)}`, href: `/proposals/${p.id}#${p.is_loom_pitch ? "loom-pitch" : "loom-script"}`, action: "Record" })),
+    .map((p) => ({ key: `proposal-${p.id}`, title: shortTitle(proposalName(p)), detail: `Script written ${ago(p.written_at)}`, href: `/proposals/${p.id}${p.is_loom_pitch ? "?tab=loom#loom-pitch" : "?tab=draft#loom-script"}`, action: "Record" })),
 };
 
 const proposalsGoneQuiet: Rule = {

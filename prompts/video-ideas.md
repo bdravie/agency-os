@@ -17,7 +17,7 @@ Show business data only: jobs, quotes, takings, reviews, booking totals and admi
 7. Before and after: "Before: [lost enquiries/time/pain]. After: [the result]."
 8. Question: "If you owned a [business], what would you automate first?"
 
-Rules: only claim results that are true. Show the screen within 3 seconds. One idea per video. End with "Comment [KEYWORD] and I'll send you the build."
+Rules: only claim results that are true. Show the screen within 3 seconds. One idea per video. A hook names one concrete detail and leaves a question open; never open with a stock line ("Did you know", "In this video", "Are you tired of"). End with one call to action that follows from the video. The default is "Comment [KEYWORD] and I'll send you the build."; a series can ask for a follow, a how-to for a save.
 
 ## Content pillars and mix (per week)
 

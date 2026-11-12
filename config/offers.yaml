@@ -73,7 +73,9 @@ offers:
   # The price range and defaults below are STARTING POINTS I chose: change them to what you actually charge
   # (here, or on the Offers page). For one_off and setup offers the price is the one-off fee; for monthly it is per month.
   # setup_price_gbp / monthly_price_gbp hold the default price used when you add the offer to a deal or quote.
+  # tier: the Offers page leads with three offers, one each of entry, mid and premium (owner's decision, 11 Nov 2026).
   - name: "AI Opportunity Audit"
+    tier: entry
     billing: one_off
     sort_order: 10
     niche: any
@@ -93,6 +95,7 @@ offers:
       - "Recommended build scope, with the audit fee credited against it"
 
   - name: "Build"
+    tier: mid
     billing: setup
     sort_order: 20
     niche: any
@@ -343,6 +346,13 @@ offers:
     sort_order: 9
     niche: any
     outcome: "A website chatbot, built and then kept accurate"
+
+  - name: "Build, Train & Optimise"
+    tier: premium
+    includes: ["Build", "Team Enablement", "Optimise Retainer"]
+    sort_order: 3
+    niche: any
+    outcome: "The system built, your team trained to use it, and improvements every month after that"
 
   - name: "AI automation package"
     includes: ["AI Opportunity Audit", "Build", "Optimise Retainer"]

@@ -6,6 +6,7 @@ import { requireLogin } from "./auth";
 import { BILLING, checklistFrom, clampCredit, parseDeliverables, totals, type Billing, type CheckItem } from "./dealOffers";
 import { cleanLines, suggestTitle } from "./dealBuilder";
 import { logActivity } from "./activity";
+import { isTier } from "./offerCatalogue";
 
 const str = (f: FormData, k: string) => { const v = String(f.get(k) ?? "").trim(); return v === "" ? null : v; };
 const num = (f: FormData, k: string) => Number(str(f, k) ?? 0) || 0;
@@ -28,6 +29,17 @@ function refresh(dealId: number) {
 
 // ---- The offers catalogue ----
 
+/** Puts a service or package in a tier (or takes it out). A tier holds one offer, so whichever held it before is moved out first. */
+async function assignTier(id: number, form: FormData) {
+  if (!form.has("tier")) return;
+  const tier = str(form, "tier");
+  if (tier !== null && !isTier(tier)) return;
+  await tx(async (c) => {
+    if (tier) await c.query(`UPDATE offers SET tier = NULL WHERE tier = $1 AND id <> $2`, [tier, id]);
+    await c.query(`UPDATE offers SET tier = $2 WHERE id = $1 AND (is_bundle OR billing IS NOT NULL)`, [id, tier]);
+  });
+}
+
 export async function saveOffer(form: FormData) {
   await requireLogin();
   const id = num(form, "id");
@@ -48,6 +60,8 @@ export async function saveOffer(form: FormData) {
     [id, str(form, "name"), str(form, "niche"), str(form, "outcome"), Math.max(0, setup), Math.max(0, monthly), str(form, "loom_url"), str(form, "demo_path"), form.get("active") === "on",
      billing, min, max, duration, JSON.stringify(parseDeliverables(String(form.get("deliverables") ?? "")))],
   );
+  if (billing === null) await query(`UPDATE offers SET tier = NULL WHERE id = $1 AND NOT is_bundle`, [id]);   // a tier offer must be a service or a package
+  else await assignTier(id, form);
   revalidatePath("/offers");
 }
 
@@ -146,6 +160,7 @@ export async function saveBundle(form: FormData) {
     await c.query(`DELETE FROM offer_components WHERE bundle_id = $1`, [id]);
     await c.query(`INSERT INTO offer_components (bundle_id, component_id) SELECT $1, unnest($2::bigint[])`, [id, parts.ids]);
   });
+  await assignTier(id, form);
   revalidatePath("/offers");
 }
 

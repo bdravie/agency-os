@@ -10,6 +10,7 @@ import { useToast } from "./Toast";
 import DealDrawer from "./DealDrawer";
 import LostDialog from "./LostDialog";
 import NewDealDialog from "./NewDealDialog";
+import SectionTabs from "./SectionTabs";
 import StatusPicker from "./StatusPicker";
 
 export type Deal = { id: number; title: string; stage: string; company_id: number | null; company_name: string | null; setup: number; monthly: number; updated: string };
@@ -18,7 +19,7 @@ const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
 const CLOSED = ["Won", "Lost"];
 const daysIn = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
 
-export default function Board({ initial, stages }: { initial: Deal[]; stages: readonly string[] }) {
+export default function Board({ initial, stages, tab = "all", deletedCount = 0 }: { initial: Deal[]; stages: readonly string[]; tab?: "all" | Stage; deletedCount?: number }) {
   const toast = useToast();
   const router = useRouter();
   const [deals, setDeals] = useState(initial);
@@ -36,7 +37,8 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
   useEffect(() => { try { setShowClosed(localStorage.getItem("deals.showClosed") === "1"); } catch {} }, []);
   const toggleClosed = () => { const v = !showClosed; setShowClosed(v); try { localStorage.setItem("deals.showClosed", v ? "1" : "0"); } catch {} };
 
-  const visible = showClosed ? stages : stages.filter((s) => !CLOSED.includes(s));
+  const open = deals.filter((d) => !CLOSED.includes(d.stage));
+  const visible = tab === "all" ? (showClosed ? stages : stages.filter((s) => !CLOSED.includes(s))) : [tab];
   const closedCount = deals.filter((d) => CLOSED.includes(d.stage)).length;
   const needle = filter.trim().toLowerCase();
   const matches = useMemo(() => (d: Deal) => !needle || `${d.title} ${d.company_name ?? ""}`.toLowerCase().includes(needle), [needle]);
@@ -55,13 +57,33 @@ export default function Board({ initial, stages }: { initial: Deal[]; stages: re
 
   return (
     <>
+      <SectionTabs
+        label="Deal pipeline"
+        current={tab}
+        tabs={[
+          { key: "all", label: "All", href: "/deals", count: open.length },
+          ...stages.map((s) => {
+            const inStage = deals.filter((d) => d.stage === s);
+            const isClosed = CLOSED.includes(s);
+            return {
+              key: s,
+              label: STAGE_META[s as Stage].label,
+              href: `/deals?tab=${encodeURIComponent(s)}`,
+              count: inStage.length,
+              hot: !isClosed && inStage.some((d) => daysIn(d.updated) >= 7),
+            };
+          }),
+        ]}
+        right={[{ key: "deleted", label: "Deleted", href: "/deals/deleted", count: deletedCount }]}
+      />
+
       <div className="board-toolbar">
         <div className="search-field">
           <Search size={15} aria-hidden />
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter deals…" aria-label="Filter deals" />
         </div>
         <div className="row">
-          <button type="button" className="secondary" onClick={toggleClosed} aria-pressed={showClosed}>{showClosed ? "Hide won and lost" : `Show won and lost (${closedCount})`}</button>
+          {tab === "all" && <button type="button" className="secondary" onClick={toggleClosed} aria-pressed={showClosed}>{showClosed ? "Hide won and lost" : `Show won and lost (${closedCount})`}</button>}
           <button type="button" onClick={() => setCreating(true)}><Plus size={16} aria-hidden /> New deal</button>
         </div>
       </div>

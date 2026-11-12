@@ -5,6 +5,7 @@ import { getBudget } from "@/lib/launch";
 import { creditUsage } from "@/lib/usage";
 import EnrichTab from "@/components/EnrichTab";
 import FindCompanyPanel from "@/components/FindCompanyPanel";
+import SectionTabs from "@/components/SectionTabs";
 import { listSavedSearches } from "@/lib/savedSearchActions";
 import SourcerPanel from "@/components/SourcerPanel";
 import { templateStatuses } from "@/lib/outreachTemplates";
@@ -25,11 +26,15 @@ export default async function Sourcer({ searchParams }: { searchParams: Promise<
         </div>
         <Link href="/companies" className="btn secondary">Companies in the CRM</Link>
       </header>
-      <nav className="sx-tabs" role="tablist" aria-label="Lead Sourcer">
-        <Link href="/sourcer" role="tab" aria-selected={tab === "search"}>Search</Link>
-        <Link href="/sourcer?tab=company" role="tab" aria-selected={tab === "company"}>Find one company</Link>
-        <Link href="/sourcer?tab=enrich" role="tab" aria-selected={tab === "enrich"}>Enrich</Link>
-      </nav>
+      <SectionTabs
+        label="Lead Sourcer"
+        current={tab}
+        tabs={[
+          { key: "search", label: "Search", href: "/sourcer" },
+          { key: "company", label: "Find one company", href: "/sourcer?tab=company" },
+          { key: "enrich", label: "Enrich", href: "/sourcer?tab=enrich" },
+        ]}
+      />
       {tab === "enrich" ? <EnrichTab scope={sp.scope} limit={sp.limit} /> : tab === "company" ? <CompanyTab /> : <SearchTab />}
     </div>
   );

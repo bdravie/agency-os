@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -11,7 +11,12 @@ import { logout } from "./login/actions";
 const display = Bricolage_Grotesque({ subsets: ["latin"], display: "swap", variable: "--font-display" });
 const text = Instrument_Sans({ subsets: ["latin"], display: "swap", variable: "--font-text" });
 
-export const metadata: Metadata = { title: { default: "Agency OS", template: "%s · Agency OS" } };
+export const metadata: Metadata = {
+  title: { default: "Agency OS", template: "%s · Agency OS" },
+  appleWebApp: { capable: true, title: "Agency OS", statusBarStyle: "default" },   // added to an iPhone home screen, it opens full screen
+};
+// Browser bar colour on a phone: Cream in light mode, Navy in dark (raw hex, because metadata cannot read the CSS tokens).
+export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#F4EDE0" }, { media: "(prefers-color-scheme: dark)", color: "#14213D" }] };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const jar = await cookies();

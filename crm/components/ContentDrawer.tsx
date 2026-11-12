@@ -12,6 +12,7 @@ import ToastForm from "./ToastForm";
 import PostPerformance from "./PostPerformance";
 import ContentTags from "./ContentTags";
 import ScriptEditor from "./ScriptEditor";
+import ScriptSyncInput from "./ScriptSyncInput";
 import type { PostView } from "@/lib/contentPerformance";
 import { useToast } from "./Toast";
 
@@ -105,6 +106,7 @@ export default function ContentDrawer({ itemId, status, openNumbers = null, onMo
                   <button type="button" className="secondary" onClick={() => setEditing(true)}><PenLine size={15} aria-hidden /> Write it myself</button>
                   <ActionForm action={writeScriptAction} label="Write script with AI" busyLabel="Writing… (about 15 seconds)" onDone={refresh}>
                     <input type="hidden" name="id" value={itemId} />
+                    <ScriptSyncInput targetTextareaId="drawer-script" />
                   </ActionForm>
                 </div>
               </section>
@@ -135,8 +137,9 @@ export default function ContentDrawer({ itemId, status, openNumbers = null, onMo
                 )}
                 <section className="row" style={{ alignItems: "flex-start" }}>
                   <button type="button" className="secondary" onClick={() => setEditing(true)}><PenLine size={15} aria-hidden /> Edit script</button>
-                  <ActionForm action={writeScriptAction} label="Rewrite with AI" busyLabel="Writing… (about 15 seconds)" onDone={refresh} secondary confirm="This replaces the script, hooks, caption and keyword with a new AI version. Anything you wrote yourself will be lost. Carry on?">
+                  <ActionForm action={writeScriptAction} label="Rewrite with AI" busyLabel="Writing… (about 15 seconds)" onDone={refresh} secondary confirm="This polishes your rough notes into a new AI version. Carry on?">
                     <input type="hidden" name="id" value={itemId} />
+                    <ScriptSyncInput targetTextareaId="drawer-script" />
                   </ActionForm>
                 </section>
               </>

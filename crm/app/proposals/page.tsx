@@ -1,20 +1,27 @@
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { Plus } from "lucide-react";
 import { query } from "@/lib/db";
 import { PageHeader } from "@/components/ui";
 import NeedsYouCard from "@/components/NeedsYouCard";
 import { comparePitches, COMPARE_MIN_SENT, type CompareRow, type ModeStats } from "@/lib/loomPitchMath";
+import { isStatus } from "@/lib/proposalStatus";
 import ProposalBoard from "@/components/ProposalBoard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Proposals" };
 
-export default async function Proposals() {
-  const rows = await query<any>(
-    `SELECT id, job_title, company_name, job_url, fit_score, status, pitch_mode, connects_used, to_char(status_changed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS status_changed_at,
-            archived_at::text AS archived_at, archive_reason, lost_reason
-       FROM proposals ORDER BY created_at DESC LIMIT 500`);
-  const compare = comparePitches(await query<CompareRow>(`SELECT pitch_mode, status, loom_url, loom_recorded_at FROM proposals`));
+export default async function Proposals({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const asked = (await searchParams).tab;
+  const tab = asked === "archived" ? "archived" : isStatus(asked) ? asked : "all";
+  const [rows, compareRows, [{ n: deletedCount }]] = await Promise.all([
+    query<any>(
+      `SELECT id, job_title, company_name, job_url, fit_score, status, pitch_mode, connects_used, to_char(status_changed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS status_changed_at,
+              archived_at::text AS archived_at, archive_reason, lost_reason
+         FROM proposals ORDER BY created_at DESC LIMIT 500`),
+    query<CompareRow>(`SELECT pitch_mode, status, loom_url, loom_recorded_at FROM proposals`),
+    query<{ n: string }>(`SELECT count(*) AS n FROM proposal_deletions`),
+  ]);
+  const compare = comparePitches(compareRows);
   const statLine = (label: string, m: ModeStats) => (
     <tr><td style={{ fontWeight: 600 }}>{label}</td><td className="num">{m.sent}</td><td className="num">{m.viewed}</td><td className="num">{m.replied}</td><td className="num">{m.hired}</td><td className="num">{m.replyRate === null ? "Not enough yet" : `${m.replyRate}%`}</td></tr>
   );
@@ -23,10 +30,10 @@ export default async function Proposals() {
       <PageHeader
         title="Proposals"
         description="Upwork proposals: paste a job post, review the draft, copy it, then move it along as it is sent, viewed and answered."
-        actions={<div className="row"><Link href="/proposals/library" className="btn secondary"><BookOpen size={16} aria-hidden /> Proof and answers</Link><Link href="/proposals/deleted" className="btn secondary">Deletion log</Link></div>}
+        actions={<Link href="/proposals/new" className="btn"><Plus size={16} aria-hidden /> New proposal</Link>}
       />
       <NeedsYouCard href="/proposals" />
-      <ProposalBoard initial={rows} />
+      <ProposalBoard initial={rows} tab={tab} deletedCount={Number(deletedCount)} />
       {(compare.loom.sent > 0 || compare.plain.sent > 0) && (
         <section className="card table-wrap" style={{ marginTop: 16 }} aria-labelledby="compare-h">
           <h2 id="compare-h">Loom pitches against plain proposals</h2>

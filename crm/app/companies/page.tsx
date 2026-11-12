@@ -7,6 +7,7 @@ import { gateReasons } from "@/lib/compliance";
 import { buildListQuery, FILTERS, type FilterKey } from "@/lib/companyFilters";
 import { TIER_TONE, explainSuitability } from "@/lib/suitability";
 import ListFilters from "@/components/ListFilters";
+import SectionTabs from "@/components/SectionTabs";
 import { leadSettings, shortMoney } from "@/lib/leadConfig";
 import VerifyAllButton from "@/components/VerifyAllButton";
 import { Badge, EmptyState, PageHeader, Pill } from "@/components/ui";
@@ -17,23 +18,15 @@ export const metadata = { title: "Companies" };
 type SP = { q?: string; niche?: string; view?: string; limit?: string; sort?: string; area?: string } & Partial<Record<FilterKey, string>>;
 
 // The same filters as the counts below, so a pill and its number always agree.
-/** Not ruled out by Companies House, an opt-out or the suppression list (unverified leads can still be researched, just not contacted). */
-const NOT_BLOCKED = "compliance_status <> 'not_eligible' AND NOT opted_out AND NOT suppressed";
-
+// Views are about where a company is in the workflow. What one company still needs (a website, an email, verifying, why it is
+// blocked, its size or filing problems) is shown on its own page and in the Next step column, so those are not views here.
 const views = (min: number): { key: string; label: string; where: string }[] => [
   { key: "", label: "All", where: "TRUE" },
   { key: "qualified", label: "Qualified", where: `filing_ok AND est_revenue_gbp >= ${Number(min)}` },
-  { key: "ready", label: "Ready to email", where: "status = 'New' AND domain IS NOT NULL AND generic_email IS NOT NULL AND sendable AND filing_ok IS NOT FALSE" },
-  { key: "nosite", label: "Needs website", where: `status = 'New' AND domain IS NULL AND ${NOT_BLOCKED} AND filing_ok IS NOT FALSE` },
-  { key: "noemail", label: "Needs email", where: `status = 'New' AND domain IS NOT NULL AND generic_email IS NULL AND ${NOT_BLOCKED} AND filing_ok IS NOT FALSE` },
-  { key: "unchecked", label: "Not verified", where: "compliance_status = 'unchecked'" },
-  { key: "blocked", label: "Blocked", where: "compliance_status = 'not_eligible' OR opted_out OR suppressed" },
   { key: "followup", label: "Follow-ups due", where: "status = 'Contacted' AND followup_due IS NOT NULL AND followup_due < now() + interval '1 day'" },
   { key: "contacted", label: "Contacted", where: "status = 'Contacted'" },
   { key: "replied", label: "Replied", where: "status = 'Replied'" },
   { key: "client", label: "Clients", where: "status = 'Client'" },
-  { key: "unknown", label: "Size unknown", where: "filing_ok AND est_revenue_gbp IS NULL" },
-  { key: "problems", label: "Filing problems", where: "filing_ok = false" },
 ];
 
 const BASE = `
@@ -62,7 +55,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         WHERE (${active.where}) AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR legal_name ILIKE '%' || $1 || '%' OR domain ILIKE '%' || $1 || '%') AND ($2 = '' OR niche = $2)${list.where.map((w) => ` AND ${w}`).join("")}
         ORDER BY ${list.order} LIMIT $3`, [q, niche, limit + 1, ...list.params]),
     query<{ niche: string }>(`SELECT DISTINCT niche FROM companies WHERE niche IS NOT NULL ORDER BY 1`),
-    query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")} FROM c${forCounts.where.length ? ` WHERE ${forCounts.where.join(" AND ")}` : ""}`, forCounts.params),
+    query<any>(`${BASE} SELECT ${VIEWS.map((v, i) => `count(*) FILTER (WHERE ${v.where}) AS v${i}`).join(", ")}, count(*) FILTER (WHERE compliance_status = 'unchecked') AS unchecked FROM c${forCounts.where.length ? ` WHERE ${forCounts.where.join(" AND ")}` : ""}`, forCounts.params),
   ]);
   const keep: Record<string, string> = { ...(q && { q }), ...(niche && { niche }), ...(sp.sort && { sort: sp.sort }), ...(sp.area && { area: sp.area }),
     ...Object.fromEntries((Object.keys(FILTERS) as FilterKey[]).filter((k) => sp[k]).map((k) => [k, sp[k]!])) };
@@ -74,7 +67,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
     <>
       <PageHeader
         title="Companies"
-        description="Pick a view to see who needs what. Open a company for its website, outreach email and history."
+        description="Pick a view to see where each company is. Open a company to see what it still needs and whether you can contact it."
         actions={
           <>
             <Link href="/sourcer" className="btn"><Search size={16} aria-hidden /> Lead Sourcer</Link>
@@ -84,7 +77,7 @@ export default async function Companies({ searchParams }: { searchParams: Promis
         }
       />
 
-      <VerifyAllButton unchecked={Number(counts[0][`v${VIEWS.findIndex((v) => v.key === "unchecked")}`])} />
+      <VerifyAllButton unchecked={Number(counts[0].unchecked)} />
 
       <details className="card" style={{ marginBottom: 16 }}>
         <summary>Add a company by hand</summary>
@@ -93,16 +86,19 @@ export default async function Companies({ searchParams }: { searchParams: Promis
           <input name="domain" placeholder="Website (example.com)" />
           <input name="phone" placeholder="Phone" />
           <input name="niche" placeholder="Niche (e.g. hvac)" />
-          <button>Add</button>
+          <button className="secondary">Add</button>
         </form>
         <p className="muted" style={{ marginBottom: 0 }}>To find new businesses, use <Link href="/sourcer">Lead Sourcer</Link>.</p>
       </details>
 
-      <div className="pills" style={{ marginBottom: 12 }} role="group" aria-label="Views">
-        {VIEWS.map((v, i) => (
-          <Link key={v.key} href={href(v.key)} className={`pill${v.key === active.key ? " on" : ""}`}>{v.label} <span className="muted">{counts[0][`v${i}`]}</span></Link>
-        ))}
-      </div>
+      <SectionTabs
+        label="Company views"
+        current={active.key}
+        tabs={VIEWS.map((v, i) => {
+          const n = Number(counts[0][`v${i}`]);
+          return { key: v.key, label: v.label, href: href(v.key), count: n, hot: v.key === "followup" && n > 0 };
+        })}
+      />
 
       <ListFilters niches={niches.map((n) => n.niche)} current={{ q, niche, view, sort: sp.sort ?? "", area: sp.area ?? "", added: sp.added ?? "", tier: sp.tier ?? "", source: sp.source ?? "", contact: sp.contact ?? "", rev: sp.rev ?? "", rating: sp.rating ?? "" }} />
 

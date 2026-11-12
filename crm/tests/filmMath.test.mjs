@@ -68,3 +68,12 @@ test("slots: your best trusted days first, then common days, in week order, with
   assert.match(none[0].why, /starting guess for the time/);
   assert.equal(suggestSlots(0, days, parts).length, 0);
 });
+
+test("weak hooks are dropped: stock openers and over-long lines, but A and B always survive", async () => {
+  const { cleanHooks } = await import("../lib/filmMath.ts");
+  const r = cleanHooks(["Did you know quotes go quiet?", "This quote chases itself", "“In today’s video I show a thing", "Stop ringing round for an answer"], "Did you know quotes go quiet?");
+  assert.deepEqual(r, { hooks: ["This quote chases itself", "Stop ringing round for an answer"], favourite: "This quote chases itself", dropped: 2 });
+  assert.equal(cleanHooks(["One good hook", "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen"], "One good hook").hooks.length, 2);   // never fewer than two
+  assert.deepEqual(cleanHooks(["Kept as it is", "Also fine"], "Also fine"), { hooks: ["Kept as it is", "Also fine"], favourite: "Also fine", dropped: 0 });
+  assert.deepEqual(cleanHooks([], ""), { hooks: [], favourite: "", dropped: 0 });
+});

@@ -13,7 +13,7 @@ const effectWord = { up: "Raised the score", down: "Lowered the score", neutral:
 export default function FitPanel({ id, score, fit }: { id: number; score: number | null; fit: FitAnalysis | null }) {
   const [message, action, pending] = useActionState(analyseFitAction, null);
   return (
-    <section className="card stack" style={{ gap: 12, marginBottom: 16 }} aria-labelledby="fit-h">
+    <section className="card stack" style={{ gap: 12 }} aria-labelledby="fit-h">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div>
           <h2 id="fit-h">Why this score{score !== null && <> <span className={`badge tone-${tone(score)}`}>{score}/10</span></>}</h2>

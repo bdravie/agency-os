@@ -4,6 +4,7 @@ import { apifyToken } from "@/lib/apify";
 import { creatorBudgets, creatorSpend, loadCreatorSettings } from "@/lib/creatorScrape";
 import { estimateCostUsd } from "@/lib/creatorMath";
 import CreatorsPanel, { type CreatorRow } from "@/components/CreatorsPanel";
+import ContentTabs from "@/components/ContentTabs";
 import { PageHeader } from "@/components/ui";
 import Link from "next/link";
 
@@ -32,10 +33,15 @@ export default async function Creators() {
         title="Creators"
         description="Creators whose content you learn from. Check them for their latest public posts, and see which ones took off."
         actions={<>
-          <Link href="/content/outliers" className="btn secondary">Outliers</Link>
           <a href="/api/content/creators/export" className="btn secondary"><Download size={16} aria-hidden /> Export CSV</a>
         </>}
       />
+      <ContentTabs current="research" />
+      <div className="pills" style={{ marginBottom: 16 }} aria-label="Research sections">
+        <Link href="/content/creators" className="pill on">Creators</Link>
+        <Link href="/content/outliers" className="pill">Outliers</Link>
+        <Link href="/content/trends" className="pill">Trends</Link>
+      </div>
       <CreatorsPanel creators={creators} spend={spend} budget={{ daily: b.daily, monthly: b.monthly }} tokenSet={!!apifyToken()} maxActive={s.maxActive} />
     </>
   );

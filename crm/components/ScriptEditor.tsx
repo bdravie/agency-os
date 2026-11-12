@@ -17,7 +17,7 @@ export default function ScriptEditor({ item, onSaved, onCancel, onDirty }: { ite
         <label><span className="field-label">Alternative hook (B), optional</span><input name="hook_alt" style={wide} defaultValue={item.hook_alt ?? ""} placeholder="A different opening to test against the first" /></label>
         <label>
           <span className="field-label">Script</span>
-          <textarea name="script" rows={14} required autoFocus defaultValue={item.script ?? ""} placeholder="Write what you will say. Filming day shows it on the teleprompter as you type it here." />
+          <textarea id="drawer-script" name="script" rows={14} required autoFocus defaultValue={item.script ?? ""} placeholder="Write what you will say. Filming day shows it on the teleprompter as you type it here." />
           {/^\s*SCRIPT\s*$/im.test(item.script ?? "") && <span className="muted" style={{ display: "block", marginTop: 4 }}>Filming day reads what is under the SCRIPT heading. Keep the headings, or delete them all to read the whole text.</span>}
         </label>
         <label><span className="field-label">Caption, optional</span><textarea name="caption" rows={3} defaultValue={item.caption ?? ""} /></label>

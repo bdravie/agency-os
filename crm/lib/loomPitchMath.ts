@@ -183,7 +183,7 @@ export function claimProblems(where: string, value: unknown, source: string, job
 
 // ---------- Job analysis ----------
 
-const PERSONAL_DATA = /\bu?k?\s?gdpr\b|\bdata protection\b|\bpersonal (?:data|details|information)\b|\bpatients?\b|\bmedical\b|\bhealth records?\b|\bcustomer (?:data|records)\b/i;
+export const PERSONAL_DATA = /\bu?k?\s?gdpr\b|\bdata protection\b|\bpersonal (?:data|details|information)\b|\bpatients?\b|\bmedical\b|\bhealth records?\b|\bcustomer (?:data|records)\b/i;
 
 export function budgetNote(raw: any, rates: Rates): { note: string | null; flag: Flag | null } {
   const amount = Number(raw?.amount);
@@ -529,6 +529,46 @@ export function scriptToText(s: LoomScript, nodes: DiagramNode[], toolLine = "")
     if (b.key === "proof_drop") lines[0] += ` at step: ${name(b.node_id)}`;
     return [...lines, ""];
   }).join("\n").trim();
+}
+
+/**
+ * The whole script as one block to paste into a teleprompter: in speaking order, with no timings, bullets or "Open with:" labels.
+ * Each beat starts with a short heading in capitals as a cue, the proof drop sits straight after the walkthrough step it belongs to
+ * (as on screen), and the tool beat reads the tool line. Talking points are kept as the owner wrote them, one per line.
+ */
+export function scriptToTeleprompter(s: LoomScript, nodes: DiagramNode[], toolLine = ""): string {
+  const name = (id: string | null | undefined) => nodes.find((n) => n.id === id)?.label ?? id ?? "";
+  const clean = (lines: (string | null | undefined)[]) => lines.map((l) => (l ?? "").trim()).filter(Boolean);
+  const drop = s.beats.find((b) => b.key === "proof_drop");
+  const dropPlaced = !!drop && s.walkthrough.some((w) => w.node_id === drop.node_id);
+  const beatBody = (b: Beat) => clean([b.opening_line, ...(b.key === "tool_flexibility" ? [] : b.talking_points)]);
+  const blocks: string[][] = [];
+  for (const b of s.beats) {
+    if (b.key === "proof_drop" && dropPlaced) continue;
+    const lines = [b.label.toUpperCase(), ...beatBody(b)];
+    if (b.key === "hook" && s.positioning_line) lines.splice(2, 0, `${s.name ? `I'm ${s.name}. ` : ""}${s.positioning_line}`);
+    if (b.key === "tool_flexibility" && toolLine.trim()) lines.push(toolLine.trim());
+    blocks.push(lines);
+    if (b.key === "walkthrough") s.walkthrough.forEach((w, i) => {
+      const options = w.options.map((o) => (o.note ? `${o.name}, ${o.note}` : o.name)).filter(Boolean);
+      const step = [
+        `STEP ${i + 1}: ${name(w.node_id)}`, w.what_happens,
+        options.length ? `Options: ${options.join(". ")}.` : "",
+        w.pick ? `My pick: ${w.pick}${w.pick_why ? `, ${w.pick_why}` : ""}` : "",
+        w.backup ? `Backup: ${w.backup}` : "",
+        w.depends_on ? `It depends on: ${w.depends_on}` : "",
+      ];
+      blocks.push(clean(step));
+      if (drop && dropPlaced && drop.node_id === w.node_id) blocks.push([drop.label.toUpperCase(), ...beatBody(drop)]);
+    });
+  }
+  return blocks.filter((b) => b.length > 1).map((b) => b.join("\n")).join("\n\n");
+}
+
+/** A safe file name for the download, from the proposal title. */
+export function teleprompterFileName(title: string): string {
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  return `loom-script${slug ? `-${slug}` : ""}.txt`;
 }
 
 // ---------- Comparing Loom pitches with plain ones ----------

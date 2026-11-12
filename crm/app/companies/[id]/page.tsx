@@ -33,14 +33,21 @@ import MeetingList from "@/components/MeetingList";
 import { fitTier, shortMoney } from "@/lib/leadConfig";
 import { activityLabel } from "@/components/activity";
 import ActivityItem from "@/components/ActivityItem";
+import SectionTabs from "@/components/SectionTabs";
 import { activityTarget } from "@/lib/activityTarget";
+import { tabForSection } from "@/lib/jump";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompanyPage({ params }: { params: Promise<{ id: string }> }) {
+const COMPANY_TABS = ["overview", "research", "people", "outreach", "deals", "activity"] as const;
+type CompanyTab = (typeof COMPANY_TABS)[number];
+
+export default async function CompanyPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
+  const asked = (await searchParams).tab;
+  const tab: CompanyTab = COMPANY_TABS.includes(asked as CompanyTab) ? (asked as CompanyTab) : "overview";
   const [company] = await query<any>(`SELECT * FROM companies WHERE id = $1`, [id]);
   if (!company) notFound();
   const catalogue = await loadBuilderCatalogue();
@@ -67,6 +74,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
 
   const followUp = tasks.find((t: any) => /follow-up/i.test(t.title));
   const next = nextStep({ ...company, gate: { sendable: gate.sendable, unchecked: company.compliance_status === "unchecked" && !gate.bypassed, reasons: gate.reasons }, followup_due: followUp?.due_at ?? null });
+  const nextHref = (() => {
+    if (!next.href) return undefined;
+    if (!next.href.startsWith("#")) return next.href;
+    const targetId = next.href.slice(1);
+    const targetTab = tabForSection(`/companies/${id}`, targetId);
+    return targetTab && targetTab !== "overview" ? `/companies/${id}?tab=${targetTab}#${targetId}` : `/companies/${id}#${targetId}`;
+  })();
 
   return (
     <>
@@ -92,208 +106,267 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
 
       <div id="status"><StatusStepper companyId={id} status={company.status} /></div>
 
-      <div className="split">
-        <div className="stack">
-          <div className={`next${next.warn ? " warn" : ""}`} role="note">
-            <div>
-              <div className="next-label">Next step</div>
-              <b>{next.text}</b>
-              {next.href && <a href={next.href}>{next.href.startsWith("/") ? "Open" : "Take me there"} →</a>}
-            </div>
-          </div>
-          <details className="card" id="website" open={!(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url)}>
-            <summary>Contact details{(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) ? <span className="muted" style={{ fontWeight: 400 }}> · {[company.domain && "website", company.generic_email && "email", company.linkedin_url && "LinkedIn", company.instagram_url && "Instagram", company.facebook_url && "Facebook", company.contact_url && "contact page"].filter(Boolean).join(", ")}</span> : <span className="muted" style={{ fontWeight: 400 }}> · no way to reach them yet</span>}</summary>
-            <div style={{ marginTop: 14 }}>
-              <ContactDetailsForm
-                key={[company.domain, company.generic_email, company.phone, company.linkedin_url, company.instagram_url, company.facebook_url, company.contact_url].join("|")}
-                company={{ id, name: company.name, postcode: company.postcode, company_number: company.company_number, domain: company.domain, generic_email: company.generic_email, phone: company.phone,
-                  linkedin_url: company.linkedin_url, instagram_url: company.instagram_url, facebook_url: company.facebook_url, contact_url: company.contact_url,
-                  domain_verified: company.domain_verified, site_signals: company.site_signals }}
-                usage={usage}
-                methods={methods.map((m: any) => ({ id: Number(m.id), kind: m.kind, value: m.value, note: m.note }))}
-              />
-            </div>
-          </details>
-
-          <details className="card" id="decision-makers">
-            <summary>Decision-makers (Apollo) <span className="badge tone-warn" style={{ marginLeft: 6 }}>emails use credits</span>{apollo.saved > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {apollo.saved} saved</span>}</summary>
-            <div style={{ marginTop: 14 }}><DecisionMakers companyId={id} status={apollo} /></div>
-          </details>
-          <details className="card" id="paste-decision-makers">
-            <summary>Add decision-makers by pasting{contacts.length > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {contacts.length} contact{contacts.length === 1 ? "" : "s"} saved</span>}</summary>
-            <div style={{ marginTop: 14 }}>
-              <PasteDecisionMakers companyId={id} domain={company.domain ?? null} unverifiedOk={!gate.sendable && canSaveUnverified({ compliance_status: company.compliance_status, opted_out: !!company.opted_out, suppressed: gate.reasons.some((r: string) => /suppress/i.test(r)) })} blocked={gate.sendable ? null : `People are only added for verified active limited companies that can be contacted. ${gate.reasons.join(" ")}`.trim()} />
-            </div>
-          </details>
-          <ComplianceCard company={company} gate={gate} />
-
-          <section className="card" id="log-activity">
-            <h2>Log activity</h2>
-            <ToastForm action={logContact} success="Activity logged" reset className="row">
-              <input type="hidden" name="company_id" value={id} />
-              <select name="type" aria-label="Type"><option value="email">Email</option><option value="dm">DM</option><option value="call">Call</option><option value="note">Note</option></select>
-              <input name="body" placeholder="What happened?" aria-label="What happened" style={{ flex: 1, minWidth: 200 }} />
-              <button>Log</button>
-            </ToastForm>
-          </section>
-
-
-          <OfferSuggestionCard companyId={id} name={company.name} />
-          <details className="card" id="outreach">
-            <summary>Outreach email · last step{!company.generic_email && <span className="muted" style={{ fontWeight: 400 }}> · available once the company has an email, company page or contact form</span>}</summary>
-            <div style={{ marginTop: 14 }}>
-              <OutreachDraft companyId={id} mailboxes={mailboxes} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, ice: (rapport.get(Number(r.id))?.points ?? []).map((p) => ({ text: p.opener, kind: p.kind, sourceUrl: p.source_url, sourceTitle: p.source_title })) }))} blocker={blocker} offers={offerChoices}
-                routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
-              {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
-            </div>
-          </details>
-
-          <section className="card" id="activity">
-            <h2>Activity</h2>
-            {activity.length === 0 ? <EmptyState title="No activity yet">Log a call or email above, or mark an outreach email as sent.</EmptyState> : (
-              <ul className="timeline">{activity.map((a: any) => (
-                <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "company")}>
-                  <div className="tl-title">{activityLabel(a.type)}</div>
-                  {a.body && a.body !== company.name && <div className="muted">{a.body}</div>}
-                  <div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
-                </ActivityItem>
-              ))}</ul>
-            )}
-          </section>
-        </div>
-
-        <div className="stack">
-          <section className="card" id="filings">
-            <h2>Companies House check</h2>
-            {!company.ch_checked_at ? (
-              <p className="muted">Not checked yet. Run <code>uv run python -m agency.ch_health</code>.</p>
-            ) : (
-              <div className="stack" style={{ gap: 10 }}>
-                <div className="row-between">
-                  <span className="row" style={{ gap: 8 }}>
-                    <span className={`badge tone-${company.filing_ok ? "good" : "bad"}`}>{company.filing_ok ? "Filings up to date" : "Filing problems"}</span>
-                    {(() => { const t = fitTier(company.fit_score, company.filing_ok); return <span className={`badge tone-${t.tone}`} title={t.title}>Fit {t.label}</span>; })()}
-                  </span>
-                  <span className="muted">checked {ago(company.ch_checked_at)}</span>
-                </div>
-                <dl className="facts">
-                  <div><dt>Confirmation statement</dt><dd className={company.confirmation_overdue ? "error" : ""}>{company.confirmation_overdue ? "Overdue" : "Up to date"}{company.confirmation_next_due && ` · next due ${dateOnly(company.confirmation_next_due)}`}</dd></div>
-                  <div><dt>Accounts</dt><dd className={company.accounts_overdue ? "error" : ""}>{company.accounts_overdue ? "Overdue" : "Up to date"}{company.accounts_type && ` · ${company.accounts_type}`}{company.accounts_next_due && ` · next due ${dateOnly(company.accounts_next_due)}`}</dd></div>
-                  {company.ch_status_detail && <div><dt>Status note</dt><dd className="error">{company.ch_status_detail}</dd></div>}
-                  <div><dt>Employees</dt><dd>{company.employees ?? "Not stated"}</dd></div>
-                  <div><dt>Turnover</dt><dd>{company.turnover_gbp !== null ? shortMoney(Number(company.turnover_gbp)) : "Not filed"}</dd></div>
-                  <div><dt>Net assets</dt><dd>{company.net_assets_gbp !== null ? shortMoney(Number(company.net_assets_gbp)) : "Not stated"}</dd></div>
-                  <div><dt>Est. revenue</dt><dd>{company.est_revenue_gbp ? `≈ ${shortMoney(Number(company.est_revenue_gbp))}` : "Unknown"}{company.est_revenue_basis && <span className="muted"> · {company.est_revenue_basis.replace(/GBP /g, "£")}</span>}</dd></div>
-                </dl>
-                {company.fit_notes && <p className="muted" style={{ margin: 0 }}>{company.fit_notes.replace(/GBP /g, "£")}</p>}
-                <p className="muted" style={{ margin: 0 }}>Revenue is an estimate: most small companies don&apos;t file turnover. Treat it as a ranking aid.</p>
-              </div>
-            )}
-          </section>
-
-          <section className="card" id="notes">
-            <h2>Notes</h2>
-            <ToastForm action={saveNotes} success="Notes saved" className="stack" style={{ gap: 8 }}>
-              <input type="hidden" name="company_id" value={id} />
-              <textarea name="notes" rows={4} defaultValue={company.owner_notes ?? ""} placeholder="Anything worth remembering" aria-label="Notes" />
-              <button className="secondary">Save</button>
-            </ToastForm>
-          </section>
-
-          <CallsCard companyId={id} />
-
-          <AuditsCard companyId={id} withDocuments />
-
-          <section className="card" id="deals">
-            <h2>Deals</h2>
-            {deals.length === 0 && <p className="muted">No deals yet.</p>}
-            <ul>{deals.map((d: any) => (
-              <li key={d.id} id={`deal-${d.id}`}>
-                <div className="row-between"><b><Link href={`/deals/${d.id}`}>{d.title}</Link></b><StageBadge stage={d.stage} /></div>
-                <div className="row-between"><span className="muted">{gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span><Link href={`/quotes/new?deal=${d.id}`}>Create quote</Link></div>
-              </li>
-            ))}</ul>
-            <details style={{ marginTop: 10 }}><summary>Build a deal from packages and services</summary>
-              <div style={{ marginTop: 10 }}><DealBuilder companyId={id} packages={catalogue.packages} services={catalogue.services} /></div>
-            </details>
-            <details style={{ marginTop: 10 }}><summary>Add a deal</summary>
-              <ToastForm action={addDeal} success="Deal added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
-                <input type="hidden" name="company_id" value={id} />
-                <input name="title" placeholder="Deal title" required aria-label="Deal title" />
-                <div className="row"><input name="setup" type="number" min="0" step="1" placeholder="Setup £" aria-label="Setup" style={{ width: 110 }} /><input name="monthly" type="number" min="0" step="1" placeholder="Monthly £" aria-label="Monthly" style={{ width: 110 }} /></div>
-                <button className="secondary">Add deal</button>
-              </ToastForm>
-            </details>
-          </section>
-
-          <section className="card" id="contacts">
-            <h2>Contacts</h2>
-            {contacts.length === 0 && <p className="muted">No named contacts. Add one only after they have engaged.</p>}
-            <ul>{contacts.map((c: any) => (
-              <li key={c.id} id={`contact-${c.id}`} className="stack" style={{ gap: 4 }}>
-                <div className="row-between"><span><b>{c.name}</b> {c.opted_out && <Badge value="Opted out" />} {c.source === "Apollo" && <span className="badge tone-neutral">Apollo</span>} <span className="muted">{[c.role, c.email, c.email_status, c.phone].filter(Boolean).join(" · ")}</span></span>
-                  {c.opted_out
-                    ? <ToastForm action={contactClearOptOutAction} success="Opt-out cleared" confirm="Only clear this if it was recorded by mistake. Clear it?"><input type="hidden" name="id" value={c.id} /><button className="link">Recorded by mistake?</button></ToastForm>
-                    : <ToastForm action={contactOptOutAction} success="Marked as opted out and suppressed" confirm={`Mark ${c.name} as opted out? They will be blocked everywhere and their address added to the suppression list.`}><input type="hidden" name="id" value={c.id} /><button className="link">They opted out</button></ToastForm>}</div>
-                <span className="muted">via {c.consent_basis}</span>
-                {!c.opted_out && gate.sendable && /\S+\s+\S+/.test(c.name) && <ContactRapport contactId={Number(c.id)} name={c.name} initial={rapport.get(Number(c.id)) ?? null} />}
-              </li>
-            ))}</ul>
-            <details style={{ marginTop: 10 }}><summary>Add a contact</summary>
-              <ToastForm action={addContact} success="Contact added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
-                <input type="hidden" name="company_id" value={id} />
-                <input name="name" placeholder="Name" required aria-label="Name" />
-                <input name="role" placeholder="Role" aria-label="Role" />
-                <input name="email" type="email" placeholder="Email" aria-label="Email" />
-                <input name="phone" placeholder="Phone" aria-label="Phone" />
-                <select name="consent_basis" required defaultValue="" aria-label="How did they engage?">
-                  <option value="" disabled>How did they engage?</option>
-                  {["form", "booking", "replied", "messaged", "client"].map((c) => <option key={c}>{c}</option>)}
-                </select>
-                <button className="secondary">Add contact</button>
-              </ToastForm>
-            </details>
-          </section>
-
-          <section className="card" id="tasks">
-            <h2>Tasks</h2>
-            {tasks.length === 0 && <p className="muted">No open tasks.</p>}
-            <ul>{tasks.map((t: any) => (
-              <li key={t.id} className="row">
-                <ToastForm action={completeTask} success="Task done">
-                  <input type="hidden" name="task_id" value={t.id} />
-                  <button className="link" title="Mark done" aria-label={`Mark done: ${t.title}`}><Check size={16} /></button>
-                </ToastForm>
-                <span style={{ flex: 1 }}>{t.title}</span>
-                {t.due_at && <span className="muted">{when(t.due_at)}</span>}
-              </li>
-            ))}</ul>
-            <ToastForm action={addTask} success="Task added" reset className="row" style={{ marginTop: 10 }}>
-              <input type="hidden" name="company_id" value={id} />
-              <input name="title" placeholder="New task" required aria-label="New task" style={{ flex: 1, minWidth: 120 }} />
-              <input name="due" type="datetime-local" aria-label="Due" />
-              <button className="secondary">Add</button>
-            </ToastForm>
-          </section>
-
-          <section className="card" id="meetings">
-            <div className="row-between"><h2>Meetings</h2><Link href={`/calendar/book?company=${id}`} className="btn secondary"><CalendarPlus size={15} aria-hidden /> Book a meeting</Link></div>
-            <MeetingList rows={[...meetings.upcoming, ...meetings.past]} empty="No meetings booked with this company yet." showCompany={false} />
-            {linkedEvents.length > 0 && (
-              <>
-                <h3>Also on your calendar</h3>
-                <ul>{linkedEvents.map((e) => (
-                  <li key={e.id} className="row-between">
-                    <span>{e.title}{e.contact_name && <span className="muted"> · {e.contact_name}</span>}</span>
-                    <span className="muted">{when(e.starts_at)}</span>
-                  </li>
-                ))}</ul>
-                <p className="muted">Linked because a guest is a saved contact here.</p>
-              </>
-            )}
-          </section>
+      <div className={`next${next.warn ? " warn" : ""}`} role="note" style={{ marginBottom: 16 }}>
+        <div>
+          <div className="next-label">Next step</div>
+          <b>{next.text}</b>
+          {nextHref && <Link href={nextHref}>{next.href?.startsWith("/") ? "Open" : "Take me there"} →</Link>}
         </div>
       </div>
+
+      <SectionTabs
+        label="Company sections"
+        current={tab}
+        tabs={[
+          { key: "overview", label: "Overview", href: `/companies/${id}`, count: tasks.length, hot: !gate.sendable },
+          { key: "research", label: "Research & offer", href: `/companies/${id}?tab=research`, count: offerChoices.length },
+          { key: "people", label: "People", href: `/companies/${id}?tab=people`, count: contacts.length },
+          { key: "outreach", label: "Outreach", href: `/companies/${id}?tab=outreach` },
+          { key: "deals", label: "Deals & work", href: `/companies/${id}?tab=deals`, count: deals.length + meetings.upcoming.length + meetings.past.length },
+          { key: "activity", label: "Activity", href: `/companies/${id}?tab=activity`, count: activity.length },
+        ]}
+      />
+
+      {tab === "overview" && (
+        <div className="split">
+          <div className="stack">
+            <section className="card" id="website">
+              <div className="row-between">
+                <h2 style={{ margin: 0 }}>Contact details</h2>
+                <span className="muted">{(company.generic_email || company.linkedin_url || company.instagram_url || company.facebook_url || company.contact_url) ? [company.domain && "website", company.generic_email && "email", company.linkedin_url && "LinkedIn", company.instagram_url && "Instagram", company.facebook_url && "Facebook", company.contact_url && "contact page"].filter(Boolean).join(", ") : "no way to reach them yet"}</span>
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <ContactDetailsForm
+                  key={[company.domain, company.generic_email, company.phone, company.linkedin_url, company.instagram_url, company.facebook_url, company.contact_url].join("|")}
+                  company={{ id, name: company.name, postcode: company.postcode, company_number: company.company_number, domain: company.domain, generic_email: company.generic_email, phone: company.phone,
+                    linkedin_url: company.linkedin_url, instagram_url: company.instagram_url, facebook_url: company.facebook_url, contact_url: company.contact_url,
+                    domain_verified: company.domain_verified, site_signals: company.site_signals }}
+                  usage={usage}
+                  methods={methods.map((m: any) => ({ id: Number(m.id), kind: m.kind, value: m.value, note: m.note }))}
+                />
+              </div>
+            </section>
+
+            <section className="card" id="tasks">
+              <h2>Tasks</h2>
+              {tasks.length === 0 && <p className="muted">No open tasks.</p>}
+              <ul>{tasks.map((t: any) => (
+                <li key={t.id} className="row">
+                  <ToastForm action={completeTask} success="Task done">
+                    <input type="hidden" name="task_id" value={t.id} />
+                    <button className="link" title="Mark done" aria-label={`Mark done: ${t.title}`}><Check size={16} /></button>
+                  </ToastForm>
+                  <span style={{ flex: 1 }}>{t.title}</span>
+                  {t.due_at && <span className="muted">{when(t.due_at)}</span>}
+                </li>
+              ))}</ul>
+              <ToastForm action={addTask} success="Task added" reset className="row" style={{ marginTop: 10 }}>
+                <input type="hidden" name="company_id" value={id} />
+                <input name="title" placeholder="New task" required aria-label="New task" style={{ flex: 1, minWidth: 120 }} />
+                <input name="due" type="datetime-local" aria-label="Due" />
+                <button className="secondary">Add</button>
+              </ToastForm>
+            </section>
+          </div>
+
+          <div className="stack">
+            <section className="card" id="filings">
+              <h2>Companies House check</h2>
+              {!company.ch_checked_at ? (
+                <p className="muted">Not checked yet. Run <code>uv run python -m agency.ch_health</code>.</p>
+              ) : (
+                <div className="stack" style={{ gap: 10 }}>
+                  <div className="row-between">
+                    <span className="row" style={{ gap: 8 }}>
+                      <span className={`badge tone-${company.filing_ok ? "good" : "bad"}`}>{company.filing_ok ? "Filings up to date" : "Filing problems"}</span>
+                      {(() => { const t = fitTier(company.fit_score, company.filing_ok); return <span className={`badge tone-${t.tone}`} title={t.title}>Fit {t.label}</span>; })()}
+                    </span>
+                    <span className="muted">checked {ago(company.ch_checked_at)}</span>
+                  </div>
+                  <dl className="facts">
+                    <div><dt>Confirmation statement</dt><dd className={company.confirmation_overdue ? "error" : ""}>{company.confirmation_overdue ? "Overdue" : "Up to date"}{company.confirmation_next_due && ` · next due ${dateOnly(company.confirmation_next_due)}`}</dd></div>
+                    <div><dt>Accounts</dt><dd className={company.accounts_overdue ? "error" : ""}>{company.accounts_overdue ? "Overdue" : "Up to date"}{company.accounts_type && ` · ${company.accounts_type}`}{company.accounts_next_due && ` · next due ${dateOnly(company.accounts_next_due)}`}</dd></div>
+                    {company.ch_status_detail && <div><dt>Status note</dt><dd className="error">{company.ch_status_detail}</dd></div>}
+                    <div><dt>Employees</dt><dd>{company.employees ?? "Not stated"}</dd></div>
+                    <div><dt>Turnover</dt><dd>{company.turnover_gbp !== null ? shortMoney(Number(company.turnover_gbp)) : "Not filed"}</dd></div>
+                    <div><dt>Net assets</dt><dd>{company.net_assets_gbp !== null ? shortMoney(Number(company.net_assets_gbp)) : "Not stated"}</dd></div>
+                    <div><dt>Est. revenue</dt><dd>{company.est_revenue_gbp ? `≈ ${shortMoney(Number(company.est_revenue_gbp))}` : "Unknown"}{company.est_revenue_basis && <span className="muted"> · {company.est_revenue_basis.replace(/GBP /g, "£")}</span>}</dd></div>
+                  </dl>
+                  {company.fit_notes && <p className="muted" style={{ margin: 0 }}>{company.fit_notes.replace(/GBP /g, "£")}</p>}
+                  <p className="muted" style={{ margin: 0 }}>Revenue is an estimate: most small companies don&apos;t file turnover. Treat it as a ranking aid.</p>
+                </div>
+              )}
+            </section>
+
+            <ComplianceCard company={company} gate={gate} />
+
+            <section className="card" id="notes">
+              <h2>Notes</h2>
+              <ToastForm action={saveNotes} success="Notes saved" className="stack" style={{ gap: 8 }}>
+                <input type="hidden" name="company_id" value={id} />
+                <textarea name="notes" rows={4} defaultValue={company.owner_notes ?? ""} placeholder="Anything worth remembering" aria-label="Notes" />
+                <button className="secondary">Save</button>
+              </ToastForm>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {tab === "research" && <OfferSuggestionCard companyId={id} name={company.name} />}
+
+      {tab === "people" && (
+        <div className="split">
+          <div className="stack">
+            <section className="card" id="contacts">
+              <h2>Contacts</h2>
+              {contacts.length === 0 && <p className="muted">No named contacts. Add one only after they have engaged.</p>}
+              <ul>{contacts.map((c: any) => (
+                <li key={c.id} id={`contact-${c.id}`} className="stack" style={{ gap: 4 }}>
+                  <div className="row-between"><span><b>{c.name}</b> {c.opted_out && <Badge value="Opted out" />} {c.source === "Apollo" && <span className="badge tone-neutral">Apollo</span>} <span className="muted">{[c.role, c.email, c.email_status, c.phone].filter(Boolean).join(" · ")}</span></span>
+                    {c.opted_out
+                      ? <ToastForm action={contactClearOptOutAction} success="Opt-out cleared" confirm="Only clear this if it was recorded by mistake. Clear it?"><input type="hidden" name="id" value={c.id} /><button className="link">Recorded by mistake?</button></ToastForm>
+                      : <ToastForm action={contactOptOutAction} success="Marked as opted out and suppressed" confirm={`Mark ${c.name} as opted out? They will be blocked everywhere and their address added to the suppression list.`}><input type="hidden" name="id" value={c.id} /><button className="link">They opted out</button></ToastForm>}</div>
+                  <span className="muted">via {c.consent_basis}</span>
+                  {!c.opted_out && gate.sendable && /\S+\s+\S+/.test(c.name) && <ContactRapport contactId={Number(c.id)} name={c.name} initial={rapport.get(Number(c.id)) ?? null} />}
+                </li>
+              ))}</ul>
+              <details style={{ marginTop: 10 }} open={contacts.length === 0}><summary>Add a contact</summary>
+                <ToastForm action={addContact} success="Contact added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
+                  <input type="hidden" name="company_id" value={id} />
+                  <input name="name" placeholder="Name" required aria-label="Name" />
+                  <input name="role" placeholder="Role" aria-label="Role" />
+                  <input name="email" type="email" placeholder="Email" aria-label="Email" />
+                  <input name="phone" placeholder="Phone" aria-label="Phone" />
+                  <select name="consent_basis" required defaultValue="" aria-label="How did they engage?">
+                    <option value="" disabled>How did they engage?</option>
+                    {["form", "booking", "replied", "messaged", "client"].map((c) => <option key={c}>{c}</option>)}
+                  </select>
+                  <button className="secondary">Add contact</button>
+                </ToastForm>
+              </details>
+            </section>
+          </div>
+
+          <div className="stack">
+            <section className="card" id="decision-makers">
+              <div className="row-between">
+                <h2 style={{ margin: 0 }}>Decision-makers (Apollo)</h2>
+                <span className="row" style={{ gap: 6 }}>
+                  <span className="badge tone-warn">emails use credits</span>
+                  {apollo.saved > 0 && <span className="muted">{apollo.saved} saved</span>}
+                </span>
+              </div>
+              <div style={{ marginTop: 14 }}><DecisionMakers companyId={id} status={apollo} /></div>
+            </section>
+
+            <section className="card" id="paste-decision-makers">
+              <div className="row-between">
+                <h2 style={{ margin: 0 }}>Add decision-makers by pasting</h2>
+                {contacts.length > 0 && <span className="muted">{contacts.length} contact{contacts.length === 1 ? "" : "s"} saved</span>}
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <PasteDecisionMakers companyId={id} domain={company.domain ?? null} unverifiedOk={!gate.sendable && canSaveUnverified({ compliance_status: company.compliance_status, opted_out: !!company.opted_out, suppressed: gate.reasons.some((r: string) => /suppress/i.test(r)) })} blocked={gate.sendable ? null : `People are only added for verified active limited companies that can be contacted. ${gate.reasons.join(" ")}`.trim()} />
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {tab === "outreach" && (
+        <div className="split">
+          <div className="stack">
+            <section className="card" id="outreach">
+              <div className="row-between">
+                <h2 style={{ margin: 0 }}>Outreach email</h2>
+                {!company.generic_email && <span className="muted">available once the company has an email, company page or contact form</span>}
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <OutreachDraft companyId={id} mailboxes={mailboxes} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, ice: (rapport.get(Number(r.id))?.points ?? []).map((p) => ({ text: p.opener, kind: p.kind, sourceUrl: p.source_url, sourceTitle: p.source_title })) }))} blocker={blocker} offers={offerChoices}
+                  routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
+                {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
+              </div>
+            </section>
+          </div>
+
+          <div className="stack">
+            <section className="card" id="log-activity">
+              <h2>Log activity</h2>
+              <ToastForm action={logContact} success="Activity logged" reset className="row">
+                <input type="hidden" name="company_id" value={id} />
+                <select name="type" aria-label="Type"><option value="email">Email</option><option value="dm">DM</option><option value="call">Call</option><option value="note">Note</option></select>
+                <input name="body" placeholder="What happened?" aria-label="What happened" style={{ flex: 1, minWidth: 200 }} />
+                <button className="secondary">Log</button>
+              </ToastForm>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {tab === "deals" && (
+        <div className="split">
+          <div className="stack">
+            <section className="card" id="deals">
+              <h2>Deals</h2>
+              {deals.length === 0 && <p className="muted">No deals yet.</p>}
+              <ul>{deals.map((d: any) => (
+                <li key={d.id} id={`deal-${d.id}`}>
+                  <div className="row-between"><b><Link href={`/deals/${d.id}`}>{d.title}</Link></b><StageBadge stage={d.stage} /></div>
+                  <div className="row-between"><span className="muted">{gbp(d.setup_value_gbp)} setup · {gbp(d.monthly_value_gbp)}/mo</span><Link href={`/quotes/new?deal=${d.id}`}>Create quote</Link></div>
+                </li>
+              ))}</ul>
+              <details style={{ marginTop: 10 }}><summary>Build a deal from packages and services</summary>
+                <div style={{ marginTop: 10 }}><DealBuilder companyId={id} packages={catalogue.packages} services={catalogue.services} /></div>
+              </details>
+              <details style={{ marginTop: 10 }}><summary>Add a deal</summary>
+                <ToastForm action={addDeal} success="Deal added" reset className="stack" style={{ gap: 8, marginTop: 10 }}>
+                  <input type="hidden" name="company_id" value={id} />
+                  <input name="title" placeholder="Deal title" required aria-label="Deal title" />
+                  <div className="row"><input name="setup" type="number" min="0" step="1" placeholder="Setup £" aria-label="Setup" style={{ width: 110 }} /><input name="monthly" type="number" min="0" step="1" placeholder="Monthly £" aria-label="Monthly" style={{ width: 110 }} /></div>
+                  <button className="secondary">Add deal</button>
+                </ToastForm>
+              </details>
+            </section>
+
+            <AuditsCard companyId={id} withDocuments />
+          </div>
+
+          <div className="stack">
+            <CallsCard companyId={id} />
+
+            <section className="card" id="meetings">
+              <div className="row-between"><h2>Meetings</h2><Link href={`/calendar/book?company=${id}`} className="btn secondary"><CalendarPlus size={15} aria-hidden /> Book a meeting</Link></div>
+              <MeetingList rows={[...meetings.upcoming, ...meetings.past]} empty="No meetings booked with this company yet." showCompany={false} />
+              {linkedEvents.length > 0 && (
+                <>
+                  <h3>Also on your calendar</h3>
+                  <ul>{linkedEvents.map((e) => (
+                    <li key={e.id} className="row-between">
+                      <span>{e.title}{e.contact_name && <span className="muted"> · {e.contact_name}</span>}</span>
+                      <span className="muted">{when(e.starts_at)}</span>
+                    </li>
+                  ))}</ul>
+                  <p className="muted">Linked because a guest is a saved contact here.</p>
+                </>
+              )}
+            </section>
+          </div>
+        </div>
+      )}
+
+      {tab === "activity" && (
+        <section className="card" id="activity">
+          <h2>Activity</h2>
+          {activity.length === 0 ? <EmptyState title="No activity yet">Log a call or email on the Outreach tab, or mark an outreach email as sent.</EmptyState> : (
+            <ul className="timeline">{activity.map((a: any) => (
+              <ActivityItem key={a.id} type={a.type} target={activityTarget(a, "company")}>
+                <div className="tl-title">{activityLabel(a.type)}</div>
+                {a.body && a.body !== company.name && <div className="muted">{a.body}</div>}
+                <div className="tl-time" title={when(a.occurred_at)}>{ago(a.occurred_at)}</div>
+              </ActivityItem>
+            ))}</ul>
+          )}
+        </section>
+      )}
     </>
   );
 }

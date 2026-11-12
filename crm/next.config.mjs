@@ -20,7 +20,8 @@ try {
 // GitHub Codespaces proxies the app through *.app.github.dev, so server actions must accept it.
 // Only active inside a Codespace; locally the default same-origin check applies.
 const inCodespace = process.env.CODESPACES === "true";
-const allowedOrigins = [];
+// CRM_EXTRA_ORIGINS: exact private addresses the CRM is also opened on, e.g. the Tailscale name for the phone (docs/SETUP.md). No wildcards.
+const allowedOrigins = (process.env.CRM_EXTRA_ORIGINS ?? "").split(",").map((h) => h.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "")).filter((h) => h && !h.includes("*"));
 if (inCodespace) {
   allowedOrigins.push("*.app.github.dev", "*.preview.app.github.dev", "localhost:3000", "127.0.0.1:3000");
   const { CODESPACE_NAME: name, GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN: domain } = process.env;
