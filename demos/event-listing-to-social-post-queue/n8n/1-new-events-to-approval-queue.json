@@ -1,0 +1,402 @@
+{
+  "id": "EvtSocialQueue01",
+  "name": "Event social demo: New events to approval queue",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Demo: new events to approval queue\nEvery 5 minutes: read the directory's listings, keep the ones that are **published** and not already queued, posted or failed, write the posts, draw the image card, add a **Pending** row to the approval queue.\n\n**For a real build, swap:** the feed URL and key for the site's Brilliant Directories API (key in an n8n credential), and the three /sheet calls for Google Sheets nodes. The link is added by code, never by the AI.",
+        "width": 460,
+        "height": 300
+      },
+      "id": "79a9fbf6-d803-561b-8f89-d44ef519503c",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "75baae0c-1a45-5f0f-b598-9638c37532f5",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0df4734c-0f2f-52ea-8461-6f108300b6e3",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba4fed30-4549-59c4-9546-41e97b044851",
+              "name": "directory_api",
+              "value": "http://127.0.0.1:8787/api/v2",
+              "type": "string"
+            },
+            {
+              "id": "d9406df1-644f-5b69-965a-8314d2b03817",
+              "name": "directory_api_key",
+              "value": "demo-directory-key",
+              "type": "string"
+            },
+            {
+              "id": "c359323d-1be4-56f3-8f2c-f8f9bc2b39ad",
+              "name": "helper_url",
+              "value": "http://127.0.0.1:8787",
+              "type": "string"
+            },
+            {
+              "id": "e0bae67b-1d65-516e-a634-e017f557721c",
+              "name": "sheet_url",
+              "value": "http://127.0.0.1:8787/sheet",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e8da5ad0-1f56-5f39-bf95-d442328e64d1",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.directory_api }}/data_posts/get?limit=100",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $('Settings').first().json.directory_api_key }}"
+            }
+          ]
+        }
+      },
+      "id": "e7fb80f5-4c94-5e12-8568-e87fec6b251f",
+      "name": "Get published-listings feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.sheet_url }}/queue",
+        "options": {}
+      },
+      "id": "91782c49-263c-5a7e-8bbf-a3e57483470d",
+      "name": "Read approval queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.sheet_url }}/posted",
+        "options": {}
+      },
+      "id": "29becb1c-907e-57af-ab15-d9f200797158",
+      "name": "Read Posted log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.sheet_url }}/failures",
+        "options": {}
+      },
+      "id": "ee83bd7b-8aca-55fd-8833-4b2678b0a91a",
+      "name": "Read Failures tab",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keep listings that are published and that we have not handled before.\n// \"Handled\" = already in the approval queue, the Posted log or the Failures tab\n// (a failure is logged once, not every five minutes; clear its row to retry).\nconst feed = $('Get published-listings feed').first().json.message || [];\nconst ids = (name) => ($(name).first().json.rows || []).map((r) => String(r.event_id));\nconst seen = new Set([...ids('Read approval queue'), ...ids('Read Posted log'), ...ids('Read Failures tab')]);\n\nconst fresh = [];\nfor (const listing of feed) {\n  const id = String(listing.post_id);\n  if (Number(listing.post_status) !== 1) continue; // not published yet: ignore\n  if (seen.has(id)) continue;                      // handled before, or repeated in this feed\n  seen.add(id);\n  fresh.push({ json: listing });\n}\nreturn fresh;"
+      },
+      "id": "ede2bcdf-9f91-57f3-92af-f638fd380fbc",
+      "name": "Pick new published events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.helper_url }}/helper/write-post",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "3af2838a-bd5a-54bf-bbec-abf8d920640c",
+      "name": "Write Facebook and Instagram posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        100
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.helper_url }}/helper/render-card",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "5e9029bb-6f3b-562f-9333-6a1bd2f9e9a7",
+      "name": "Draw image card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        100
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/queue",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_id: String($json.post_id), title: $json.post_title, event_date: $json.post_start_date, facebook_post: $json.facebook_post, instagram_caption: $json.instagram_caption, image_url: $json.image_url, link: $json.post_url, written_by: $json.written_by }) }}"
+      },
+      "id": "c8e7301c-b86b-5f0a-acda-3f4b602ed94c",
+      "name": "Add to approval queue as Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/failures",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_id: String($json.post_id ?? $json.event_id ?? \"\"), event: $json.post_title ?? $json.title ?? \"\", step: \"Write posts\", error: ($json.error?.message ?? $json.error ?? \"Unknown error\").toString(), workflow: $workflow.name }) }}"
+      },
+      "id": "04016ef7-662d-5cca-8b87-d30564709a7a",
+      "name": "Log failure: writing posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/failures",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_id: String($json.post_id ?? $json.event_id ?? \"\"), event: $json.post_title ?? $json.title ?? \"\", step: \"Draw image card\", error: ($json.error?.message ?? $json.error ?? \"Unknown error\").toString(), workflow: $workflow.name }) }}"
+      },
+      "id": "ace8f5e0-3bc0-5963-84f4-9dcbf3e9dc54",
+      "name": "Log failure: image card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Get published-listings feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get published-listings feed": {
+      "main": [
+        [
+          {
+            "node": "Read approval queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read approval queue": {
+      "main": [
+        [
+          {
+            "node": "Read Posted log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Posted log": {
+      "main": [
+        [
+          {
+            "node": "Read Failures tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Failures tab": {
+      "main": [
+        [
+          {
+            "node": "Pick new published events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick new published events": {
+      "main": [
+        [
+          {
+            "node": "Write Facebook and Instagram posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Facebook and Instagram posts": {
+      "main": [
+        [
+          {
+            "node": "Draw image card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log failure: writing posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draw image card": {
+      "main": [
+        [
+          {
+            "node": "Add to approval queue as Pending",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log failure: image card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "EvtSocialErrors3"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "note": "Demo. Runs against local stand-ins on 127.0.0.1:8787 with made-up events. Nothing is posted anywhere real."
+  }
+}

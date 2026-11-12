@@ -1,0 +1,71 @@
+{
+  "id": "EvtSocialErrors3",
+  "name": "Event social demo: Failure reporter",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Demo: failure reporter\nThe other two workflows name this one as their **error workflow**. If a run stops outright (the directory is down, the sheet cannot be read), n8n starts this and it writes a line to the Failures tab.\n\nFailures on a single event (a broken photo, a refused post) are logged inside the main workflows so the other events carry on.",
+        "width": 460,
+        "height": 240
+      },
+      "id": "79a9fbf6-d803-561b-8f89-d44ef519503c",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "89dac0cf-728a-5030-bc3e-768a0847cf36",
+      "name": "When a run fails",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8787/sheet/failures",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event: \"(whole run)\", step: $json.execution?.lastNodeExecuted ?? \"Trigger\", error: $json.execution?.error?.message ?? $json.trigger?.error?.message ?? \"Unknown error\", workflow: $json.workflow?.name ?? \"\" }) }}"
+      },
+      "id": "cd61a282-ee34-5688-8856-3c902d8d2089",
+      "name": "Write to Failures tab",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "When a run fails": {
+      "main": [
+        [
+          {
+            "node": "Write to Failures tab",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "note": "Demo. Runs against local stand-ins on 127.0.0.1:8787 with made-up events. Nothing is posted anywhere real."
+  }
+}

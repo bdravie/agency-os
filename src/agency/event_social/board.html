@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo: event listing to social post queue</title>
+<style>
+  :root { --navy:#14213D; --cream:#F4EDE0; --coral:#FF6B5B; --lagoon:#0F766E; --card:#fff; --line:#e6ddcc; --muted:#5d6577; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--cream); color:var(--navy); font:15px/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  header { padding:18px 28px 0; }
+  h1 { margin:0; font-size:22px; letter-spacing:-.3px; }
+  .demo { display:inline-block; background:var(--navy); color:#fff; border-radius:999px; padding:2px 10px; font-size:12px; font-weight:700; margin-right:8px; vertical-align:3px; }
+  .sub { color:var(--muted); margin:4px 0 14px; }
+  nav { display:flex; gap:6px; flex-wrap:wrap; padding:0 28px; }
+  nav button { border:0; background:transparent; padding:9px 16px; border-radius:999px; font:inherit; font-weight:600; color:var(--navy); cursor:pointer; }
+  nav button.on { background:var(--navy); color:#fff; }
+  nav .n { display:inline-block; min-width:20px; margin-left:6px; padding:0 6px; border-radius:999px; background:rgba(20,33,61,.1); font-size:12px; }
+  nav button.on .n { background:rgba(255,255,255,.22); }
+  nav button.alert .n { background:var(--coral); color:#fff; }
+  main { padding:16px 28px 60px; }
+  .note { color:var(--muted); font-size:13px; margin:0 0 12px; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:var(--card); border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(20,33,61,.07); }
+  th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); padding:11px 14px; border-bottom:1px solid var(--line); }
+  td { padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  td.text { white-space:pre-wrap; max-width:360px; font-size:13.5px; }
+  td img { width:112px; height:112px; border-radius:10px; display:block; object-fit:cover; background:var(--cream); }
+  .pill { display:inline-block; padding:3px 11px; border-radius:999px; font-size:12px; font-weight:700; background:rgba(20,33,61,.08); white-space:nowrap; }
+  .pill.Published, .pill.live { background:rgba(15,118,110,.14); color:var(--lagoon); }
+  .pill.Approved { background:rgba(255,107,91,.16); color:#b93424; }
+  .pill.Failed, .pill.Rejected { background:rgba(20,33,61,.85); color:#fff; }
+  .btn { border:1.5px solid var(--navy); background:#fff; color:var(--navy); border-radius:999px; padding:6px 14px; font:inherit; font-weight:700; cursor:pointer; margin:6px 6px 0 0; }
+  .btn.go { background:var(--coral); border-color:var(--coral); color:#fff; }
+  .empty { background:var(--card); border-radius:14px; padding:36px; text-align:center; color:var(--muted); }
+  .feed { max-width:520px; display:grid; gap:18px; }
+  .post { background:var(--card); border-radius:14px; box-shadow:0 2px 10px rgba(20,33,61,.07); overflow:hidden; }
+  .post .who { padding:14px 16px 0; font-weight:700; }
+  .post .who small { display:block; font-weight:400; color:var(--muted); }
+  .post p { white-space:pre-wrap; padding:0 16px; }
+  .post img { width:100%; display:block; }
+  code { font-size:12px; background:rgba(20,33,61,.06); padding:1px 5px; border-radius:5px; word-break:break-all; }
+  .err { color:#b93424; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="demo">DEMO</span>Event listing to social post queue</h1>
+  <p class="sub">Made-up events and local stand-ins. Nothing on this page is posted anywhere real.</p>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<script>
+const TABS = [
+  ['directory', 'Directory listings', 'Mock directory feed, shaped like Brilliant Directories’ posts API. Only listings that are Published are picked up.'],
+  ['queue', 'Approval queue', 'Stand-in for the Google Sheet. Nothing is published until a row is set to Approved.'],
+  ['posted', 'Posted log', 'One line per event that has been posted. An event in this log is never posted again.'],
+  ['failures', 'Failures', 'Any step that fails writes a line here with the event, the step and the error.'],
+  ['page', 'Test Page', 'Mock of a test Facebook Page. Posts arrive through a local copy of Meta’s photo-post call, not the real Meta.'],
+];
+let tab = location.hash.slice(1) || 'queue', state = null, last = '';
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const day = (d) => d ? `${d.slice(6,8)}/${d.slice(4,6)}/${d.slice(0,4)}` : '';
+const post = (url, body) => fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body || {})}).then(load);
+const table = (head, rows) => rows.length ? `<table><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr>${rows.join('')}</table>` : '<div class="empty">Nothing here yet.</div>';
+
+function view() {
+  const s = state;
+  if (tab === 'directory') return table(['ID', 'Event', 'Date', 'Location', 'Status', ''], s.listings.map((l) => `<tr>
+    <td>${l.post_id}</td><td><b>${esc(l.post_title)}</b></td><td>${day(l.post_start_date)}</td><td>${esc(l.post_location)}</td>
+    <td><span class="pill ${l.post_status ? 'live' : ''}">${l.post_status ? 'Published' : 'Pending'}</span></td>
+    <td>${l.post_status ? '' : `<button class="btn" onclick="post('/directory/${l.post_id}/publish')">Approve and publish</button>`}</td></tr>`));
+  if (tab === 'queue') return table(['Event', 'Image', 'Facebook post', 'Instagram caption', 'Status'], s.queue.map((r) => `<tr>
+    <td><b>${esc(r.title)}</b><br><small>ID ${esc(r.event_id)} · added ${esc(r.added)}<br>${esc(r.written_by)}</small></td>
+    <td><a href="${esc(r.image_url)}" target="_blank"><img src="${esc(r.image_url)}" alt="Image card"></a></td>
+    <td class="text">${esc(r.facebook_post)}</td><td class="text">${esc(r.instagram_caption)}</td>
+    <td><span class="pill ${esc(r.status)}">${esc(r.status)}</span>${r.facebook_post_id ? `<br><small>Post ${esc(r.facebook_post_id)}</small>` : ''}
+    ${r.status === 'Pending' ? `<br><button class="btn go" onclick="post('/sheet/queue/${r.event_id}/status',{status:'Approved'})">Approve</button><button class="btn" onclick="post('/sheet/queue/${r.event_id}/status',{status:'Rejected'})">Reject</button>` : ''}</td></tr>`));
+  if (tab === 'posted') return table(['Event ID', 'Event', 'Facebook post ID', 'Instagram request (prepared, not sent)', 'Posted'], s.posted.map((r) => `<tr>
+    <td>${esc(r.event_id)}</td><td><b>${esc(r.title)}</b></td><td>${esc(r.facebook_post_id)}</td><td><code>${esc(r.instagram_prepared)}</code></td><td>${esc(r.posted)}</td></tr>`));
+  if (tab === 'failures') return table(['When', 'Event', 'Step', 'Error', 'Workflow'], s.failures.map((r) => `<tr>
+    <td>${esc(r.when)}</td><td><b>${esc(r.event)}</b>${r.event_id ? `<br><small>ID ${esc(r.event_id)}</small>` : ''}</td><td>${esc(r.step)}</td><td class="err">${esc(r.error)}</td><td>${esc(r.workflow)}</td></tr>`));
+  return s.page_posts.length ? `<div class="feed">${s.page_posts.map((p) => `<div class="post">
+    <div class="who">Demo Events Directory (test Page)<small>${esc(p.created)} · post ${esc(p.post_id)}</small></div>
+    <p>${esc(p.caption)}</p><img src="${esc(p.image_url)}" alt=""></div>`).join('')}</div>` : '<div class="empty">No posts on the test Page yet.</div>';
+}
+function draw() {
+  const counts = {directory: state.listings.length, queue: state.queue.length, posted: state.posted.length, failures: state.failures.length, page: state.page_posts.length};
+  document.getElementById('nav').innerHTML = TABS.map(([k, name]) => `<button class="${k === tab ? 'on' : ''} ${k === 'failures' && counts[k] ? 'alert' : ''}" onclick="go('${k}')">${name}<span class="n">${counts[k]}</span></button>`).join('');
+  document.getElementById('main').innerHTML = `<p class="note">${TABS.find((t) => t[0] === tab)[2]}</p>${view()}`;
+}
+function go(k) { tab = k; location.hash = k; draw(); }
+async function load() {
+  const text = await (await fetch('/state')).text();
+  if (text === last) return;
+  last = text; state = JSON.parse(text); draw();
+}
+load(); setInterval(load, 1500);
+</script>
+</body>
+</html>

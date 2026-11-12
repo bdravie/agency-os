@@ -1,0 +1,435 @@
+{
+  "id": "EvtSocialPublsh2",
+  "name": "Event social demo: Publish approved posts",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Demo: publish approved posts\nEvery minute: read rows set to **Approved**. Anything already in the Posted log is skipped. The rest go to the Page with Meta's photo-post call (`POST /{page-id}/photos`, `url` + `caption`), then the event ID is logged.\n\n**In this demo** `graph_url` points at a local mock with the same parameters, replies and error shape, and the token is made up. **For a real build:** `https://graph.facebook.com/v27.0`, a Page access token in an n8n credential, and an image link Meta can reach. Instagram is prepared in the same shape but not sent.",
+        "width": 460,
+        "height": 320
+      },
+      "id": "79a9fbf6-d803-561b-8f89-d44ef519503c",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "83f22136-f0e1-5a8a-80af-ecff8ad2c42a",
+      "name": "Every minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "0df4734c-0f2f-52ea-8461-6f108300b6e3",
+      "name": "Run now",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e0bae67b-1d65-516e-a634-e017f557721c",
+              "name": "sheet_url",
+              "value": "http://127.0.0.1:8787/sheet",
+              "type": "string"
+            },
+            {
+              "id": "1fa1d7b7-86f4-5699-bf75-10645a44b264",
+              "name": "graph_url",
+              "value": "http://127.0.0.1:8787/graph/v27.0",
+              "type": "string"
+            },
+            {
+              "id": "050145c7-e719-55a0-8bfa-89764b63ea22",
+              "name": "page_id",
+              "value": "100000000000001",
+              "type": "string"
+            },
+            {
+              "id": "d72e6ea0-8762-5110-8156-da9bcfbd3b46",
+              "name": "page_access_token",
+              "value": "demo-page-token",
+              "type": "string"
+            },
+            {
+              "id": "4941e7fc-eddd-55f4-aae0-18f693b08734",
+              "name": "ig_user_id",
+              "value": "17840000000000001",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e8da5ad0-1f56-5f39-bf95-d442328e64d1",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.sheet_url }}/queue?status=Approved",
+        "options": {}
+      },
+      "id": "b5fc8791-3008-5996-8b2b-0d372d17b107",
+      "name": "Read Approved rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.sheet_url }}/posted",
+        "options": {}
+      },
+      "id": "29becb1c-907e-57af-ab15-d9f200797158",
+      "name": "Read Posted log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per Approved row, flagged if its event ID is already in the Posted log\n// (or appears twice in this batch), so the same event can never be posted twice.\nconst rows = $('Read Approved rows').first().json.rows || [];\nconst posted = new Set(($('Read Posted log').first().json.rows || []).map((r) => String(r.event_id)));\n\nreturn rows.map((row) => {\n  const id = String(row.event_id);\n  const already_posted = posted.has(id);\n  posted.add(id);\n  return { json: { ...row, already_posted } };\n});"
+      },
+      "id": "6ef38fcf-8f88-592a-a957-8373c2801759",
+      "name": "Skip anything already posted",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dc8eb6ad-e039-5228-ae8b-48fefdff19af",
+              "leftValue": "={{ $json.already_posted }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "141828b4-e53c-53a6-a9f1-f21c54cbe987",
+      "name": "Already posted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/queue/{{ $json.event_id }}/status",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: \"Already posted\" }) }}"
+      },
+      "id": "7d059441-e105-5aee-89fc-9273d45f53b9",
+      "name": "Mark row Already posted",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.graph_url }}/{{ $('Settings').first().json.page_id }}/photos",
+        "options": {},
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.facebook_post }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Settings').first().json.page_access_token }}"
+            }
+          ]
+        }
+      },
+      "id": "577b8df1-fcec-5924-a281-7f69d696d860",
+      "name": "Publish photo post to Facebook Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/posted",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_id: $('Skip anything already posted').item.json.event_id, title: $('Skip anything already posted').item.json.title, facebook_post_id: $json.post_id, instagram_prepared: JSON.stringify({ step_1: 'POST /' + $('Settings').first().json.ig_user_id + '/media', image_url: $('Skip anything already posted').item.json.image_url, caption: $('Skip anything already posted').item.json.instagram_caption, step_2: 'POST /' + $('Settings').first().json.ig_user_id + '/media_publish with creation_id' }) }) }}"
+      },
+      "id": "1caaebe8-99ee-512b-84d2-4592287ef7f1",
+      "name": "Write event ID to Posted log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/queue/{{ $json.event_id }}/status",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: \"Published\", facebook_post_id: $json.facebook_post_id }) }}"
+      },
+      "id": "893115f6-cc93-5d94-ae80-972ac0948880",
+      "name": "Mark row Published",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/failures",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ event_id: String($('Skip anything already posted').item.json.post_id ?? $('Skip anything already posted').item.json.event_id ?? \"\"), event: $('Skip anything already posted').item.json.post_title ?? $('Skip anything already posted').item.json.title ?? \"\", step: \"Publish to Facebook Page\", error: ($json.error?.message ?? $json.error ?? \"Unknown error\").toString(), workflow: $workflow.name }) }}"
+      },
+      "id": "1718a131-9ae6-536a-a45d-7e79a5209e18",
+      "name": "Log failure: publishing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.sheet_url }}/queue/{{ $json.event_id }}/status",
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: \"Failed\" }) }}"
+      },
+      "id": "94cd5612-2f45-5087-b17b-9fb389feed72",
+      "name": "Mark row Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Every minute": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run now": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Read Approved rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Approved rows": {
+      "main": [
+        [
+          {
+            "node": "Read Posted log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Posted log": {
+      "main": [
+        [
+          {
+            "node": "Skip anything already posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip anything already posted": {
+      "main": [
+        [
+          {
+            "node": "Already posted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already posted?": {
+      "main": [
+        [
+          {
+            "node": "Mark row Already posted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Publish photo post to Facebook Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish photo post to Facebook Page": {
+      "main": [
+        [
+          {
+            "node": "Write event ID to Posted log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log failure: publishing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write event ID to Posted log": {
+      "main": [
+        [
+          {
+            "node": "Mark row Published",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log failure: publishing": {
+      "main": [
+        [
+          {
+            "node": "Mark row Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "EvtSocialErrors3"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "note": "Demo. Runs against local stand-ins on 127.0.0.1:8787 with made-up events. Nothing is posted anywhere real."
+  }
+}
