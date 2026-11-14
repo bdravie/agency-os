@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
-import { offerGroup, templateKey } from "./outreachTemplateMath.ts";
+import { offerGroup, templateKey, templateKind } from "./outreachTemplateMath.ts";
 
 // Reads the editable template in prompts/outreach-email.md and fills the placeholders we know.
 const ROOT = path.resolve(process.cwd(), "..");
@@ -38,6 +38,9 @@ async function loadTemplate(niche: string | null | undefined): Promise<{ md: str
 
 export async function outreachDrafts(companyName: string, opts: { firstName?: string | null; niche?: string | null } = {}): Promise<{ first: Draft; followUp: Draft; social: Draft; template: string | null }> {
   const { md, used } = await loadTemplate(opts.niche);
+  // A LinkedIn-only (seeding) or no-outreach (audience) niche has no email or social copy. The niche gate refuses these first; this is the backstop.
+  const kind = templateKind(md);
+  if (kind !== "email") throw new Error(kind === "linkedin" ? "This niche's copy is LinkedIn only (prompts/outreach/" + used + ".md): no email or social message is drafted." : "No outreach is drafted for this niche (prompts/outreach/" + used + ".md).");
   const loom = await loomUrl(offerGroup(md));
   const fill = (s: string) => {
     let out = opts.firstName ? s.replaceAll("Hi {{company}} team", `Hi ${opts.firstName}`).replaceAll("Hi {{agency}} team", `Hi ${opts.firstName}`) : s;

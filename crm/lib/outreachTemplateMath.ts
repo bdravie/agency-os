@@ -14,6 +14,24 @@ export function templateKey(niche: string | null | undefined): string | null {
 /** "<!-- offer: home_services -->" names which group of offers.yaml this template pitches, so the right demo link can be filled in. */
 export const offerGroup = (md: string): string | null => md.match(/<!--\s*offer:\s*([a-z0-9_]+)\s*-->/i)?.[1].toLowerCase() ?? null;
 export const isStarter = (md: string) => /<!--\s*starter\b/i.test(md);
+
+/**
+ * What a template is for (docs/NICHE_FOCUS_PLAN.md, N5), declared with "<!-- kind: linkedin -->" or "<!-- kind: none -->":
+ * email (the default): first email, follow-up and social message. linkedin: a LinkedIn connection note and one follow-up, never an email
+ * (a seeding niche). none: no outreach at all (an audience niche); the file only says why.
+ */
+export type TemplateKind = "email" | "linkedin" | "none";
+export const templateKind = (md: string): TemplateKind => {
+  const k = md.match(/<!--\s*kind:\s*([a-z]+)\s*-->/i)?.[1].toLowerCase();
+  return k === "linkedin" || k === "none" ? k : "email";
+};
+export const NOTE = "LinkedIn connection note";
+export const NOTE_FOLLOW = "LinkedIn follow-up (once, after they accept)";
+/** Characters allowed for a connection note (LinkedIn's limit), counted with the placeholders filled with long sample values. */
+export const TEMPLATE_NOTE_MAX = 300;
+const SAMPLE: Record<string, string> = { "{{first name}}": "Alexandra", "{{your name}}": "Firstname Lastname", "{{your business}}": "Business Name Limited" };
+export const sampleFill = (s: string) => Object.entries(SAMPLE).reduce((out, [k, v]) => out.replaceAll(k, v), s);
+const FIGURE = /[0-9£$€%]/;
 export const isAiWritten = (md: string) => /<!--\s*written by AI\b/i.test(md);
 
 function section(md: string, heading: string): string | null {
@@ -25,6 +43,8 @@ const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 
 /** Problems that would make a template unsafe or unusable. An empty list means it is fine to use. */
 export function templateProblems(md: string): string[] {
+  const kind = templateKind(md);
+  if (kind !== "email") return kind === "none" ? noneProblems(md) : linkedinProblems(md);
   const bad: string[] = [];
   for (const [name, h] of [["First email", FIRST], ["Follow-up", FOLLOW], ["Social message", SOCIAL]] as const) {
     const text = section(md, h);
@@ -44,6 +64,42 @@ export function templateProblems(md: string): string[] {
     if (wordCount(body) > 100) bad.push(`The first email body is ${wordCount(body)} words. Keep it under 100.`);
   }
   return bad;
+}
+
+const EMAIL_HEADINGS = [FIRST, FOLLOW, SOCIAL];
+
+/** A "none" template drafts nothing: it must not carry any outreach section, and must say why. */
+function noneProblems(md: string): string[] {
+  const bad: string[] = [];
+  for (const h of [...EMAIL_HEADINGS, NOTE, NOTE_FOLLOW]) if (section(md, h) !== null) bad.push(`A "kind: none" template has no outreach sections, but it has "${h}".`);
+  if (!/no outreach/i.test(md)) bad.push(`A "kind: none" template should say "No outreach is drafted for this niche" and why.`);
+  return bad;
+}
+
+/** A LinkedIn-only template: a connection note under LinkedIn's limit and one follow-up, each with your name and the opt-out line, no figures, no email. */
+function linkedinProblems(md: string): string[] {
+  const bad: string[] = [];
+  for (const h of EMAIL_HEADINGS) if (section(md, h) !== null) bad.push(`A LinkedIn-only template has no email sections, but it has "${h.split(" (")[0]}".`);
+  for (const [name, h] of [["connection note", NOTE], ["LinkedIn follow-up", NOTE_FOLLOW]] as const) {
+    const text = section(md, h)?.trim() ?? null;
+    if (text === null) { bad.push(`The "${h}" section is missing, or its heading was changed.`); continue; }
+    if (!OPT_OUT.test(text) || !/won't message again/i.test(text)) bad.push(`The ${name} needs the opt-out line: Reply "no" and I won't message again.`);
+    if (!/\{\{your name\}\}/.test(text) || !/\{\{your business\}\}/.test(text)) bad.push(`The ${name} needs {{your name}} and {{your business}}.`);
+    if (FIGURE.test(text)) bad.push(`The ${name} states a figure. Use no numbers, money amounts or percentages.`);
+    if (/https?:\/\/|www\./i.test(text)) bad.push(`The ${name} contains a link.`);
+    if (name === "connection note") {
+      const n = sampleFill(text).length;
+      if (n > TEMPLATE_NOTE_MAX) bad.push(`The connection note is about ${n} characters once filled in. LinkedIn allows ${TEMPLATE_NOTE_MAX}.`);
+    } else if (wordCount(text) > 100) bad.push(`The LinkedIn follow-up is ${wordCount(text)} words. Keep it under 100.`);
+  }
+  return bad;
+}
+
+/** The connection note and follow-up in a LinkedIn-only template, or null for any other kind. */
+export function linkedinSections(md: string): { note: string; followUp: string } | null {
+  if (templateKind(md) !== "linkedin") return null;
+  const note = section(md, NOTE)?.trim(), followUp = section(md, NOTE_FOLLOW)?.trim();
+  return note && followUp ? { note, followUp } : null;
 }
 
 /** A first draft for a brand-new niche, so it never falls back to someone else's wording. It is marked as a starter until you or the AI write real copy. */

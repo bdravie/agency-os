@@ -347,6 +347,47 @@ offers:
     niche: any
     outcome: "A website chatbot, built and then kept accurate"
 
+  # --- Clinics (dental practices and aesthetics clinics): the one offer for the active niches (docs/NICHE_FOCUS_PLAN.md, N5).
+  # It answers the clinic's own patients, so it handles their personal data: a data processing agreement and a DPIA come first, and the
+  # sub-processors (voice agent, model provider, telephony) are listed in it. Booking logistics only: never clinical questions, treatments or medicines.
+  # Meant as the entry-level offer for clinics. The entry tier is held by AI Opportunity Audit, and the seeder never moves a tier, so to lead
+  # with this one pick Lead offer > Entry on the Offers page.
+  # Prices: CHANGE ME. They are left at 0 for you to fill in (here before seeding, or on the Offers page afterwards).
+  - name: "Missed-call and enquiry recovery: setup"
+    billing: setup
+    sort_order: 11
+    niche: clinics
+    outcome: "Every missed call and enquiry answered and booked into the diary, set up around how the clinic books today"
+    setup_price_gbp: 0       # CHANGE ME
+    monthly_price_gbp: 0
+    default_duration_days: 21
+    deliverables:
+      - "Data processing agreement and DPIA signed before anything is connected, with the sub-processors listed"
+      - "Map how calls, messages and enquiries arrive today, and who books them"
+      - "Agreed script: booking logistics only (times, changes, cancellations), never clinical questions, treatments or medicines"
+      - "Connected to the clinic's diary, tested on sample bookings first"
+      - "Hand-over to a person for anything outside booking, and what happens if the diary link fails"
+      - "Walkthrough for the front desk and written notes"
+
+  - name: "Missed-call and enquiry recovery: monthly"
+    billing: monthly
+    sort_order: 12
+    niche: clinics
+    outcome: "Kept accurate every month: script and diary rules updated, problems fixed"
+    setup_price_gbp: 0
+    monthly_price_gbp: 0     # CHANGE ME
+    deliverables:
+      - "Voice agent and telephony kept running and monitored"
+      - "Monthly check of calls handed over and bookings made (totals only)"
+      - "Script and diary rules updated when opening hours, staff or services change"
+      - "Fixes when something stops working, with an agreed plan for problems out of hours"
+
+  - name: "Missed-call and enquiry recovery"
+    includes: ["Missed-call and enquiry recovery: setup", "Missed-call and enquiry recovery: monthly"]
+    sort_order: 2
+    niche: clinics
+    outcome: "Every missed call and enquiry answered and booked into the diary, then kept accurate each month"
+
   - name: "Build, Train & Optimise"
     tier: premium
     includes: ["Build", "Team Enablement", "Optimise Retainer"]

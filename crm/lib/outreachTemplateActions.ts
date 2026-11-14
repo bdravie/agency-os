@@ -9,7 +9,7 @@ import { requireLogin } from "./auth";
 import { logActivity } from "./activity";
 import { draftNicheMarkdown } from "./outreachCopy";
 import { listNiches } from "./leadConfig";
-import { templateKey } from "./outreachTemplateMath.ts";
+import { templateKey, templateKind } from "./outreachTemplateMath.ts";
 import { saveTemplate, templateStatuses } from "./outreachTemplates";
 
 const ROOT = path.resolve(process.cwd(), "..");
@@ -26,6 +26,9 @@ export async function writeNicheCopyAction(key: string, replaceHandWritten: bool
   const k = templateKey(key);
   const niche = k ? (await listNiches()).find((n) => n.key === k) : null;
   if (!k || !niche) return { error: "Niche not found." };
+  const current = await readFile(path.join(ROOT, "prompts/outreach", `${k}.md`), "utf8").catch(() => "");
+  const kind = templateKind(current);
+  if (kind !== "email") return { error: `${niche.label} has ${kind === "linkedin" ? "LinkedIn-only copy (a connection note and follow-up)" : "no outreach by design"}, so email copy is not written for it. Edit prompts/outreach/${k}.md by hand.` };
   const status = (await templateStatuses([k]))[k];
   if (status === "written" && !replaceHandWritten) return { error: "That niche already has copy you wrote or edited. Confirm to replace it (the old one is kept as a .bak file)." };
   const { md, problems } = await draftNicheMarkdown(niche.label, await nichePitch(k));

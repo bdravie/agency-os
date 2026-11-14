@@ -52,6 +52,13 @@ export default function LinkedInNote({ companyId, people, linkedinUrl, cap }: {
               setMsg(r.error ?? "Logged as sent");
             })}>I&apos;ve sent it</button>
           </div>
+          {res.followUp && (
+            <details>
+              <summary>Follow-up to send once they accept</summary>
+              <p style={{ whiteSpace: "pre-wrap", margin: "8px 0" }}>{res.followUp}</p>
+              <button type="button" className="secondary" onClick={async () => { await navigator.clipboard.writeText(res.followUp!); setMsg("Follow-up copied"); }}>Copy follow-up</button>
+            </details>
+          )}
         </>
       )}
       {msg && <p className="muted" style={{ margin: 0 }}><RefusalText text={msg} /></p>}

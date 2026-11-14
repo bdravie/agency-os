@@ -11,12 +11,20 @@ import { assertSendable } from "./complianceGate";
 import { assertNicheAllows, nicheTable } from "./nicheGate";
 import { askStructured, linkedinNoteModel } from "./llm";
 import { assembleNote, bodyBudget, noteProblems, noteWarnings, stripFrame } from "./linkedinNoteMath";
+import { linkedinSections, templateKey } from "./outreachTemplateMath.ts";
 
 // LinkedIn connection notes (docs/NICHE_FOCUS_PLAN.md, N2). Drafting only: the app never sends anything on LinkedIn.
 // Click-only and capped (LINKEDIN_NOTE_DAILY_CAP, default 10). Only for a company that passes lead_gate and whose niche uses LinkedIn
 // (active, or seeding), and only for a person who has not opted out or been suppressed.
 
-export type NoteResult = { note?: string; warnings?: string[]; model?: string; error?: string };
+export type NoteResult = { note?: string; warnings?: string[]; model?: string; error?: string; followUp?: string };
+
+/** The niche's own note and follow-up from prompts/outreach/<niche>.md, when it is a LinkedIn-only template (docs/NICHE_FOCUS_PLAN.md, N5). */
+async function nicheNoteTemplate(niche: string | null): Promise<{ note: string; followUp: string } | null> {
+  const k = templateKey(niche);
+  if (!k) return null;
+  try { return linkedinSections(await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts", "outreach", `${k}.md`), "utf8")); } catch { return null; }
+}
 
 const noteCap = () => Number(process.env.LINKEDIN_NOTE_DAILY_CAP ?? 10) || 10;
 const companyName = (n: string) => n.replace(/[.,]?\s+(limited|ltd\.?|llp|plc)$/i, "").trim();
@@ -47,6 +55,7 @@ export async function draftLinkedInNoteAction(companyId: number, contactId: numb
     if (!co || !niche) return { error: "Company not found." };
 
     const who = { firstName: p ? p.name.split(/\s+/)[0] || null : null, sender, business };
+    const own = await nicheNoteTemplate(co.niche);
     const budget = bodyBudget(who);
     const rules = await withPositioning(await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts", "linkedin-note.md"), "utf8"));
     const facts = [
@@ -55,6 +64,7 @@ export async function draftLinkedInNoteAction(companyId: number, contactId: numb
       `NICHE: ${niche.label}`,
       niche.promise ? `THE PROMISE: ${niche.promise}` : "",
       niche.painPoints.length ? `COMMON PROBLEMS FOR SUCH BUSINESSES:\n${niche.painPoints.map((x) => `- ${x}`).join("\n")}` : "",
+      own ? `YOUR OWN NOTE FOR THIS NICHE (keep its angle; write fresh wording, do not copy it):\n${stripFrame(own.note.replace(/^\s*hi\s*\{\{first name\}\},?\s*/i, ""))}` : "",
       `CHARACTER BUDGET: ${budget}`,
     ].filter(Boolean).join("\n");
     const model = linkedinNoteModel();
@@ -70,7 +80,8 @@ export async function draftLinkedInNoteAction(companyId: number, contactId: numb
     if (problems.length) return { error: `The AI's note broke the rules twice (${problems.join(" ")}). Try again, or write it yourself.` };
     const note = assembleNote(body, who);
     await logActivity("linkedin_note_drafted", { company_id: companyId, contact_id: p?.id ?? null, channel: "linkedin", body: `LinkedIn note drafted (${model})` });
-    return { note, warnings: noteWarnings(note), model };
+    const followUp = own?.followUp.replaceAll("{{first name}}", who.firstName ?? "there").replaceAll("{{your name}}", sender).replaceAll("{{your business}}", business);
+    return { note, warnings: noteWarnings(note), model, followUp };
   } catch (err) { return { error: err instanceof Error ? err.message : String(err) }; }
 }
 

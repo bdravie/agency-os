@@ -10,5 +10,7 @@ Rules:
 - Plain British English, warm and brief, no hype, no emojis, no exclamation marks, no sales jargon, no flattery.
 - If the promise involves handling the business's own customers' or patients' details, keep to the problem and the conversation; never promise to handle their data.
 
+- If YOUR OWN NOTE FOR THIS NICHE is given, it is the consultant's own wording for these businesses: keep its angle and tone, but write it fresh for this person rather than copying it.
+
 Write:
 - note: the middle of the note only.
