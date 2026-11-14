@@ -1,65 +1,188 @@
 ---
-// One landing page, filled from a variant file. The same markup serves every variant so a test changes only the words:
-// the headline, the line under it, the three "what changes" cards and the closing line all follow the version's angle.
+// One landing page for clinics (dental practices and aesthetics clinics), filled from a variant file. The same markup serves every
+// variant so a split test changes only the words: the headline, the line under it, the three "what changes" cards and the closing line.
+// The clinic offer handles patients' details, so the page pitches a conversation, says a data processing agreement comes first,
+// keeps to booking logistics and states no figures (CLAUDE.md, business rules). The scene in the top block is marked as an illustration.
 import Base from "./Base.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
 import site from "../content/site.json";
-import { identityLine } from "../identity";
+import { posts, NICHES, longDate } from "../blog";
 const { v } = Astro.props;
 const cta = site.calLink;
 const calPath = new URL(site.calLink).pathname.replace(/^\//, "");
+const latest = posts.slice(0, 2);
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "ProfessionalService", name: site.businessName, url: Astro.site?.href, email: site.contactEmail,
+  areaServed: "GB", description: v.sub,
+};
+const phone = "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z";
 ---
-<Base title={`${site.businessName}: ${v.headline}`} description={v.sub}>
+<Base title={`${site.businessName}: ${v.headline}`} description={v.sub} jsonLd={jsonLd}>
+  <Header home />
   <main data-variant={v.id}>
-    <section class="hero"><div class="wrap">
-      <div class="label">{site.businessName}</div>
-      <h1>{v.headline}</h1>
-      <p class="sub">{v.sub}</p>
-      <a class="btn" href={cta} data-cta="hero">{v.cta}</a>
-    </div></section>
+    <section class="stage navy">
+      <canvas data-drift aria-hidden="true"></canvas>
+      <div class="wrap">
+        <div>
+          <div class="who"><i></i>For dental practices and aesthetics clinics</div>
+          <h1>{v.headline}</h1>
+          <p class="sub">{v.sub}</p>
+          <div class="actions">
+            <a class="btn" href={cta} data-cta="hero">{v.cta} <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn ghost" href="#fit">Not sure? 3 quick questions</a>
+          </div>
+          <p class="reassure">Free, 30 minutes, no obligation. You talk to me, {site.ownerName}, not a sales team.</p>
+        </div>
+        <div class="scene" aria-hidden="true">
+          <div class="scene-top"><span>Front desk</span><span>Today</span></div>
+          <div class="ping">
+            <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={phone} /></svg>New enquiry, the desk is busy</div>
+            <div class="done"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>Answered straight away</div>
+          </div>
+          <ul class="slots">
+            <li><time>09:00</time>Booked</li>
+            <li><time>10:30</time>Booked</li>
+            <li class="gap"><time>14:00</time><span class="was">Free slot</span><span class="now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>New booking</span></li>
+            <li><time>15:30</time>Booked</li>
+          </ul>
+          <p class="scene-note">An illustration, not a real diary</p>
+        </div>
+      </div>
+    </section>
 
-    <section><div class="wrap">
-      <div class="label">What changes</div>
-      <h2>{v.changes.title}</h2>
-      <div class="grid">
-        {v.changes.cards.map((c: { title: string; text: string }) => <div class="card"><h3>{c.title}</h3><p>{c.text}</p></div>)}
+    <section class="fit-band" id="fit"><div class="wrap">
+      <div class="card fit" data-fit>
+        <div class="fit-head">
+          <div class="label">Is it worth a call? Three taps</div>
+          <div class="fit-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        </div>
+        <fieldset data-step="kind">
+          <legend>What kind of clinic do you run?</legend>
+          <div class="choices">
+            <button type="button" class="choice" data-a="dental">Dental practice</button>
+            <button type="button" class="choice" data-a="aesthetics">Aesthetics clinic</button>
+            <button type="button" class="choice" data-a="other">Something else</button>
+          </div>
+        </fieldset>
+        <fieldset data-step="gap" hidden>
+          <legend>When the front desk is busy or closed, what happens to calls and enquiries?</legend>
+          <div class="choices">
+            <button type="button" class="choice" data-a="missed">Some go unanswered</button>
+            <button type="button" class="choice" data-a="callback">We call back when we can</button>
+            <button type="button" class="choice" data-a="covered">Every one gets answered</button>
+          </div>
+        </fieldset>
+        <fieldset data-step="when" hidden>
+          <legend>If that could be fixed, when would you want it in place?</legend>
+          <div class="choices">
+            <button type="button" class="choice" data-a="now">As soon as possible</button>
+            <button type="button" class="choice" data-a="soon">In the next few months</button>
+            <button type="button" class="choice" data-a="looking">Just looking for now</button>
+          </div>
+        </fieldset>
+        <div class="fit-result" data-result hidden aria-live="polite">
+          <h3></h3>
+          <p></p>
+          <div class="actions">
+            <a class="btn" href={cta} data-cta="fit"><span data-main>Pick a time</span> <span class="arrow" aria-hidden="true">→</span></a>
+            <a class="btn ghost" href="/blog" data-blog hidden>Read the blog</a>
+          </div>
+        </div>
+        <div class="fit-foot">
+          <button type="button" data-back hidden>Back</button>
+          <span class="muted">Nothing to type. Your answers are not stored.</span>
+        </div>
       </div>
     </div></section>
 
     <section><div class="wrap">
-      <div class="label">How it works</div>
-      <h2>Three steps, no jargon</h2>
+      <div class="label" data-reveal>What changes</div>
+      <h2 data-reveal>{v.changes.title}</h2>
       <div class="grid">
-        <div class="card"><div class="n">1</div><h3>A short call</h3><p>You tell me where the week goes. I listen and ask questions.</p></div>
-        <div class="card"><div class="n">2</div><h3>A clear plan</h3><p>I show you what I would change, what it should do and what it costs, in plain English.</p></div>
-        <div class="card"><div class="n">3</div><h3>I build it</h3><p>I set it up, show you how it works and stay on hand if you want it adjusted.</p></div>
+        {v.changes.cards.map((c: { title: string; text: string }) => <div class="card" data-reveal><h3>{c.title}</h3><p>{c.text}</p></div>)}
       </div>
+    </div></section>
+
+    <section><div class="wrap">
+      <div class="label" data-reveal>Where enquiries go missing</div>
+      <h2 data-reveal>A normal day at the front desk</h2>
+      <p class="lede" data-reveal>Nobody is doing anything wrong. There is one desk, one phone and a waiting room, and someone who wants to book does not always try twice.</p>
+      <ol class="day">
+        <li data-reveal><time>08:55</time><h3>The phone rings during check-in</h3><p>Your receptionist is with the patient in front of them, as they should be. The caller hears it ring out.</p></li>
+        <li data-reveal><time>13:10</time><h3>Lunch, and a voicemail nobody leaves</h3><p>Plenty of people hang up at the beep and try somewhere else.</p></li>
+        <li data-reveal><time>18:40</time><h3>An enquiry arrives after you close</h3><p>It sits until the morning, when the desk is at its busiest and the person may have moved on.</p></li>
+        <li data-reveal><time>Sat</time><h3>A message at the weekend</h3><p>Someone asks about a consultation. By Monday it is three messages down and easy to miss.</p></li>
+      </ol>
+    </div></section>
+
+    <section id="how"><div class="wrap">
+      <div class="label" data-reveal>How it works</div>
+      <h2 data-reveal>Three steps, in plain English</h2>
+      <div class="grid">
+        <div class="card" data-reveal><div class="n">1</div><h3>A short call</h3><p>You tell me how calls and enquiries reach you today and who books them. I listen and ask questions.</p></div>
+        <div class="card" data-reveal><div class="n">2</div><h3>A clear plan, paperwork first</h3><p>I show you what I would change, what it is designed to do and what it costs. A data processing agreement is signed before anything is connected.</p></div>
+        <div class="card" data-reveal><div class="n">3</div><h3>Set up around your diary</h3><p>I build it around how you already book, test it on sample bookings with your team, and keep it accurate each month.</p></div>
+      </div>
+    </div></section>
+
+    <section><div class="wrap two">
+      <div>
+        <div class="label" data-reveal>What it will and will not do</div>
+        <h2 data-reveal>Bookings only. Care stays with your team.</h2>
+        <p data-reveal>When your team cannot pick up, an automated assistant answers, says what it is, and books, moves or cancels an appointment. That is all it does.</p>
+      </div>
+      <ul class="ticks">
+        <li data-reveal><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg><div><strong>Booking logistics only.</strong> Times, changes and cancellations. Never clinical questions, treatments or medicines.</div></li>
+        <li data-reveal><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg><div><strong>A person for everything else.</strong> Anything outside booking is handed to your team, with a note of what was asked.</div></li>
+        <li data-reveal><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg><div><strong>Data protection before anything else.</strong> A data processing agreement and impact assessment are signed first, with every supplier listed.</div></li>
+        <li data-reveal><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg><div><strong>Your diary, your rules.</strong> It follows your opening hours and booking rules, and there is an agreed plan for when something stops working.</div></li>
+      </ul>
     </div></section>
 
     {site.demoVideoUrl && (
       <section><div class="wrap">
         <div class="label">See it</div>
         <h2>A two-minute walk-through</h2>
-        <p><a class="btn" href={site.demoVideoUrl} data-cta="demo">Watch the demo</a></p>
+        <p><a class="btn ghost" href={site.demoVideoUrl} data-cta="demo">Watch the demo</a></p>
+      </div></section>
+    )}
+
+    {latest.length > 0 && (
+      <section><div class="wrap">
+        <div class="label" data-reveal>From the blog</div>
+        <h2 data-reveal>Plain guides for clinic owners</h2>
+        <div class="posts">
+          {latest.map((p) => (
+            <a class="card post-card" href={`/blog/${p.slug}`} data-reveal>
+              <div class="meta"><span class="tag">{NICHES[p.niche]}</span><span>{longDate(p.date)}</span></div>
+              <h3>{p.title}</h3>
+              <p>{p.description}</p>
+              <span class="more">Read it →</span>
+            </a>
+          ))}
+        </div>
+        <p style="margin-top:20px" data-reveal><a href="/blog">All posts</a></p>
       </div></section>
     )}
 
     <section><div class="wrap">
-      <div class="label">Questions</div>
-      <h2>Straight answers</h2>
-      <details><summary>Do I need to be technical?</summary><p>No. I explain everything in plain English and set it up for you.</p></details>
-      <details><summary>What does the call cost?</summary><p>Nothing. It is 30 minutes to see if I can help, with no obligation.</p></details>
-      <details><summary>Will this touch my customers' personal details?</summary><p>I start with your business's own numbers and admin. Anything that handles your customers' personal details is only done with the proper agreements in place first.</p></details>
+      <div class="label" data-reveal>Questions</div>
+      <h2 data-reveal>Straight answers</h2>
+      <details data-reveal><summary>Who answers the calls?</summary><p>When your team cannot pick up, an automated assistant does. It says it is an assistant, sticks to booking, and hands anything else to a person at your clinic.</p></details>
+      <details data-reveal><summary>Will it talk to patients about treatment?</summary><p>No. It handles booking logistics only: times, changes and cancellations. Clinical questions, treatments and medicines always go to your team.</p></details>
+      <details data-reveal><summary>What about patient data?</summary><p>Booking an appointment means handling patients' details, so nothing is connected until a data processing agreement and an impact assessment are signed, with every supplier listed. We cover this on the first call.</p></details>
+      <details data-reveal><summary>Does it work with our diary?</summary><p>That is one of the first things I check on the call. It is set up around how you book today, and tested on sample bookings before it goes near a real one.</p></details>
+      <details data-reveal><summary>What does the call cost?</summary><p>Nothing. It is 30 minutes to see whether I can help, with no obligation. If I cannot, I will say so.</p></details>
     </div></section>
 
-    <section><div class="wrap">
-      <h2>{v.closing}</h2>
-      <p><a class="btn" href={cta} data-cta="final">{v.cta}</a></p>
-      <div id="book"><div id="cal" data-cal-link={calPath}></div></div>
-      <p class="muted">Booking opens a calendar from Cal.com. <a href="/privacy">What is counted</a>.</p>
+    <section class="closing" id="book"><div class="wrap">
+      <h2 data-reveal>{v.closing}</h2>
+      <div class="actions" data-reveal><a class="btn" href={cta} data-cta="final">{v.cta} <span class="arrow" aria-hidden="true">→</span></a></div>
+      <div id="cal" data-cal-link={calPath}></div>
+      <p class="muted" style="margin-top:16px">Booking opens a calendar from Cal.com. <a href="/privacy">What is counted</a>.</p>
     </div></section>
   </main>
-  <footer><div class="wrap">
-    {identityLine(site)} · <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> · <a href="/privacy">Privacy</a>
-  </div></footer>
+  <Footer />
   <script is:inline src="/t.js" defer></script>
 </Base>

@@ -1,25 +1,25 @@
 {
   "id": "a",
-  "angle": "hours back",
-  "headline": "Get your evenings back from the admin that eats your week",
-  "sub": "I improve the systems behind small businesses so quotes, bookings and reporting run without you chasing them. You spend your time on the work, not the paperwork.",
+  "angle": "missed calls answered",
+  "headline": "Every missed call and enquiry, answered and booked into your diary",
+  "sub": "When your front desk is busy or the clinic is closed, people who call or message still get an answer and an appointment, so fewer of them try the next clinic on their list.",
   "cta": "Book a free 30-minute call",
   "changes": {
-    "title": "Less admin, more of the work you enjoy",
+    "title": "No enquiry left waiting",
     "cards": [
       {
-        "title": "Quotes that chase themselves",
-        "text": "Follow-ups on quotes are set up once, so you stop having to remember to send them."
+        "title": "Calls answered while you treat",
+        "text": "When the desk cannot pick up, the call is still answered and the caller is offered a time, instead of hearing it ring out."
       },
       {
-        "title": "Bookings without the back and forth",
-        "text": "Confirmations and reminders go out on their own, so fewer messages land on your phone."
+        "title": "Enquiries booked after hours",
+        "text": "Evening and weekend enquiries get a reply and a slot there and then, so they are not waiting for Monday morning."
       },
       {
-        "title": "Reports that appear",
-        "text": "The weekly numbers are pulled together for you, so your Friday evening is your own."
+        "title": "Straight into your diary",
+        "text": "Bookings, changes and cancellations go into the diary you already use, so your team starts the day with it up to date."
       }
     ]
   },
-  "closing": "Ready to get your evenings back?"
+  "closing": "Ready to stop enquiries going unanswered?"
 }

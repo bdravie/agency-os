@@ -1,25 +1,25 @@
 {
   "id": "c",
-  "angle": "money kept",
-  "headline": "See where your business is losing money, then stop it",
-  "sub": "Clearer numbers on takings, stock and time, and fewer jobs that cost more than they earn. I improve the systems behind the business so you can see what is going on.",
+  "angle": "pressure off the front desk",
+  "headline": "Take the pressure off your front desk, and stop enquiries slipping away",
+  "sub": "Your receptionist cannot greet a patient and answer the phone at once. When the booking calls and messages they cannot reach are answered for them, they can give their attention to the person in the room.",
   "cta": "Book a free 30-minute call",
   "changes": {
-    "title": "See where the money goes",
+    "title": "A calmer desk, and fewer missed enquiries",
     "cards": [
       {
-        "title": "Takings in one place",
-        "text": "Sales and takings are gathered into one view, so you know how the week went."
+        "title": "No more choosing who to ignore",
+        "text": "When the phone rings during check-in, it is still answered, so your team can stay with the patient in front of them."
       },
       {
-        "title": "Stock you can see",
-        "text": "Stock totals are tracked, so you spot what is running low or sitting unsold."
+        "title": "Fewer call-backs to chase",
+        "text": "Routine bookings, changes and cancellations are handled as they come in, so the list of people to ring back is shorter."
       },
       {
-        "title": "Jobs that pay their way",
-        "text": "Time and costs are lined up against what you charged, so you can see which jobs earn their keep."
+        "title": "Handed over properly",
+        "text": "Anything that is not a booking is passed to your team with a note of what was asked, so nobody starts from scratch."
       }
     ]
   },
-  "closing": "Ready to see where your money goes?"
+  "closing": "Ready to take the pressure off your front desk?"
 }

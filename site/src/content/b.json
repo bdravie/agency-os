@@ -1,25 +1,25 @@
 {
   "id": "b",
-  "angle": "more booked work",
-  "headline": "Win more of the work that already comes in",
-  "sub": "Enquiries go cold when nobody follows them up in time. I improve the systems behind your business so fewer quotes and customers slip away.",
+  "angle": "a fuller diary",
+  "headline": "Fill the gaps in your diary from the enquiries you already get",
+  "sub": "The people who call and message your clinic already want to book. When each of them gets an answer and an appointment, even when the desk is busy or closed, fewer slots sit empty.",
   "cta": "Book a free 30-minute call",
   "changes": {
-    "title": "Fewer enquiries going cold",
+    "title": "More of your enquiries turned into bookings",
     "cards": [
       {
-        "title": "A quick, friendly reply",
-        "text": "Every enquiry gets a prompt answer, so fewer people drift off to the next business on their list."
+        "title": "An answer while they are keen",
+        "text": "People are offered a time when they get in touch, so fewer of them cool off or book somewhere else."
       },
       {
-        "title": "Quotes that get followed up",
-        "text": "Quotes are chased at the right time, so fewer of them go quiet."
+        "title": "Cancellations dealt with",
+        "text": "Changes and cancellations are taken at any hour and go straight into the diary, so your team can see a freed slot early."
       },
       {
-        "title": "Reviews asked for",
-        "text": "Happy customers are asked for a review at the right moment, so more people find you."
+        "title": "Evenings and weekends covered",
+        "text": "Enquiries that arrive when you are closed are answered and booked, not left for the busiest hour of the next day."
       }
     ]
   },
-  "closing": "Ready to win more of the work you already get?"
+  "closing": "Ready to fill more of your diary?"
 }

@@ -1,25 +1,32 @@
 ---
 import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
 import site from "../content/site.json";
 import { identityLine } from "../identity";
 ---
-<Base title={`Privacy | ${site.businessName}`}>
-  <main><section class="hero"><div class="wrap">
+<Base title={`Privacy | ${site.businessName}`} description="What this site counts, the one cookie it sets, and what happens when you book a call." canonical="/privacy">
+  <Header />
+  <main><section class="hero"><div class="wrap prose">
     <div class="label"><a href="/">&larr; {site.businessName}</a></div>
     <h1>Privacy</h1>
     <p class="sub">This site counts visits, in a way that cannot identify you. Here is exactly what, and why.</p>
 
     <h2>What is counted</h2>
-    <p>To find out which version of this page helps people most, the site keeps a daily tally for each version: how many people visited, how many pressed a booking button, how many scrolled most of the way down, and how many booked a call. These are plain totals.</p>
-    <p>The tally holds no names, email addresses, IP addresses or browser details, and nothing in it can be traced back to you.</p>
+    <p>To find out which version of the home page helps people most, the site keeps a daily tally for each version: how many people visited, how many pressed a booking button, how many scrolled most of the way down, and how many booked a call. These are plain totals.</p>
+    <p>The tally holds no names, email addresses, IP addresses or browser details, and nothing in it can be traced back to you. The blog pages are not counted at all.</p>
+
+    <h2>The three quick questions</h2>
+    <p>The home page asks three questions you answer by tapping (the kind of clinic, what happens to enquiries when the desk is busy, and your timing). Your answers stay in your browser. They choose the wording you see next and, if you go on to book, they are placed in the booking's notes box, where you can read, change or delete them before you confirm. This site does not store or count them.</p>
 
     <h2>The cookie</h2>
-    <p>When you first visit, this site sets one small cookie called <code>v</code>. It holds only the name of the page version you were shown (for example "headline-angle.b"), so you see the same version if you come back. It has no ID and lasts 30 days. If the site's owner visits with the <code>?me</code> link, a cookie called <code>me</code> stops their own visits being counted.</p>
+    <p>When a test of page versions is running, this site sets one small cookie called <code>v</code> on your first visit. It holds only the name of the page version you were shown (for example "headline-angle.b"), so you see the same version if you come back. It has no ID and lasts 30 days. If the site's owner visits with the <code>?me</code> link, a cookie called <code>me</code> stops their own visits being counted.</p>
 
     <h2>Booking a call</h2>
-    <p>The booking calendar comes from Cal.com and only loads when you press a booking button. If you book, Cal.com handles the details you enter under its own privacy policy, and I receive your name and email to run the call. Until you press the button, nothing is loaded from Cal.com.</p>
+    <p>The booking calendar comes from Cal.com and only loads when you press a booking button. If you book, Cal.com handles the details you enter under its own privacy policy, and I receive your name, email and any notes to run the call. Until you press the button, nothing is loaded from Cal.com.</p>
 
     <h2>Who is responsible</h2>
     <p>{identityLine(site)}. Questions or requests: <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.</p>
   </div></section></main>
+  <Footer />
 </Base>

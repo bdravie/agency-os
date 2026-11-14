@@ -1,4 +1,4 @@
-// The post-purchase page must stay private: noindex, unguessable address, no link to it from other pages, no sitemap, and its files present.
+// The post-purchase page must stay private: noindex, unguessable address, no link to it from other pages, absent from the sitemap, and its files present.
 // Reads the built site, so run `npm run build` first; skips when dist/ is missing.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -19,12 +19,12 @@ test("the thanks page is noindex and has no canonical link to the home page", { 
   assert.doesNotMatch(html, /rel="canonical"/);
 });
 
-test("no other page links to it, and there is no sitemap or robots.txt naming it", { skip: !built || !pages.length }, () => {
+test("no other page links to it, and neither the sitemap nor robots.txt names it", { skip: !built || !pages.length }, () => {
   const slug = pages[0].replace(/\.html$/, "");
   for (const f of readdirSync(dist).filter((f) => f.endsWith(".html") && f !== pages[0])) {
     assert.ok(!readFileSync(new URL(f, dist), "utf8").includes(slug), `${f} links to the thanks page`);
   }
-  assert.ok(!readdirSync(dist).some((f) => /sitemap/i.test(f)), "a sitemap exists; make sure the thanks page is excluded");
+  for (const f of readdirSync(dist).filter((f) => /sitemap/i.test(f))) assert.ok(!/thanks/i.test(readFileSync(new URL(f, dist), "utf8")), `${f} lists the thanks page`);
   if (existsSync(new URL("robots.txt", dist))) assert.ok(!readFileSync(new URL("robots.txt", dist), "utf8").includes(slug), "robots.txt reveals the address");
 });
 

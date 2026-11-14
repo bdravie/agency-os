@@ -1,0 +1,37 @@
+---
+// One page per published post in src/blog/. Every post ends with the same two ways forward: book a call, or answer the three quick questions.
+import Base from "../../layouts/Base.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import site from "../../content/site.json";
+import { posts, NICHES, longDate, type Post } from "../../blog";
+export function getStaticPaths() {
+  return posts.map((p) => ({ params: { slug: p.slug }, props: { p } }));
+}
+const { p } = Astro.props as { p: Post };
+const path = `/blog/${p.slug}`;
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "BlogPosting", headline: p.title, description: p.description,
+  datePublished: p.date.toISOString().slice(0, 10), mainEntityOfPage: new URL(path, Astro.site).href,
+  author: { "@type": "Person", name: site.ownerFullName }, publisher: { "@type": "Organization", name: site.businessName },
+};
+---
+<Base title={`${p.title} | ${site.businessName}`} description={p.description} canonical={path} ogType="article" jsonLd={jsonLd}>
+  <div class="progress" aria-hidden="true"></div>
+  <Header current="blog" />
+  <main><article class="hero"><div class="wrap">
+    <div class="label"><a href="/blog">&larr; Blog</a></div>
+    <h1 style="max-width:800px">{p.title}</h1>
+    <div class="meta"><span class="tag">{NICHES[p.niche]}</span><span>{longDate(p.date)}</span><span>{p.minutes} min read</span><span>By {site.ownerFullName}</span></div>
+    <div class="prose"><p.Content /></div>
+    <div class="card post-cta navy" data-reveal>
+      <h2>Is this happening at your clinic?</h2>
+      <p>Book a free 30-minute call and I will tell you plainly what I would change. No obligation.</p>
+      <div class="actions">
+        <a class="btn" href="/#book">Book a free call <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="btn ghost" href="/#fit">Not sure? 3 quick questions</a>
+      </div>
+    </div>
+  </div></article></main>
+  <Footer />
+</Base>

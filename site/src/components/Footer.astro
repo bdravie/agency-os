@@ -1,0 +1,8 @@
+---
+import site from "../content/site.json";
+import { identityLine } from "../identity";
+---
+<footer><div class="wrap">
+  {identityLine(site)} · <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> · <a href="/blog">Blog</a> · <a href="/privacy">Privacy</a>
+</div></footer>
+<script is:inline src="/m.js" defer></script>

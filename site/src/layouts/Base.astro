@@ -2,8 +2,11 @@
 import "@fontsource-variable/bricolage-grotesque";
 import "@fontsource-variable/instrument-sans";
 import "../styles/site.css";
-// noindex is for private pages (e.g. the post-purchase page): it asks search engines not to list the page and drops the canonical link to the home page.
-const { title, description = "Systems that bring in more work and give you your time back.", noindex = false } = Astro.props;
+// noindex is for private pages (e.g. the post-purchase page): it asks search engines not to list the page and drops the canonical link.
+// canonical is the page's own path ("/" for the landing page and its test versions, "/blog/<slug>" for a post), so search engines list each page once.
+// jsonLd is optional structured data (a plain object) that tells search engines what the page is.
+const { title, description = "Missed calls and enquiries answered and booked into your diary, for dental practices and aesthetics clinics.", noindex = false, canonical = "/", ogType = "website", jsonLd = null } = Astro.props;
+const url = new URL(canonical, Astro.site).href;
 ---
 <!doctype html>
 <html lang="en-GB">
@@ -14,8 +17,19 @@ const { title, description = "Systems that bring in more work and give you your 
     <meta name="description" content={description} />
     {noindex
       ? <meta name="robots" content="noindex, nofollow, noarchive" />
-      : <link rel="canonical" href={new URL("/", Astro.site).href} />}
+      : <>
+          <link rel="canonical" href={url} />
+          <meta property="og:type" content={ogType} />
+          <meta property="og:title" content={title} />
+          <meta property="og:description" content={description} />
+          <meta property="og:url" content={url} />
+          <meta property="og:locale" content="en_GB" />
+          <meta name="twitter:card" content="summary" />
+        </>}
+    <meta name="theme-color" content="#14213d" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {jsonLd && !noindex && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
+    <script is:inline>document.documentElement.classList.add("js");</script>
   </head>
   <body><slot /></body>
 </html>
