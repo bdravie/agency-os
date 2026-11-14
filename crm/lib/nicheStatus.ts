@@ -99,8 +99,8 @@ export function outreachBlock(t: NicheTable, key: string | null | undefined, cha
   return `${name} is active but does not use ${CHANNEL_LABEL[channel]}. Add it to the niche's channels if you mean to.`;
 }
 
-/** Where the owner changes a niche's status. Every niche refusal ends with NICHES_LINK_TEXT, which the screens turn into a link here (`RefusalText`). */
-export const NICHES_HREF = "/sourcer#niches";
+/** Where the owner changes a niche's status (the Niches screen, N3). Every niche refusal ends with NICHES_LINK_TEXT, which the screens turn into a link here (`RefusalText`). */
+export const NICHES_HREF = "/niches";
 export const NICHES_LINK_TEXT = "Niches screen";
 const onNiches = ` Change it on the ${NICHES_LINK_TEXT}.`;
 

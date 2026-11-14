@@ -8,7 +8,6 @@ import FindCompanyPanel from "@/components/FindCompanyPanel";
 import SectionTabs from "@/components/SectionTabs";
 import { listSavedSearches } from "@/lib/savedSearchActions";
 import SourcerPanel from "@/components/SourcerPanel";
-import { templateStatuses } from "@/lib/outreachTemplates";
 import "./sourcer.css";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +41,7 @@ export default async function Sourcer({ searchParams }: { searchParams: Promise<
 
 async function SearchTab() {
   const [niches, budget, saved, [latest]] = await Promise.all([listNiches(), getBudget(), listSavedSearches(), query<{ id: number }>(`SELECT id FROM sourcer_runs ORDER BY id DESC LIMIT 1`)]);
-  const copy = await templateStatuses(niches.map((n) => n.key));
-  return <SourcerPanel niches={niches} copy={copy} budget={budget} latestRunId={latest ? Number(latest.id) : null} saved={saved} />;
+  return <SourcerPanel niches={niches} budget={budget} latestRunId={latest ? Number(latest.id) : null} saved={saved} />;
 }
 
 async function CompanyTab() {

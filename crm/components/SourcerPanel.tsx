@@ -8,11 +8,9 @@ import type { Budget } from "@/lib/launch";
 import type { NicheOption } from "@/lib/leadConfig";
 import { OPTIONS, money, type SourcerFilters } from "@/lib/sourcerFilters";
 import { deleteSavedSearchAction, saveSearchAction, type SavedSearch } from "@/lib/savedSearchActions";
-import NicheManager from "./NicheManager";
 import Link from "next/link";
 import RefusalText from "./RefusalText";
 import { NICHES_HREF, pickerGroups } from "@/lib/nicheStatus";
-import type { CopyStatus } from "@/lib/outreachTemplates";
 import ScoreBar from "./ScoreBar";
 import { useToast } from "./Toast";
 
@@ -24,7 +22,7 @@ const Range = ({ name, label, options, fmt }: { name: string; label: string; opt
 );
 
 // Search every source at once, narrow the results, and add the businesses you want. The brief stays on the left while you read the ledger on the right.
-export default function SourcerPanel({ niches, copy, budget, latestRunId, saved }: { niches: NicheOption[]; copy: Record<string, CopyStatus>; budget: Budget; latestRunId: number | null; saved: SavedSearch[] }) {
+export default function SourcerPanel({ niches, budget, latestRunId, saved }: { niches: NicheOption[]; budget: Budget; latestRunId: number | null; saved: SavedSearch[] }) {
   const router = useRouter(), toast = useToast();
   const form = useRef<HTMLFormElement>(null), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [start, action, pending] = useActionState<StartState, FormData>(startSourcerAction, null);
@@ -280,7 +278,10 @@ export default function SourcerPanel({ niches, copy, budget, latestRunId, saved 
           ) : null}
         </section>
       </div>
-      <div className="card" id="niches" style={{ marginTop: 24 }}><NicheManager niches={niches} copy={copy} /></div>
+      <div className="card row-between" id="niches" style={{ marginTop: 24 }}>
+        <span className="muted">Only active niches can be searched. Add a niche, change its status or write its outreach copy on the Niches screen.</span>
+        <Link href="/niches" className="btn secondary">Niches</Link>
+      </div>
     </>
   );
 }

@@ -43,3 +43,7 @@ docs/WHOP_DELIVERY_EMAIL.md
 
 # Browser check output (screenshots, page snapshots)
 .playwright-mcp/
+
+# The Niches screen keeps the previous config/niches.yaml here when it saves a change (crm/lib/nicheScreen.ts)
+config/niches.yaml.bak
+config/niches.yaml.tmp

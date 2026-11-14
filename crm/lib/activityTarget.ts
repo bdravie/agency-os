@@ -20,7 +20,7 @@ const COMPANY_SECTION: Record<string, string> = {
 };
 const OTHER_PAGE: [RegExp, string][] = [
   [/^proposal_/, "/proposals"], [/^content_/, "/content"], [/^enablement_/, "/enablement"], [/^outcome_/, "/outcomes"],
-  [/^apify_search_/, "/sourcer"], [/^client_created$/, "/clients"],
+  [/^apify_search_/, "/sourcer"], [/^niche_/, "/niches"], [/^client_created$/, "/clients"],
 ];
 
 const DEAL_SECTION: Record<string, string> = {
