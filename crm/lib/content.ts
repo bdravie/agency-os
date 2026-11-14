@@ -6,6 +6,7 @@ import { parse } from "yaml";
 import { askStructured } from "./llm";
 import { audienceText, fillNiche, parseContentConfig, type ContentConfig } from "./contentConfigMath";
 import { cleanHooks } from "./filmMath";
+import { activeNiches, buildNicheTable } from "./nicheStatus";
 
 function getRoot(): string {
   if (existsSync(path.join(process.cwd(), "prompts"))) return process.cwd();
@@ -20,7 +21,8 @@ const prompt = (name: string) => readFile(path.join(getRoot(), "prompts", name),
 /** The `content:` settings in config/niches.yaml (posts per week, idea limit, who the videos are for). */
 export async function loadContentConfig(): Promise<ContentConfig> {
   const y = parse(await readFile(path.join(getRoot(), "config/niches.yaml"), "utf8"));
-  return parseContentConfig(y?.content, y?.defaults?.focus_niches, y?.niches);
+  // With no content_niche set, the first active niche is used (the focus list now comes from each niche's status).
+  return parseContentConfig(y?.content, activeNiches(buildNicheTable(y?.niches)), y?.niches);
 }
 
 /** prompts/video-ideas.md with {{NICHE}} filled from the content settings. Every content prompt starts from this guide. */

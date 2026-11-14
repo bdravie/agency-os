@@ -1,5 +1,17 @@
 # One block per niche. The Lead Engine reads everything from here.
 # Check SIC codes on Companies House and show dates/exhibitor links each season.
+#
+# Niche status (docs/NICHE_FOCUS_PLAN.md; rules in crm/lib/nicheStatus.ts). Niches run one after another, not side by side:
+#   active   - lead sourcing, outreach on its own channels, and content. At most 2 active niches.
+#   seeding  - LinkedIn content plus a few LinkedIn connection notes. No Lead Sourcer runs, no cold email.
+#   audience - content only. No outreach drafts of any kind.
+#   parked   - hidden from pickers and defaults. Data kept and still visible on existing companies.
+# A missing or unknown status is read as parked. The focus list (CRM defaults) is every niche with status: active.
+# channels: email, linkedin, instagram_dm.  platforms: linkedin, instagram, tiktok.  tier: low, mid, high.
+# promise: one plain-English sentence a stranger would repeat, no figures.
+# Aesthetics overlap rule: a business with a clinic (Ltd, medical lead or CQC registration) is aesthetics;
+# a solo practitioner or a studio that is mainly lashes, brows or hair is beauty.
+# Niche status is an extra gate on top of lead_gate, never a replacement.
 
 defaults:
   # Lead quality gates (used by the Companies House health check and the CRM 'Qualified' view)
@@ -24,20 +36,106 @@ defaults:
     - Cardiff
     - Brighton
     - Reading
-  focus_niches: [hvac, roofing, pest_control]   # your current focus, used as CRM defaults
 
 # Content engine settings (the Content tab). Read by the CRM; the Python lead tools ignore this block.
 content:
   posts_per_week: 4              # target shown on Today
   max_open_ideas: 15             # "Generate ideas" is blocked while more than this many ideas are waiting
-  platforms: [instagram, linkedin]   # where you post (tiktok, instagram, youtube, linkedin). LinkedIn is posted and measured by hand
-  content_niche: [trades, dental, aesthetics]   # niche keys below that the videos are made for (trades and clinics)
-  content_audience: "trades businesses (plumbers, heating engineers, roofers, electricians) and clinics (dental practices and aesthetics clinics)"   # how the video guide names them; if blank it is built from the keys
+  platforms: [instagram, linkedin, tiktok]   # where you post (tiktok, instagram, youtube, linkedin). LinkedIn is posted and measured by hand or by your click
+  content_niche: [dental, aesthetics, beauty, property_developers]   # niche keys below that the videos and posts are made for (each niche's own platforms are in its block)
+  content_audience: "dental practices and aesthetics clinics, beauty studios (lash, brow, hair and nail), and property developers"   # how the video guide names them; if blank it is built from the keys
 
 niches:
-  # --- Focus niches: home services. Many are sole traders: only Ltd/LLP/PLC get email,
-  # --- everyone else is reached through social and content.
+  # --- Active: clinics. Limited companies only for email (lead_gate still decides who may be contacted).
+  dental:
+    status: active
+    label: "Dental practices"
+    tier: mid
+    channels: [email, linkedin]
+    platforms: [linkedin]
+    promise: "Every missed call and enquiry answered and booked into your diary."
+    pain_points: ["missed calls while the front desk is busy", "enquiries left unanswered after hours", "empty slots from no-shows and late cancellations"]
+    offer: "Missed calls and enquiries answered and booked into your diary"
+    search_terms: ["dentist", "dental practice", "cosmetic dentist"]
+    sic_codes: ["86230"]
+    shows:
+      - name: "The Dentistry Show"
+        exhibitor_url: ""
+      - name: "BDIA Dental Showcase"
+        exhibitor_url: ""
+    gap_signals: ["no online booking", "reviews mention phones", "no recall messages"]
+
+  aesthetics:                    # clinics only (Ltd, medically led or CQC-registered); the offer handles patients' data, so a DPA comes first
+    status: active
+    label: "Aesthetics clinics"
+    tier: mid
+    channels: [email, linkedin, instagram_dm]
+    platforms: [linkedin, instagram]
+    promise: "Every missed call and enquiry answered and booked in for a consultation."
+    pain_points: ["DMs and enquiries answered too late to book", "missed calls during treatments", "consultation slots left empty"]
+    offer: "Missed calls and enquiries answered and booked in for a consultation"
+    search_terms: ["aesthetics clinic", "skin clinic", "botox clinic"]
+    sic_codes: ["96020", "86900"]
+    shows:
+      - name: "CCR Expo"
+        exhibitor_url: ""
+      - name: "Aesthetics Conference and Exhibition (ACE)"
+        exhibitor_url: ""
+    gap_signals: ["no online booking", "slow review replies", "reviews mention phones"]
+
+  # --- Audience: content and the Whop kit only. Mostly sole traders, so never any outreach.
+  beauty:
+    status: audience
+    label: "Beauty studios"
+    tier: low
+    channels: []
+    platforms: [instagram, tiktok]
+    promise: "A month of posts planned and ready, so your feed keeps filling your diary."
+    pain_points: ["no time to plan content between clients", "posting goes quiet when the diary is full", "not sure what to post"]
+    offer: "The 30-day content kit (a product, not a service)"
+    search_terms: ["lash studio", "brow bar", "hair salon", "beauty salon", "nail salon"]
+    sic_codes: ["96020", "96040"]
+    shows: []
+    gap_signals: ["irregular posting", "no booking link in bio"]
+
+  # --- Seeding: LinkedIn content and a few connection notes only. No Lead Sourcer runs, no cold email.
+  property_developers:
+    status: seeding
+    label: "Property developers"
+    tier: high
+    channels: [linkedin]
+    platforms: [linkedin]
+    promise: "Every buyer and investor enquiry qualified and followed up, so none go cold."
+    pain_points: ["enquiries from portals and ads go cold", "time spent on buyers who were never serious", "plans that are hard to picture before anything is built"]
+    offer: "Buyer and investor enquiries qualified and followed up, with flyover visuals as the door-opener"
+    search_terms: ["property developer", "residential developer", "house builder"]
+    sic_codes: ["41100", "68100"]
+    shows: []
+    gap_signals: ["no enquiry form on the development page", "no visuals of the finished scheme", "slow replies to portal enquiries"]
+
+  # --- Parked: hidden from pickers and defaults. Data kept for history.
+  peptide_clinics:               # not now: prescription-only medicine advertising rules
+    status: parked
+    label: "Peptide clinics"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "Every enquiry answered and booked in for a consultation."
+    pain_points: ["enquiries answered too late to book"]
+    offer: "Not now: prescription-only medicine advertising rules"
+    search_terms: ["peptide clinic", "weight loss clinic"]
+    sic_codes: ["86900"]
+    shows: []
+    gap_signals: []
+
   hvac:
+    status: parked
+    label: "HVAC installers"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "Every week's jobs and takings in one short email, and your job photos turned into posts."
+    pain_points: ["no clear view of the week's jobs and revenue", "job photos never get posted"]
     offer: "Weekly jobs and revenue digest, plus job photos turned into social posts"
     search_terms: ["hvac", "air conditioning installer", "heating engineer", "boiler installer", "heat pump installer"]
     sic_codes: ["43220"]          # plumbing, heat and air-conditioning installation
@@ -49,6 +147,13 @@ niches:
     gap_signals: ["no quote form", "no online booking", "few Google reviews", "slow review replies", "no recent social posts"]
 
   roofing:
+    status: parked
+    label: "Roofers"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "Your before and after photos turned into a week of posts that win the next job."
+    pain_points: ["job photos never get posted", "no clear view of the week's jobs"]
     offer: "Before/after job photos turned into a week of social posts, plus a weekly jobs digest"
     search_terms: ["roofer", "roofing contractor", "flat roofing", "roof repairs"]
     sic_codes: ["43910"]          # roofing activities
@@ -58,6 +163,13 @@ niches:
     gap_signals: ["no quote form", "no before/after gallery", "few Google reviews", "no website"]
 
   pest_control:
+    status: parked
+    label: "Pest control"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "A clear weekly view of jobs and contracts, and posts that win commercial work."
+    pain_points: ["no clear view of contracts coming up for renewal", "few commercial contracts"]
     offer: "Weekly jobs and contracts digest, plus social posts that win commercial contracts"
     search_terms: ["pest control", "pest controller", "rodent control", "wasp nest removal"]
     sic_codes: ["81291"]          # disinfecting and exterminating services
@@ -67,6 +179,13 @@ niches:
     gap_signals: ["no online booking", "reviews mention phones", "no commercial contracts page", "few Google reviews"]
 
   marketing_agencies:
+    status: parked
+    label: "Marketing agencies"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "Client reports and builds done for you, under your own name."
+    pain_points: ["monthly client reports done by hand", "too few hands for build work"]
     offer: "White-label automation builds and weekly client reports for agencies"
     search_terms: ["marketing agency", "digital marketing agency", "social media agency"]
     sic_codes: ["73110", "73120", "70210"]
@@ -76,6 +195,13 @@ niches:
     gap_signals: ["no case studies page", "manual monthly reports", "small team"]
 
   ecommerce:
+    status: parked
+    label: "Online shops"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "Your sales and stock in one short daily email, with a nudge before anything runs out."
+    pain_points: ["stock runs out before anyone notices", "product descriptions written by hand"]
     offer: "Daily sales and stock digest, reorder alerts, AI product descriptions"
     search_terms: []             # rarely on Google Maps: use Companies House + shows
     sic_codes: ["47910"]
@@ -87,6 +213,13 @@ niches:
     gap_signals: ["Shopify store", "no email capture", "many SKUs"]
 
   creators:
+    status: parked
+    label: "Creators"
+    tier: low
+    channels: []
+    platforms: []
+    promise: "Record once and have it posted everywhere."
+    pain_points: ["long videos but few shorts", "irregular posting"]
     offer: "Record once, post everywhere: content repurposing engine"
     search_terms: []             # use YouTube Data API channel search instead
     youtube_topics: ["business coaching", "fitness coaching", "marketing tips"]
@@ -94,29 +227,14 @@ niches:
     shows: []
     gap_signals: ["long videos but few shorts", "no newsletter", "irregular posting"]
 
-  aesthetics:                    # phase 2 offer (lead follow-up) needs a DPA template
-    offer: "Instant replies to DMs and enquiries, booked into the diary"
-    search_terms: ["aesthetics clinic", "skin clinic", "botox clinic"]
-    sic_codes: ["96020", "86900"]
-    shows:
-      - name: "CCR Expo"
-        exhibitor_url: ""
-      - name: "Aesthetics Conference and Exhibition (ACE)"
-        exhibitor_url: ""
-    gap_signals: ["no online booking", "slow review replies", "reviews mention phones"]
-
-  dental:
-    offer: "Missed-call text-back, recall campaigns, review engine"
-    search_terms: ["dentist", "dental practice", "cosmetic dentist"]
-    sic_codes: ["86230"]
-    shows:
-      - name: "The Dentistry Show"
-        exhibitor_url: ""
-      - name: "BDIA Dental Showcase"
-        exhibitor_url: ""
-    gap_signals: ["no online booking", "reviews mention phones", "no recall messages"]
-
   trades:                        # many are sole traders: social and content only
+    status: parked
+    label: "Trades"
+    tier: mid
+    channels: []
+    platforms: []
+    promise: "Every call answered and quoted."
+    pain_points: ["missed calls while on a job", "quotes sent too late"]
     offer: "Every call answered and quoted"
     search_terms: ["plumber", "heating engineer", "roofer", "electrician"]
     sic_codes: ["43220", "43210", "43910"]

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { audienceText, backlogState, fillNiche, inNiche, nicheAudience, nicheLabel, parseContentConfig, pickNiche } from "../lib/contentConfigMath.ts";
 
-test("defaults: 4 posts, 15 ideas, first focus niche", () => {
+test("defaults: 4 posts, 15 ideas, first active niche", () => {
   const c = parseContentConfig(undefined, ["hvac", "roofing"]);
   assert.deepEqual([c.posts_per_week, c.max_open_ideas, c.niches, c.audience], [4, 15, ["hvac"], ""]);
   assert.deepEqual(parseContentConfig({}, undefined).niches, []);

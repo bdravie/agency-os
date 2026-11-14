@@ -8,12 +8,12 @@ const whole = (v: unknown, fallback: number, min: number) => (typeof v === "numb
 
 /**
  * The `content:` block of config/niches.yaml with safe defaults: 4 posts a week, 15 open ideas, all four platforms if none are named,
- * and the niches default to the first of `focus_niches` when none are set (a single key or a list is accepted).
+ * and the niches default to the first active niche (`status: active` in niches.yaml) when none are set (a single key or a list is accepted).
  */
-export function parseContentConfig(raw: any, focusNiches: unknown, nicheTable?: any): ContentConfig {
+export function parseContentConfig(raw: any, activeNiches: unknown, nicheTable?: any): ContentConfig {
   const asList = (v: unknown) => (Array.isArray(v) ? v : typeof v === "string" ? [v] : []).map((x) => String(x).trim()).filter(Boolean);
   const set = asList(raw?.content_niche);
-  const niches = set.length ? set : asList(focusNiches).slice(0, 1);
+  const niches = set.length ? set : asList(activeNiches).slice(0, 1);
   return {
     posts_per_week: whole(raw?.posts_per_week, 4, 1),
     max_open_ideas: whole(raw?.max_open_ideas, 15, 1),
