@@ -27,9 +27,12 @@ function cleanIds(ids: unknown): number[] | null {
 }
 
 /** Move one proposal to another status. Lost needs a reason; leaving Lost clears it. Throws a readable message, like moveDeal. */
-export async function moveProposal(id: number, status: string, lostReason?: string, lostNote?: string): Promise<void> {
+export async function moveProposal(rawId: number | string, status: string, lostReason?: string, lostNote?: string): Promise<void> {
   await requireLogin();
-  if (!Number.isInteger(id) || !isStatus(status)) throw new Error("Unknown status");
+  // Proposal ids are bigserial, which pg returns as strings, so the board can hand us "12" rather than 12.
+  const id = Number(rawId);
+  if (!Number.isInteger(id) || id <= 0) throw new Error("Unknown proposal.");
+  if (!isStatus(status)) throw new Error("Unknown status");
   const isLost = status === "Lost";
   if (isLost) { const problem = lostProblem(lostReason); if (problem) throw new Error(problem); }
   const note = isLost ? (lostNote ?? "").trim().slice(0, 500) || null : null;

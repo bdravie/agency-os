@@ -7,6 +7,7 @@ import { query } from "./db";
 import { requireLogin } from "./auth";
 import { logActivity } from "./activity";
 import { assertSendable } from "./complianceGate";
+import { assertNicheAllows } from "./nicheGate";
 import { askStructured, dmModel } from "./llm";
 import { buildFacts } from "./offerSuggest";
 import { companyChangedSince, latestResearch } from "./research";
@@ -26,6 +27,7 @@ export async function draftInstagramDmAction(companyId: number): Promise<DmResul
   await requireLogin();
   try {
     await assertSendable(companyId);
+    await assertNicheAllows(companyId, "instagram_dm");   // the niche must use Instagram DMs (docs/NICHE_FOCUS_PLAN.md)
     const sender = process.env.SENDER_NAME?.trim(), business = process.env.BUSINESS_NAME?.trim();
     if (!sender || !business) return { error: "Set SENDER_NAME and BUSINESS_NAME in .env first. Every message carries your real name and business name." };
     const cap = Number(process.env.DM_DAILY_CAP ?? 30) || 30;

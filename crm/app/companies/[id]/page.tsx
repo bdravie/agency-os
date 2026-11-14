@@ -34,6 +34,9 @@ import { fitTier, shortMoney } from "@/lib/leadConfig";
 import { activityLabel } from "@/components/activity";
 import ActivityItem from "@/components/ActivityItem";
 import SectionTabs from "@/components/SectionTabs";
+import LinkedInNote from "@/components/LinkedInNote";
+import { nicheChannelsFor } from "@/lib/nicheGate";
+import { sendBlock } from "@/lib/nicheStatus";
 import { activityTarget } from "@/lib/activityTarget";
 import { tabForSection } from "@/lib/jump";
 import { Badge, EmptyState, PageHeader, StageBadge } from "@/components/ui";
@@ -64,7 +67,9 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
   const usage = await creditUsage();
   const gate = await loadGate(id);
   if (!gate) notFound();
-  const blocker = gate.sendable ? null : gate.reasons.join(" ");
+  // lead_gate first, then the niche (docs/NICHE_FOCUS_PLAN.md): email needs a niche that uses email. The actions check both again.
+  const nicheCh = await nicheChannelsFor(id);
+  const blocker = !gate.sendable ? gate.reasons.join(" ") : sendBlock(nicheCh.t, nicheCh.niche, "email");
   const apollo = await apolloStatusAction(id);
   const [meetings, linkedEvents] = await Promise.all([loadMeetings(id), loadLinkedEvents(id)]);
   const [latestSuggestion] = await query<any>(`SELECT id, result FROM offer_suggestions WHERE company_id = $1 ORDER BY id DESC LIMIT 1`, [id]);
@@ -283,7 +288,8 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
               <div style={{ marginTop: 14 }}>
                 <OutreachDraft companyId={id} mailboxes={mailboxes} to={company.generic_email} recipients={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role, email: r.email, ice: (rapport.get(Number(r.id))?.points ?? []).map((p) => ({ text: p.opener, kind: p.kind, sourceUrl: p.source_url, sourceTitle: p.source_title })) }))} blocker={blocker} offers={offerChoices}
                   routes={[company.linkedin_url && { label: "LinkedIn page", href: company.linkedin_url }, company.instagram_url && { label: "Instagram", href: company.instagram_url }, company.facebook_url && { label: "Facebook page", href: company.facebook_url }, company.contact_url && { label: "Contact form", href: company.contact_url }].filter(Boolean) as { label: string; href: string }[]} />
-                {company.instagram_url && !blocker && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
+                {gate.sendable && nicheCh.linkedin && <LinkedInNote companyId={id} people={recipients.map((r: any) => ({ id: Number(r.id), name: r.name, role: r.role }))} linkedinUrl={company.linkedin_url ?? null} cap={Number(process.env.LINKEDIN_NOTE_DAILY_CAP ?? 10) || 10} />}
+                {company.instagram_url && gate.sendable && nicheCh.instagram_dm && <InstagramDm companyId={id} instagramUrl={company.instagram_url} cap={Number(process.env.DM_DAILY_CAP ?? 30) || 30} />}
               </div>
             </section>
           </div>
@@ -293,7 +299,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
               <h2>Log activity</h2>
               <ToastForm action={logContact} success="Activity logged" reset className="row">
                 <input type="hidden" name="company_id" value={id} />
-                <select name="type" aria-label="Type"><option value="email">Email</option><option value="dm">DM</option><option value="call">Call</option><option value="note">Note</option></select>
+                <select name="type" aria-label="Type"><option value="email">Email</option><option value="dm">DM</option><option value="linkedin_note">LinkedIn note</option><option value="call">Call</option><option value="note">Note</option></select>
                 <input name="body" placeholder="What happened?" aria-label="What happened" style={{ flex: 1, minWidth: 200 }} />
                 <button className="secondary">Log</button>
               </ToastForm>

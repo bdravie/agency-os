@@ -104,3 +104,37 @@ test("config/niches.yaml as committed follows the plan", () => {
   assert.ok(y.content.platforms.includes("tiktok"));
   assert.deepEqual(configProblems(real).filter((p) => !/seeding, so only LinkedIn/.test(p)), []);
 });
+
+// ---- N2: sourcing, logged sends and the picker ----
+import { LOGGED_SEND_CHANNEL, NICHES_LINK_TEXT, pickerGroups, sendBlock, sourceBlock } from "../lib/nicheStatus.ts";
+
+test("only active niches are sourced; every refusal names its status and points to the Niches screen", () => {
+  assert.equal(sourceBlock(t, "dental"), null);
+  assert.match(sourceBlock(t, "property_developers"), /seeding/);
+  assert.match(sourceBlock(t, "beauty"), /audience/);
+  assert.match(sourceBlock(t, "hvac"), /parked/);
+  assert.match(sourceBlock(t, "nope"), /parked/);
+  for (const k of ["property_developers", "beauty", "hvac"]) assert.ok(sourceBlock(t, k).includes(NICHES_LINK_TEXT));
+});
+
+test("logged sends follow the same rule as the database trigger", () => {
+  assert.deepEqual(LOGGED_SEND_CHANNEL, { email_logged: "email", linkedin_note_logged: "linkedin", dm_logged: "active", sms_logged: "active" });
+  assert.equal(sendBlock(t, "dental", "email"), null);
+  assert.equal(sendBlock(t, "dental", "active"), null);
+  assert.equal(sendBlock(t, "property_developers", "linkedin"), null, "seeding may log LinkedIn notes");
+  assert.match(sendBlock(t, "property_developers", "email"), /seeding/);
+  assert.match(sendBlock(t, "property_developers", "active"), /seeding: LinkedIn notes only/);
+  assert.match(sendBlock(t, "beauty", "linkedin"), /audience/);
+  assert.match(sendBlock(t, "hvac", "active"), /parked/);
+  assert.match(sendBlock(t, null, "active"), /no niche/);
+  for (const [k, ch] of [["beauty", "linkedin"], ["hvac", "email"], [null, "active"]]) assert.ok(sendBlock(t, k, ch).endsWith(`${NICHES_LINK_TEXT}.`));
+});
+
+test("picker: active selectable, seeding and audience greyed with a reason, parked only when asked", () => {
+  const list = Object.values(t);
+  const g = pickerGroups(list, false);
+  assert.deepEqual(g.usable.map((n) => n.key), ["dental", "aesthetics"]);
+  assert.deepEqual(g.greyed.map((n) => [n.key, n.reason]), [["beauty", "audience: content only"], ["property_developers", "seeding: LinkedIn only"]]);
+  assert.deepEqual(g.parked, []);
+  assert.deepEqual(pickerGroups(list, true).parked.map((n) => n.key), ["hvac", "medspas"]);
+});

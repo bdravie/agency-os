@@ -5,6 +5,7 @@ import { query } from "./db";
 import { requireLogin } from "./auth";
 import { logActivity } from "./activity";
 import { listNiches } from "./leadConfig";
+import { sourceBlockFor } from "./nicheGate";
 import { launchApify, launchChSearch, getBudget, type Budget } from "./launch";
 import { apifyPollAction } from "./apifyActions";
 import { addSearchResultsAction } from "./leadSearchActions";
@@ -25,6 +26,8 @@ export async function startSourcerAction(_prev: StartState, form: FormData): Pro
   const f = parsed.filters;
   const niche = (await listNiches()).find((n) => n.key === f.niche);
   if (!niche) return { error: "Choose a niche from the list." };
+  const nicheBlock = await sourceBlockFor(f.niche);   // only active niches are searched; seeding, audience and parked ones are refused here, not just greyed out
+  if (nicheBlock) return { error: nicheBlock };
   const notes: string[] = [];
   let chId: number | null = null, mapsId: number | null = null;
   const errors: string[] = [];

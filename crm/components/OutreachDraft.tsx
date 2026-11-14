@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Send } from "lucide-react";
 import { markOutreachSent } from "@/lib/actions";
+import RefusalText from "@/components/RefusalText";
 import { sendEmailAction } from "@/lib/sendActions";
 import { generateOutreachAction } from "@/lib/outreachActions";
 import { generateOfferOutreachAction } from "@/lib/outreachOfferActions";
@@ -49,8 +50,8 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
     return (
       <div className="stack" style={{ gap: 6 }} role="alert">
         <b style={{ color: "var(--bad)" }}>Outreach is blocked for this lead.</b>
-        <span>{blocker}</span>
-        <span className="muted">Drafts, copy buttons and &ldquo;mark as sent&rdquo; are switched off until this is resolved. See Compliance above.</span>
+        <span><RefusalText text={blocker} /></span>
+        <span className="muted">Drafts, copy buttons and &ldquo;mark as sent&rdquo; are switched off until this is resolved.{/Niches screen/.test(blocker) ? "" : " See Compliance above."}</span>
       </div>
     );
   }
@@ -95,7 +96,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
         ) : <p className="muted" style={{ margin: 0 }}>No decision-makers saved yet. Find them first (Decision-makers above) so the email can name them and start with something personal. You can still write a company-level draft now.</p>}
         <OfferPicker offers={offers} value={offerKey} onChange={setOfferKey} />
         <div className="row"><button type="button" onClick={generate} disabled={generating}>{generating ? "Writing…" : offerKey === "" ? "Generate draft" : "Write email for this offer"}</button><span className="muted">Nothing is written until you click. Nothing is sent until you press Send on a draft.</span></div>
-        {genError && <p className="error" role="alert">{genError}</p>}
+        {genError && <p className="error" role="alert"><RefusalText text={genError} /></p>}
       </div>
     );
   }
@@ -186,8 +187,8 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
         </div>
       )}
       {why && <p className="muted">Mark as sent is off: {why}</p>}
-      {note && <p className="muted">{note}</p>}
-      {genError && <p className="error" role="alert">{genError}</p>}
+      {note && <p className="muted"><RefusalText text={note} /></p>}
+      {genError && <p className="error" role="alert"><RefusalText text={genError} /></p>}
     </div>
   );
 }

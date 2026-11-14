@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ExternalLink } from "lucide-react";
 import { markOutreachSent } from "@/lib/actions";
 import { draftInstagramDmAction, type DmResult } from "@/lib/dmActions";
+import RefusalText from "@/components/RefusalText";
 
 // An AI-drafted Instagram DM for the company's account. Nothing is sent from here: copy it, send it yourself in Instagram, then mark it sent.
 export default function InstagramDm({ companyId, instagramUrl, cap }: { companyId: number; instagramUrl: string; cap: number }) {
@@ -27,7 +28,7 @@ export default function InstagramDm({ companyId, instagramUrl, cap }: { companyI
       </div>
       <p className="muted" style={{ margin: 0 }}>Drafts a short first message and one follow-up from your saved research, for you to edit and send by hand. It can&apos;t see their Instagram, so add one real detail from it yourself. Uses an AI credit; up to {cap} a day.</p>
       <div><button type="button" className="secondary" disabled={pending} onClick={draft}>{pending ? "Drafting…" : d ? "Draft again" : "Draft Instagram DM"}</button></div>
-      {res?.error && <p role="alert" className="error" style={{ margin: 0 }}>{res.error}</p>}
+      {res?.error && <p role="alert" className="error" style={{ margin: 0 }}><RefusalText text={res.error} /></p>}
       {d && (
         <>
           {d.warnings.map((w) => <p key={w} role="status" className="muted" style={{ margin: 0, color: "var(--warn)" }}>{w}</p>)}
@@ -47,7 +48,7 @@ export default function InstagramDm({ companyId, instagramUrl, cap }: { companyI
           </div>
         </>
       )}
-      {note && <p className="muted" style={{ margin: 0 }}>{note}</p>}
+      {note && <p className="muted" style={{ margin: 0 }}><RefusalText text={note} /></p>}
     </div>
   );
 }

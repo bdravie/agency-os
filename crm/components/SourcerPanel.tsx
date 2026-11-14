@@ -9,6 +9,9 @@ import type { NicheOption } from "@/lib/leadConfig";
 import { OPTIONS, money, type SourcerFilters } from "@/lib/sourcerFilters";
 import { deleteSavedSearchAction, saveSearchAction, type SavedSearch } from "@/lib/savedSearchActions";
 import NicheManager from "./NicheManager";
+import Link from "next/link";
+import RefusalText from "./RefusalText";
+import { NICHES_HREF, pickerGroups } from "@/lib/nicheStatus";
 import type { CopyStatus } from "@/lib/outreachTemplates";
 import ScoreBar from "./ScoreBar";
 import { useToast } from "./Toast";
@@ -34,6 +37,9 @@ export default function SourcerPanel({ niches, copy, budget, latestRunId, saved 
   const [adding, startAdd] = useTransition();
   const [maps, setMaps] = useState(false), [contacts, setContacts] = useState(true), [limit, setLimit] = useState(50);
   const [nicheKey, setNicheKey] = useState(""), [term, setTerm] = useState("");
+  const [showParked, setShowParked] = useState(false);
+  // Active niches can be chosen; seeding and audience ones are greyed with the reason; parked ones only with Show parked (docs/NICHE_FOCUS_PLAN.md). The server refuses them all the same.
+  const groups = pickerGroups(niches, showParked || niches.some((n) => n.key === nicheKey && n.status === "parked"));
   const [savedId, setSavedId] = useState(""), [saveName, setSaveName] = useState(""), [saving, startSave] = useTransition();
   const [loc, setLoc] = useState(""), [editing, setEditing] = useState(false), [searched, setSearched] = useState(false);
   const terms = niches.find((n) => n.key === nicheKey)?.terms ?? [];
@@ -139,7 +145,14 @@ export default function SourcerPanel({ niches, copy, budget, latestRunId, saved 
             <section className="sx-sec" hidden={collapsed}>
               <h2>What to look for</h2>
               <label className="sx-field">Niche
-                <select name="niche" required value={nicheKey} onChange={(e) => setNicheKey(e.target.value)}><option value="" disabled>Choose a niche</option>{niches.map((n) => <option key={n.key} value={n.key}>{n.label}{n.custom ? " (yours)" : ""}</option>)}</select></label>
+                <select name="niche" required value={nicheKey} onChange={(e) => setNicheKey(e.target.value)}>
+                  <option value="" disabled>Choose a niche</option>
+                  <optgroup label="Active">{groups.usable.map((n) => <option key={n.key} value={n.key}>{n.label}{n.custom ? " (yours)" : ""}</option>)}</optgroup>
+                  {groups.greyed.length > 0 && <optgroup label="Not searched">{groups.greyed.map((n) => <option key={n.key} value={n.key} disabled>{n.label} · {n.reason}</option>)}</optgroup>}
+                  {groups.parked.length > 0 && <optgroup label="Parked">{groups.parked.map((n) => <option key={n.key} value={n.key} disabled>{n.label}{n.custom ? " (yours)" : ""} · parked</option>)}</optgroup>}
+                </select></label>
+              <label className="sx-check" style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 14 }}><input type="checkbox" checked={showParked} onChange={(e) => setShowParked(e.target.checked)} />Show parked niches</label>
+              <p className="muted" style={{ margin: 0, fontSize: 13 }}>Only active niches are searched. <Link href={NICHES_HREF}>Change a niche&apos;s status</Link>.</p>
               <label className="sx-field">Town or area<input name="location" placeholder="Leeds" maxLength={60} required value={loc} onChange={(e) => setLoc(e.target.value)} /></label>
               <div className="sx-choice" role="radiogroup" aria-label="Company types">
                 <label><input type="radio" name="types" value="limited" defaultChecked />Limited companies only</label>
@@ -194,7 +207,7 @@ export default function SourcerPanel({ niches, copy, budget, latestRunId, saved 
             <div className="sx-go">
               <button disabled={busy}><Search size={16} aria-hidden /> {busy ? "Searching…" : "Search"}</button>
               <p className="sx-hint">{maps ? "Google Maps uses credits, shown above." : "Free. Nothing is added until you choose."}</p>
-              {start?.error && <p className="error" role="alert" style={{ margin: 0, fontSize: 14 }}>{start.error}</p>}
+              {start?.error && <p className="error" role="alert" style={{ margin: 0, fontSize: 14 }}><RefusalText text={start.error} /></p>}
               {start?.notes?.map((n) => <p key={n} role="status" className="sx-hint" style={{ color: "var(--warn)" }}>{n}</p>)}
             </div>
           </form>
@@ -267,7 +280,7 @@ export default function SourcerPanel({ niches, copy, budget, latestRunId, saved 
           ) : null}
         </section>
       </div>
-      <div className="card" style={{ marginTop: 24 }}><NicheManager niches={niches} copy={copy} /></div>
+      <div className="card" id="niches" style={{ marginTop: 24 }}><NicheManager niches={niches} copy={copy} /></div>
     </>
   );
 }

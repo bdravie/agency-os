@@ -35,3 +35,16 @@ def test_search_stops_when_no_more_results():
 def test_only_generic_emails_on_own_domain():
     html = "Email info@acme.co.uk or jane.smith@acme.co.uk or hello@gmail.com or Contact@Acme.co.uk"
     assert ch.generic_emails(html, "acme.co.uk") == ["contact@acme.co.uk", "info@acme.co.uk"]
+
+
+def test_only_active_niches_are_searched():
+    from agency.core.niches import niche_status, source_block
+
+    table = {"dental": {"status": "active"}, "property_developers": {"status": "seeding"}, "beauty": {"status": "audience"},
+             "hvac": {"status": "parked"}, "old": {}, "odd": {"status": "live"}}
+    assert source_block(table, "dental") is None
+    assert "seeding" in source_block(table, "property_developers")
+    assert "audience" in source_block(table, "beauty")
+    for key in ("hvac", "old", "odd", "missing", None):   # no status, an unknown one or an unknown niche counts as parked
+        assert niche_status(table, key) == "parked"
+        assert "parked" in source_block(table, key)

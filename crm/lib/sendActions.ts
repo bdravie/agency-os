@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { query, tx } from "./db";
 import { requireLogin } from "./auth";
 import { assertSendable } from "./complianceGate";
+import { assertNicheAllows } from "./nicheGate";
 import { accessToken, MailboxAuthError, sendRaw } from "./gmail";
 import { buildRaw, isEmail } from "./mime";
 import { contentProblems, remainingToday, sequenceProblem } from "./sendRules";
@@ -28,7 +29,7 @@ export async function sendEmailAction(input: Input): Promise<{ ok?: true; to?: s
   if (problems.length) return { error: problems[0] };
 
   // 1. Who it goes to, and whether they may be contacted: the company, the person, and the address itself.
-  try { await assertSendable(companyId); } catch (e) { return { error: e instanceof Error ? e.message : "Blocked." }; }
+  try { await assertSendable(companyId); await assertNicheAllows(companyId, "email"); } catch (e) { return { error: e instanceof Error ? e.message : "Blocked." }; }   // lead_gate, then the niche must use email
   let to: string | null = null, contactId: number | null = null;
   if (input.contactId) {
     const [ct] = await query<{ id: number; name: string; email: string | null; sendable: boolean }>(

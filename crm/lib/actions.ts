@@ -6,6 +6,8 @@ import { query, tx } from "./db";
 import { applyReminder, closeReminder } from "./linkedinSchedule";
 import { logActivity } from "./activity";
 import { assertSendable } from "./complianceGate";
+import { assertNicheAllows } from "./nicheGate";
+import { LOGGED_SEND_CHANNEL } from "./nicheStatus";
 import { requireLogin } from "./auth";
 import { normaliseDomain, parseCsv } from "./csv";
 import { CHANNELS, LOST_REASONS, STAGES, lostLabel } from "./stages";
@@ -99,12 +101,14 @@ export async function completeTask(form: FormData) {
   revalidatePath("/", "layout");
 }
 
-const LOG_TYPES = new Set(["email", "dm", "call", "note"]);
+const LOG_TYPES = new Set(["email", "dm", "linkedin_note", "call", "note"]);
 export async function logContact(form: FormData) {
   await requireLogin();
   const company_id = num(form, "company_id");
   const type = str(form, "type") ?? "note";
   if (!LOG_TYPES.has(type)) return;
+  const channel = LOGGED_SEND_CHANNEL[`${type}_logged`];   // a logged email, DM or LinkedIn note needs the company's niche to allow it (the database refuses it too)
+  if (company_id && channel) await assertNicheAllows(company_id, channel);
   await logActivity(`${type}_logged`, { company_id, channel: type, body: str(form, "body") });
   revalidatePath(`/companies/${company_id}`);
 }
@@ -635,7 +639,7 @@ export async function findWebsiteOneAction(_prev: string | null, form: FormData)
 /** The app never sends email. This only records that YOU sent it, and queues the follow-up. */
 export async function markOutreachSent(companyId: number, kind: "first" | "followup" | "social", subject: string, contactId?: number) {
   await requireLogin();
-  try { await assertSendable(companyId); } catch (e) { return { error: e instanceof Error ? e.message : "Blocked." }; }   // verified active limited company, not opted out, not suppressed: checked first, every time
+  try { await assertSendable(companyId); await assertNicheAllows(companyId, kind === "social" ? "active" : "email"); } catch (e) { return { error: e instanceof Error ? e.message : "Blocked." }; }   // niche checked too (docs/NICHE_FOCUS_PLAN.md); verified active limited company, not opted out, not suppressed: checked first, every time
   const [c] = await query<{ name: string; status: string }>(`SELECT name, status FROM companies WHERE id = $1`, [companyId]);
   if (!c) throw new Error("Company not found");
   let person: { id: number; name: string } | null = null;

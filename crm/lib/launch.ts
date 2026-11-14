@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { query } from "./db";
 import { logActivity } from "./activity";
 import { listNiches } from "./leadConfig";
+import { sourceBlockFor } from "./nicheGate";
 import { apifyToken, getLimits, startRun, ApifyError } from "./apify";
 import { apifySettings, perPlaceUsd, planRun } from "./apifyMath";
 
@@ -34,6 +35,8 @@ export const PLAIN_PLACE = /^[A-Za-z0-9 .,'&-]{2,60}$/;
 
 export async function launchChSearch(o: { niche: string; location: string | null; limit: number; minAgeYears?: number }): Promise<{ id?: number; error?: string }> {
   if (!(await listNiches()).some((n) => n.key === o.niche)) return { error: "Choose a niche from the list." };
+  const nicheBlock = await sourceBlockFor(o.niche);   // active niches only (docs/NICHE_FOCUS_PLAN.md), checked here as well as in the Lead Sourcer
+  if (nicheBlock) return { error: nicheBlock };
   if (o.location && !PLAIN_PLACE.test(o.location)) return { error: "Use a plain town, county or area name (letters, numbers and spaces)." };
   if (!process.env.COMPANIES_HOUSE_API_KEY?.trim()) return { error: "The server can't see COMPANIES_HOUSE_API_KEY (it is missing or empty). Put it in the .env file in the top-level folder as COMPANIES_HOUSE_API_KEY=yourkey, or set it as a Codespaces secret, then stop and restart the CRM." };
   const limit = Math.min(100, Math.max(10, Math.round(o.limit) || 50));
@@ -92,6 +95,8 @@ export type ApifyLaunch = { nicheKey: string; term: string; location: string; pl
 
 /** Sizes the search to today's budget, starts it with Apify's spend cap, and records it. Returns the run id, or why it could not start. */
 export async function launchApify(o: ApifyLaunch): Promise<{ id?: number; error?: string; note?: string }> {
+  const nicheBlock = await sourceBlockFor(o.nicheKey);   // active niches only, before anything is spent
+  if (nicheBlock) return { error: nicheBlock };
   if (!apifyToken()) return { error: "The server can't see APIFY_TOKEN. Add it to the .env file in the top-level folder (or as a Codespaces secret) and restart the CRM." };
   if (!PLAIN_PLACE.test(o.term)) return { error: "Use a plain search phrase, e.g. roofer." };
   if (!PLAIN_PLACE.test(o.location)) return { error: "Enter a town or area, e.g. Leeds." };

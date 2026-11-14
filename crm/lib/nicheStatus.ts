@@ -99,6 +99,52 @@ export function outreachBlock(t: NicheTable, key: string | null | undefined, cha
   return `${name} is active but does not use ${CHANNEL_LABEL[channel]}. Add it to the niche's channels if you mean to.`;
 }
 
+/** Where the owner changes a niche's status. Every niche refusal ends with NICHES_LINK_TEXT, which the screens turn into a link here (`RefusalText`). */
+export const NICHES_HREF = "/sourcer#niches";
+export const NICHES_LINK_TEXT = "Niches screen";
+const onNiches = ` Change it on the ${NICHES_LINK_TEXT}.`;
+
+/** Why the Lead Sourcer may not search this niche, or null. Active niches only: seeding and audience niches are never sourced, parked ones not at all. */
+export function sourceBlock(t: NicheTable, key: string | null | undefined): string | null {
+  if (canSource(t, key)) return null;
+  const status = nicheStatus(t, key);
+  const name = key && t[key] ? t[key].label : key ? labelOf(key) : "No niche";
+  if (status === "seeding") return `${name} is seeding: LinkedIn content and a few connection notes only, so no Lead Sourcer searches.${onNiches}`;
+  if (status === "audience") return `${name} is an audience niche: content only, so no Lead Sourcer searches.${onNiches}`;
+  return `${name} is parked, so no Lead Sourcer searches.${onNiches}`;
+}
+
+/**
+ * The niche rule for logging a send, the same rule the database trigger applies (guard_send_activity, niche_allows):
+ * an email needs the email channel, a LinkedIn note the linkedin channel (seeding allowed), and any other logged message (DM, social, SMS) an active niche.
+ */
+export const LOGGED_SEND_CHANNEL: Record<string, Channel | "active"> = { email_logged: "email", linkedin_note_logged: "linkedin", dm_logged: "active", sms_logged: "active" };
+
+/** Why this send may not be logged (or drafted) for a company in this niche, or null. `channel` is a channel, or "active" for a message that only needs an active niche. */
+export function sendBlock(t: NicheTable, key: string | null | undefined, channel: Channel | "active"): string | null {
+  if (channel !== "active") { const b = outreachBlock(t, key, channel); return b ? b.replace(/\.$/, "") + "." + onNiches : null; }
+  if (nicheStatus(t, key) === "active") return null;
+  const status = nicheStatus(t, key);
+  const name = key && t[key] ? t[key].label : key ? labelOf(key) : "No niche";
+  if (!key) return `This company has no niche, so it counts as parked: no messages. Give it an active niche first.${onNiches}`;
+  if (!t[key]) return `“${name}” is not a niche in your list, so it counts as parked: no messages. Move the company to an active niche.${onNiches}`;
+  return `${name} is ${status === "audience" ? "an audience niche: content only" : status === "seeding" ? "seeding: LinkedIn notes only" : "parked"}, so no messages.${onNiches}`;
+}
+
+export type PickerNiche = { key: string; label: string; status: NicheStatus };
+/**
+ * How a niche picker lists niches: active ones can be chosen; seeding and audience ones are shown greyed out with the reason;
+ * parked ones only when "Show parked" is on (and greyed too). Within a group, the order given is kept.
+ */
+export function pickerGroups<T extends PickerNiche>(niches: T[], showParked: boolean): { usable: T[]; greyed: (T & { reason: string })[]; parked: T[] } {
+  const why: Record<NicheStatus, string> = { active: "", seeding: "seeding: LinkedIn only", audience: "audience: content only", parked: "parked" };
+  return {
+    usable: niches.filter((n) => n.status === "active"),
+    greyed: niches.filter((n) => n.status === "seeding" || n.status === "audience").map((n) => ({ ...n, reason: why[n.status] })),
+    parked: showParked ? niches.filter((n) => n.status === "parked") : [],
+  };
+}
+
 /** Problems with the table as configured, worth showing to the owner: more active niches than allowed, or an active niche with no channel. */
 export function configProblems(t: NicheTable): string[] {
   const out: string[] = [];

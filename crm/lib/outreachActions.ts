@@ -3,6 +3,7 @@
 import { query } from "./db";
 import { requireLogin } from "./auth";
 import { loadGate } from "./complianceGate";
+import { nicheBlockFor } from "./nicheGate";
 import { outreachDrafts, type Draft } from "./outreach";
 import { insertOpener } from "./outreachOfferMath";
 import { latestRapportFor } from "./rapport";
@@ -15,6 +16,8 @@ export async function generateOutreachAction(companyId: number, contactId: numbe
   await requireLogin();
   const gate = await loadGate(companyId);
   if (!gate?.sendable) return { error: `Outreach is blocked for this lead. ${gate?.reasons.join(" ") ?? ""}`.trim() };
+  const nicheBlock = await nicheBlockFor(companyId, "email");   // on top of lead_gate: the company's niche must use email (docs/NICHE_FOCUS_PLAN.md)
+  if (nicheBlock) return { error: nicheBlock };
   const [c] = await query<{ display_name: string; niche: string | null }>(`SELECT display_name, niche FROM companies WHERE id = $1`, [companyId]);
   if (!c) return { error: "Company not found." };
   let firstName: string | null = null;

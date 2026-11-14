@@ -25,7 +25,7 @@ import httpx
 
 from agency import ch_health, compliance, config
 from agency.core import db
-from agency.core.niches import all_niches
+from agency.core.niches import all_niches, source_block
 
 API = "https://api.company-information.service.gov.uk"
 PAGE = 100
@@ -218,7 +218,11 @@ def main() -> None:
         return
     if not a.niche:
         p.error("--niche is required")
-    sics = (all_niches().get(a.niche) or {}).get("sic_codes")
+    table = all_niches()
+    blocked = source_block(table, a.niche)   # active niches only, the same rule the CRM applies before it launches this tool
+    if blocked:
+        p.error(blocked)
+    sics = (table.get(a.niche) or {}).get("sic_codes")
     if not sics:
         p.error(f"No sic_codes for niche '{a.niche}' in config/niches.yaml or the niches added in the CRM")
 

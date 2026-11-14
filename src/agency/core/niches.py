@@ -27,12 +27,31 @@ def custom_niches() -> dict[str, dict[str, Any]]:
         from agency.core import db  # imported here so reading the yaml never needs a database
 
         with db.connect() as conn:
-            rows = conn.execute("SELECT key, label, sic_codes, search_terms, offer FROM custom_niches").fetchall()
+            rows = conn.execute("SELECT key, label, sic_codes, search_terms, offer, status FROM custom_niches").fetchall()
     except Exception:
         return {}
-    return {r["key"]: {"label": r["label"], "sic_codes": list(r["sic_codes"]), "search_terms": list(r["search_terms"]), "offer": r["offer"]} for r in rows}
+    return {r["key"]: {"label": r["label"], "sic_codes": list(r["sic_codes"]), "search_terms": list(r["search_terms"]), "offer": r["offer"], "status": r["status"]} for r in rows}
 
 
 def all_niches() -> dict[str, dict[str, Any]]:
     """config/niches.yaml niches plus the ones added in the CRM. The yaml wins if a key exists in both."""
     return {**custom_niches(), **(niches().get("niches") or {})}
+
+
+STATUSES = ("active", "seeding", "audience", "parked")
+
+
+def niche_status(table: dict[str, dict[str, Any]], key: str | None) -> str:
+    """The same rule as crm/lib/nicheStatus.ts: a missing or unknown status, or an unknown key, is parked."""
+    status = (table.get(key or "") or {}).get("status")
+    return status if status in STATUSES else "parked"
+
+
+def source_block(table: dict[str, dict[str, Any]], key: str | None) -> str | None:
+    """Why lead search may not run for this niche, or None. Active niches only (docs/NICHE_FOCUS_PLAN.md, N2)."""
+    status = niche_status(table, key)
+    if status == "active":
+        return None
+    reason = {"seeding": "is seeding: LinkedIn content and a few connection notes only",
+              "audience": "is an audience niche: content only"}.get(status, "is parked")
+    return f"Niche '{key}' {reason}, so no lead searches. Only active niches are searched; change the status in config/niches.yaml."

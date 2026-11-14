@@ -45,6 +45,9 @@ export const rapportModel = () => resolve(process.env.RAPPORT_MODEL?.trim() || "
 /** The model for writing niche outreach copy: set OUTREACH_MODEL in .env (an alias or a full model id). Defaults to Sonnet. */
 export const outreachModel = () => resolve(process.env.OUTREACH_MODEL?.trim() || "sonnet");
 
+/** The model for LinkedIn connection notes: set LINKEDIN_NOTE_MODEL in .env. Defaults to Haiku, since a note is a couple of sentences. */
+export const linkedinNoteModel = () => resolve(process.env.LINKEDIN_NOTE_MODEL?.trim() || "haiku");
+
 export async function ask(prompt: string, model: ModelChoice = "sonnet", maxTokens = 1500): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
   g._anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
