@@ -7,6 +7,8 @@ import { changeNicheStatusAction, saveNicheDetailsAction } from "@/lib/nicheScre
 import { CHANNEL_LABEL, CHANNELS, MAX_ACTIVE, NICHE_PLATFORMS, STATUS_LABEL, STATUS_MEANING, STATUSES, type NicheStatus } from "@/lib/nicheStatus";
 import { CLIENTS_TO_UNLOCK, OFFER_MAX, OVERRIDE_REASON_MAX, OVERRIDE_REASON_MIN, PROMISE_MAX } from "@/lib/nicheChange";
 import type { NicheCard, NicheChange } from "@/lib/nicheScreen";
+import type { StopRow } from "@/lib/nicheTargets";
+import { STOP_MESSAGE, STOP_TOUCHES } from "@/lib/nicheTargetsMath";
 import { activityLabel } from "./activity";
 import { useToast } from "./Toast";
 
@@ -17,7 +19,7 @@ const TONE: Record<NicheStatus, string> = { active: "good", seeding: "warn", aud
 const PLATFORM_LABEL: Record<string, string> = { linkedin: "LinkedIn", instagram: "Instagram", tiktok: "TikTok" };
 const when = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-export default function NicheBoard({ cards, problems, recent }: { cards: NicheCard[]; problems: string[]; recent: NicheChange[] }) {
+export default function NicheBoard({ cards, problems, recent, stop = {} }: { cards: NicheCard[]; problems: string[]; recent: NicheChange[]; stop?: Record<string, StopRow> }) {
   const live = cards.filter((c) => c.status !== "parked"), parked = cards.filter((c) => c.status === "parked");
   const active = cards.filter((c) => c.status === "active").length;
   return (
@@ -33,7 +35,7 @@ export default function NicheBoard({ cards, problems, recent }: { cards: NicheCa
           <ul style={{ margin: 0, paddingLeft: 18 }}>{problems.map((p) => <li key={p}>{p}</li>)}</ul>
         </div>
       )}
-      <div className="niche-grid">{live.map((c) => <NicheCardView key={c.key} n={c} />)}</div>
+      <div className="niche-grid">{live.map((c) => <NicheCardView key={c.key} n={c} stop={stop[c.key]} />)}</div>
       {parked.length > 0 && (
         <details>
           <summary>Parked niches ({parked.length})</summary>
@@ -52,7 +54,7 @@ export default function NicheBoard({ cards, problems, recent }: { cards: NicheCa
   );
 }
 
-function NicheCardView({ n }: { n: NicheCard }) {
+function NicheCardView({ n, stop }: { n: NicheCard; stop?: StopRow }) {
   const router = useRouter(), toast = useToast();
   const [to, setTo] = useState<NicheStatus>(n.status);
   const [unlock, setUnlock] = useState<string | null>(null);   // the server's reason an override is needed
@@ -93,6 +95,9 @@ function NicheCardView({ n }: { n: NicheCard }) {
         <div><b>{n.counts.calls}</b><span>Calls booked</span></div>
         <div><b>{n.counts.clients}</b><span>Paying clients</span></div>
       </div>
+      {stop && (stop.hit
+        ? <p className="niche-stop" role="status"><b>{STOP_MESSAGE}.</b> Edit the offer or promise below to restart the count.</p>
+        : <p className="muted" style={{ margin: 0 }}>Stop rule: {stop.touches} of {STOP_TOUCHES} touches{stop.since ? ` since the offer changed on ${when(stop.since)}` : ""}, {stop.calls} {stop.calls === 1 ? "call" : "calls"} booked.</p>)}
       {n.override && (
         <p className="niche-override"><KeyRound size={14} aria-hidden /> Unlocked early with your password on {when(n.override.at)}: &ldquo;{n.override.reason}&rdquo;</p>
       )}

@@ -9,6 +9,20 @@ import type { Goal } from "@/lib/paceMath";
 const show = (g: Goal, n: number) => (g.money ? gbp(n) : String(n));
 const vars = (v: Record<string, string | number>) => v as CSSProperties;
 
+/** One goal: label, value against target, a bar with the pace tick, and where it is heading. Also used by the per-niche rows (NichePace). */
+export function GoalRow({ g, ariaLabel }: { g: Goal; ariaLabel?: string }) {
+  return (
+    <div className="goal">
+      <div className="row-between"><span>{g.label}</span><b>{show(g, g.value)} / {show(g, g.target)}</b></div>
+      <div className={`prog${g.status === "done" ? " full" : ""}`} role="progressbar" aria-label={ariaLabel ?? g.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={g.fill}>
+        <b style={{ width: `${g.fill}%` }} />
+        {g.pace !== null && <s style={{ left: `${g.pace}%` }} title="Where you should be by now" />}
+      </div>
+      {g.status !== "done" && g.projected !== null && <div className="mini">On course for {show(g, g.projected)}</div>}
+    </div>
+  );
+}
+
 export default function PaceCard({ card }: { card: Card }) {
   const { summary, goals } = card;
   const done = summary.status === "done";
@@ -24,16 +38,7 @@ export default function PaceCard({ card }: { card: Card }) {
           <span aria-hidden><i className="countup" style={vars({ "--n": summary.ring })} />%</span>
         </div>
       </div>
-      {goals.map((g) => (
-        <div key={g.key} className="goal">
-          <div className="row-between"><span>{g.label}</span><b>{show(g, g.value)} / {show(g, g.target)}</b></div>
-          <div className={`prog${g.status === "done" ? " full" : ""}`} role="progressbar" aria-label={g.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={g.fill}>
-            <b style={{ width: `${g.fill}%` }} />
-            {g.pace !== null && <s style={{ left: `${g.pace}%` }} title="Where you should be by now" />}
-          </div>
-          {g.status !== "done" && g.projected !== null && <div className="mini">On course for {show(g, g.projected)}</div>}
-        </div>
-      ))}
+      {goals.map((g) => <GoalRow key={g.key} g={g} />)}
     </section>
   );
 }

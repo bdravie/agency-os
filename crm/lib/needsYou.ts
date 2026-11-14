@@ -8,6 +8,8 @@ import { loadOutcomes, needsAttention } from "./outcomeData";
 import { proposalName } from "./proposalName";
 import { describeNeeds, isDemoFolder, shortTitle } from "./needsYouMath";
 import { FOLLOW_UP_AFTER_DAYS, FOLLOW_UP_UNTIL_DAYS, statusLabel } from "./proposalStatus";
+import { loadStopRule } from "./nicheTargets";
+import { STOP_MESSAGE } from "./nicheTargetsMath";
 
 // The one place that says what is outstanding. A number is never stored or marked as read: it is worked out from the data each time,
 // so it goes down by itself when the thing is done. The Inbox count stays in ReplyFeed, which also announces new replies.
@@ -141,6 +143,13 @@ const demoLooms: Rule = {
     }),
 };
 
+const offerStopRule: Rule = {
+  heading: "Change the offer, not the niche", one: "active niche with 150 touches and no calls", many: "active niches with 150 touches and no calls",
+  // The stop rule (docs/NICHE_FOCUS_PLAN.md, N4; nicheTargets.ts). Changing the niche's offer or promise restarts the count; a call booked clears it.
+  load: async () => (await loadStopRule()).filter((s) => s.hit)
+    .map((s) => ({ key: `niche-stop-${s.key}`, title: `${s.label}: ${STOP_MESSAGE}`, detail: `${s.touches} touches${s.since ? ` since the offer changed ${shortDate(s.since)}` : ""}, 0 calls booked`, href: `/niches#niche-${s.key}`, action: "Change offer" })),
+};
+
 // Keys are the sidebar links (components/nav-items.ts): a number shows against the page where it gets dealt with.
 const CATEGORIES: Record<string, Rule[]> = {
   "/tasks": [tasksDue],
@@ -153,6 +162,7 @@ const CATEGORIES: Record<string, Rule[]> = {
   "/enablement": [trainingOverdue],
   "/content": [postNumbers, videosPastDate],
   "/offers": [demoLooms],
+  "/niches": [offerStopRule],
 };
 
 // One rule failing (the database waking up, a table not migrated yet) leaves the other numbers and the page itself working.

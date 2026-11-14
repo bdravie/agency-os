@@ -18,3 +18,4 @@
 @media (max-width: 640px) {
   .niche-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+.niche-stop { margin: 0; padding: 8px 10px; font-size: 13.5px; color: var(--bad); background: var(--bad-soft); border-radius: var(--radius-sm); }

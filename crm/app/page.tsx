@@ -16,6 +16,8 @@ import { EmptyState, StageBadge, Stat } from "@/components/ui";
 import Particles from "@/components/Particles";
 import SectionTabs from "@/components/SectionTabs";
 import PaceCard from "@/components/PaceCard";
+import NichePace from "@/components/NichePace";
+import { loadNichePace } from "@/lib/nicheTargets";
 import BibleWidget from "@/components/BibleWidget";
 import { getDailyVerse } from "@/lib/bibleVerses";
 import WeekCalendar from "@/components/WeekCalendar";
@@ -33,7 +35,7 @@ const TABS = ["today", "week", "month", "pipeline", "activity"] as const;
 export default async function Today({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const asked = (await searchParams).tab;
   const tab = TABS.find((t) => t === asked) ?? "today";
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot, week, monthView] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot, week, monthView, nichePace] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -67,6 +69,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
     loadPipelineSnapshot(),
     loadWeekView(dayKey(new Date())),
     tab === "month" ? loadMonthView(dayKey(new Date())) : null,   // only read when that tab is open
+    loadNichePace().catch((e) => { console.error(`This week by niche: ${e instanceof Error ? e.message : e}`); return []; }),
   ]);
   const openDeals = FUNNEL_STAGES.filter((st) => st !== "Won").map((st) => { const x = snapshot.find((y) => y.stage === st); return { stage: st, n: x?.n ?? 0, value: x?.value ?? 0 }; }).filter((x) => x.n > 0);
   const openTotal = openDeals.reduce((a, x) => a + x.n, 0);
@@ -112,6 +115,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
           <PaceCard card={pace.week} />
           <PaceCard card={pace.month} />
         </div>
+        <NichePace rows={nichePace} />
       </section>
 
       <SectionTabs

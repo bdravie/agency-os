@@ -23,6 +23,8 @@ import { getLinkedInConnection } from "@/lib/linkedinApi";
 import { dailyCap, linkedinConfigured, tokenUsable } from "@/lib/linkedinApiMath";
 import { LINKEDIN_FORMAT, openingLine, postStage, wordCount } from "@/lib/linkedinMath";
 import { loadFollowerDashboard } from "@/lib/followerTracking";
+import { loadContentMix } from "@/lib/nicheTargets";
+import { PLATFORM_NAME } from "@/lib/nicheTargetsMath";
 import { calculateChecklistProgress } from "@/lib/quickCaptureMath";
 import NeedsYouCard from "@/components/NeedsYouCard";
 import ActionForm from "@/components/ActionForm";
@@ -85,6 +87,8 @@ export default async function Content({ searchParams }: { searchParams: Promise<
     loadFollowerDashboard().catch(() => []),
   ]);
   // The logo library for covers, only read when that tab is open.
+  // This week's content mix against each niche's platforms (docs/NICHE_FOCUS_PLAN.md, N4). Only read on the Overview.
+  const mix = tab === "overview" ? await loadContentMix().catch((e) => { console.error(`Content mix: ${e instanceof Error ? e.message : e}`); return null; }) : null;
   const coverAssets = tab === "thumbnails" ? (await query<any>(`SELECT id, name FROM thumbnail_assets ORDER BY lower(name)`).catch(() => [])).map((a: any) => ({ id: Number(a.id), name: a.name as string })) : [];
   // LinkedIn posts (content items with the LinkedIn format) and how far each has got, only read when that tab is open.
   // The LinkedIn tab has three views: the posts, What's working on LinkedIn, and the swipe file.
@@ -140,6 +144,28 @@ export default async function Content({ searchParams }: { searchParams: Promise<
             <Stat label="Open ideas" value={open} hint={`${live.length} total active in pipeline`} />
             <Stat label="Top performer" value={ins.top[0] ? `${ins.top[0].multiple.toFixed(1)}×` : "–"} hint={ins.top[0] ? ins.top[0].hookUsed || ins.top[0].idea : "Needs 3 posts per group"} />
           </section>
+
+          {mix && (mix.rows.length > 0 || mix.warnings.length > 0) && (
+            <section className="card" aria-label="This week's content mix">
+              <div className="row-between">
+                <h2 style={{ margin: 0 }}>This week&apos;s mix</h2>
+                <Link href="/content/calendar" className="muted">Calendar →</Link>
+              </div>
+              <p className="muted" style={{ margin: "6px 0 10px" }}>Posts planned for this week by platform, against posts_by_platform in config/targets.yaml, and checked against where each niche posts.</p>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                {mix.rows.map((r) => (
+                  <span key={r.platform} className={`badge tone-${r.target === null ? "neutral" : r.planned >= r.target ? "good" : "warn"}`}>
+                    {PLATFORM_NAME[r.platform]} {r.planned}{r.target !== null ? ` / ${r.target}` : ""}
+                  </span>
+                ))}
+              </div>
+              {mix.warnings.length > 0 && (
+                <ul className="fx-bullets" role="status" style={{ margin: "10px 0 0" }}>
+                  {mix.warnings.map((w) => <li key={w.id}><Link href={`/content/${w.id}`}>{w.idea.length > 60 ? w.idea.slice(0, 57) + "…" : w.idea}</Link>: <span style={{ color: "var(--warn)" }}>{w.text}</span></li>)}
+                </ul>
+              )}
+            </section>
+          )}
 
           <div className="split">
             <div className="stack">

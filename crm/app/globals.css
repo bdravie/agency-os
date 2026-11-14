@@ -833,6 +833,10 @@ button.danger:hover, .btn.danger:hover { color: var(--bad); border-color: var(--
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .pace-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
 @media (max-width: 1100px) { .pace-grid { grid-template-columns: minmax(0, 1fr); } }
+/* "This week by niche" (components/NichePace.tsx): one column per active or seeding niche, folding to one on narrow screens. */
+.niche-pace-card { margin-bottom: 20px; }
+.niche-pace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px 24px; margin-top: 10px; }
+.niche-pace-row { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line-soft); }
 .pace-head { margin: 4px 0 8px; font-family: var(--font-head); font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .goal { margin-top: 14px; font-size: 13.5px; }
 .goal .row-between { margin-bottom: 6px; flex-wrap: nowrap; }

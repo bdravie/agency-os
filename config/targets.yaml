@@ -15,3 +15,28 @@ month:                    # calendar month, UK time
   revenue_gbp: 6000       # one-off revenue booked (deals marked Won this month). Monthly recurring revenue is shown separately.
   deals_won: 3
   new_leads: 60
+
+# Weekly targets per niche (docs/NICHE_FOCUS_PLAN.md, N4). The Dashboard shows one row per active or seeding niche
+# (status in config/niches.yaml), target against this week so far, with the same pace tick as the cards above.
+#   emails, instagram_dms, linkedin_notes: sends you logged this week to companies in that niche
+#   posts: posts recorded this week (the Posted dialog) for content tagged with that niche, per platform
+# A target for a channel or platform the niche does not use is not shown (the Dashboard says so), so it never asks for outreach the niche refuses.
+by_niche:
+  dental:
+    emails: 30
+    linkedin_notes: 5
+    posts: { linkedin: 1 }    # the 2 clinic LinkedIn posts, split one each with aesthetics
+  aesthetics:
+    emails: 20
+    instagram_dms: 15
+    linkedin_notes: 5
+    posts: { linkedin: 1 }
+  property_developers:
+    linkedin_notes: 10
+    posts: { linkedin: 1 }
+
+# The week's content mix across all niches, checked on the Content overview against what is planned for this week.
+posts_by_platform:
+  linkedin: 3       # 2 clinic (dental or aesthetics), 1 property
+  instagram: 2      # beauty or aesthetics
+  tiktok: 2         # the same videos as Instagram

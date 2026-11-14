@@ -11,6 +11,9 @@ import LinkedInPostEditor from "@/components/LinkedInPostEditor";
 import PostImageBuilder from "@/components/PostImageBuilder";
 import LinkedInSchedule from "@/components/LinkedInSchedule";
 import { Badge, PageHeader } from "@/components/ui";
+import { nicheTable } from "@/lib/nicheGate";
+import { platformsFor } from "@/lib/nicheStatus";
+import { PLATFORM_NAME } from "@/lib/nicheTargetsMath";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "LinkedIn post" };
@@ -32,10 +35,16 @@ export default async function LinkedInPost({ params }: { params: Promise<{ id: s
   const text: string = post.script ?? "";
   const stage = postStage({ status: post.status, day: post.day, hasImage: images.some((i: any) => i.selected) });
   const from = String(post.source_ref ?? "").match(/^(?:linkedin:)?content:(\d+)$/)?.[1];
+  // A post tagged with a niche that does not post on LinkedIn (an audience niche like beauty, or a parked one) is flagged, not blocked: it is your own profile.
+  const niches = post.niche && post.status !== "Posted" ? await nicheTable().catch(() => null) : null;
+  const nicheWarning = niches && !platformsFor(niches, post.niche).includes("linkedin")
+    ? `${niches[post.niche]?.label ?? post.niche} ${!niches[post.niche] ? "is not a niche in your list" : niches[post.niche].status === "parked" ? "is parked" : `posts on ${platformsFor(niches, post.niche).map((p) => PLATFORM_NAME[p]).join(" and ") || "no platform"} only`}, so a LinkedIn post for it is off-plan. Change the post's niche, or the niche's platforms on the Niches screen.`
+    : null;
   const aiReady = !!process.env.ANTHROPIC_API_KEY;
 
   return (
     <>
+      {nicheWarning && <p className="error" role="status" style={{ marginBottom: 12 }}>{nicheWarning}</p>}
       <PageHeader
         back={{ href: "/content?tab=linkedin", label: "LinkedIn posts" }}
         title={post.idea}
