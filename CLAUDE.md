@@ -99,6 +99,7 @@ The step-by-step build order is in `BUILD_PLAN.md`. Work through it one mileston
 - Prompts live as Markdown files in `prompts/`, not inline strings, so the owner can edit them.
 - The CRM is clean, fast and keyboard-friendly; it will be filmed for marketing, and it follows `BRAND_SHEET.md`. Every page must work in `DEMO_MODE` with fake data (example.com emails, 07700 900xxx phone numbers).
 - Every demo folder in `demos/<name>/` contains `README.md` (what it does, setup, cost per run), `loom-script.md`, the n8n workflow JSON or code, and `sample-data/` with fake data only.
+- **Pop-ups and confirmations (Modern Web Guidance, 18 Nov 2026)**: every pop-up is a native `<dialog>` opened with `showModal()` through `crm/components/Modal.tsx` (no hand-written role, aria-modal, focus trap or Escape handler). An action that reaches someone outside the CRM (send, post, invite, cancel a meeting) asks with `useConfirm` from `crm/components/ConfirmDialog.tsx`, naming who and what, with the safe button focused; the browser's `confirm()` is fine for in-CRM choices like "replace this draft?". Render the returned dialog beside a `<form>`, never inside it (the dialog holds its own form, and an unrendered dialog leaves the action silently doing nothing). Run `npx modern-web-guidance@latest legacy-scan crm site` to check for old patterns.
 - British English in anything client-facing. Prices in GBP.
 - Before saying a milestone is done, run the tests, run the feature once on demo data, and check the done-checklist.
 
