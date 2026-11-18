@@ -33,19 +33,33 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [note, setNote] = useState<string | null>(null);
   const [adding, startAdd] = useTransition();
-  const [maps, setMaps] = useState(false), [contacts, setContacts] = useState(true), [limit, setLimit] = useState(50);
+  // Apify's paid contact add-on starts off: the CRM reads each business's own website for emails and social pages for free (apifyActions.ts).
+  const [maps, setMaps] = useState(false), [ch, setCh] = useState(true), [cqc, setCqc] = useState(false), [contacts, setContacts] = useState(false), [limit, setLimit] = useState(50);
   const [nicheKey, setNicheKey] = useState(""), [term, setTerm] = useState("");
   const [showParked, setShowParked] = useState(false);
   // Active niches can be chosen; seeding and audience ones are greyed with the reason; parked ones only with Show parked (docs/NICHE_FOCUS_PLAN.md). The server refuses them all the same.
   const groups = pickerGroups(niches, showParked || niches.some((n) => n.key === nicheKey && n.status === "parked"));
   const [savedId, setSavedId] = useState(""), [saveName, setSaveName] = useState(""), [saving, startSave] = useTransition();
   const [loc, setLoc] = useState(""), [editing, setEditing] = useState(false), [searched, setSearched] = useState(false);
-  const terms = niches.find((n) => n.key === nicheKey)?.terms ?? [];
+  const chosen = niches.find((n) => n.key === nicheKey);
+  const terms = chosen?.terms ?? [];
+  const mapsFirst = !!chosen?.searchFirst.includes("maps"), cqcOk = !!chosen?.cqc;
+  /**
+   * Choosing a niche ticks the sources it searches first (search_first in niches.yaml): the CQC register for dental (free, and it names the
+   * company behind each practice), Google Maps for niches whose trading names Companies House doesn't hold. Every tick can be changed before searching.
+   */
+  const pickNiche = (key: string) => {
+    setNicheKey(key);
+    const n = niches.find((x) => x.key === key), first = n?.searchFirst ?? ["ch"];
+    const m = first.includes("maps") && budget.configured, q = first.includes("cqc") && !!n?.cqc;
+    setMaps(m); setCqc(q); setCh(first.includes("ch") || (!m && !q));
+  };
+  const SOURCE_LABEL: Record<string, string> = { ch: "Companies House", maps: "Google Maps", cqc: "CQC register" };
 
   const load = async (id: number, override?: Record<string, string>, keepPicks = false) => {
     const r = await sourcerResultsAction(id, override);
     setRes(r);
-    setPicked((prev) => new Set((r?.rows ?? []).filter((x) => !x.skip && !x.added && (keepPicks ? prev.has(x.key) : x.eligible === "eligible")).map((x) => x.key)));
+    setPicked((prev) => new Set((r?.rows ?? []).filter((x) => !x.skip && !x.added && (keepPicks ? prev.has(x.key) : x.eligible === "eligible" && !x.offNiche)).map((x) => x.key)));
   };
   useEffect(() => { if (shown) void load(shown); }, [shown]);
   useEffect(() => { if (start?.id) { setRunId(start.id); setShown(null); setRes(null); setNote(null); setEditing(false); setSearched(true); } }, [start]);
@@ -77,14 +91,14 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
   const loadSaved = (f: SourcerFilters) => {
     const el = form.current;
     if (!el) return;
-    setNicheKey(niches.some((n) => n.key === f.niche) ? f.niche : ""); setLoc(f.location); setTerm(f.term ?? "");
-    setMaps(f.sources.includes("maps") && budget.configured); setContacts(f.contacts); setLimit(OPTIONS.limit.includes(f.limit) ? f.limit : 50); setEditing(true);
+    setNicheKey(niches.some((n) => n.key === f.niche) ? f.niche : ""); setLoc(f.location); setTerm(f.term ?? ""); setCh(f.sources.includes("ch"));
+    setMaps(f.sources.includes("maps") && budget.configured); setCqc(f.sources.includes("cqc") && !!niches.find((n) => n.key === f.niche)?.cqc); setContacts(f.contacts); setLimit(OPTIONS.limit.includes(f.limit) ? f.limit : 50); setEditing(true);
     const set = (name: string, v: string) => { const x = el.elements.namedItem(name); if (x && "value" in x) (x as HTMLInputElement | RadioNodeList).value = v; };
     const str = (n: number | null) => (n === null ? "" : String(n));
     set("revMin", str(f.revMin)); set("revMax", str(f.revMax)); set("empMin", str(f.empMin)); set("empMax", str(f.empMax)); set("ageMin", str(f.ageMin));
     set("reviewsMin", str(f.reviewsMin)); set("website", f.website); set("rating", f.rating); set("types", f.types);
     const cb = (name: string, on: boolean) => { const x = el.elements.namedItem(name) as HTMLInputElement | null; if (x) x.checked = on; };
-    cb("src_ch", f.sources.includes("ch")); cb("includeUnknown", f.includeUnknown);
+    cb("includeUnknown", f.includeUnknown);
   };
   const saveCurrent = () => startSave(async () => {
     if (!form.current) return;
@@ -136,14 +150,14 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
               <section className="sx-sec">
                 <h2>This search</h2>
                 <p style={{ margin: 0, fontSize: 15, lineHeight: 1.45 }}><b>{nicheLabel}</b> in <b>{loc}</b></p>
-                <p className="sx-hint">{res?.filters.sources.map((x) => (x === "ch" ? "Companies House" : "Google Maps")).join(" and ")}, up to {res?.filters.limit}</p>
+                <p className="sx-hint">{res?.filters.sources.map((x) => SOURCE_LABEL[x] ?? x).join(" and ")}, up to {res?.filters.limit}</p>
                 <button type="button" className="secondary" onClick={() => setEditing(true)}>Change search</button>
               </section>
             )}
             <section className="sx-sec" hidden={collapsed}>
               <h2>What to look for</h2>
               <label className="sx-field">Niche
-                <select name="niche" required value={nicheKey} onChange={(e) => setNicheKey(e.target.value)}>
+                <select name="niche" required value={nicheKey} onChange={(e) => pickNiche(e.target.value)}>
                   <option value="" disabled>Choose a niche</option>
                   <optgroup label="Active">{groups.usable.map((n) => <option key={n.key} value={n.key}>{n.label}{n.custom ? " (yours)" : ""}</option>)}</optgroup>
                   {groups.greyed.length > 0 && <optgroup label="Not searched">{groups.greyed.map((n) => <option key={n.key} value={n.key} disabled>{n.label} · {n.reason}</option>)}</optgroup>}
@@ -151,6 +165,10 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
                 </select></label>
               <label className="sx-check" style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 14 }}><input type="checkbox" checked={showParked} onChange={(e) => setShowParked(e.target.checked)} />Show parked niches</label>
               <p className="muted" style={{ margin: 0, fontSize: 13 }}>Only active niches are searched. <Link href={NICHES_HREF}>Change a niche&apos;s status</Link>.</p>
+              {maps && <label className="sx-field">Keywords for Google Maps<input name="term" list="sx-terms" placeholder={terms[0] ?? "dental practice"} maxLength={80} value={term} onChange={(e) => setTerm(e.target.value)} /><datalist id="sx-terms">{terms.map((t) => <option key={t} value={t} />)}</datalist>
+                <span className="sx-hint">What a customer would type, e.g. {terms.slice(0, 3).map((t) => `"${t}"`).join(", ") || '"botox clinic"'}. Leave blank for the niche&apos;s first one.</span></label>}
+              {chosen?.searchFirst.includes("cqc") && cqcOk && <p className="sx-hint" style={{ margin: 0 }}>This niche searches the CQC register first: it is free, and it names the limited company behind each practice, so the match to Companies House is exact.</p>}
+              {mapsFirst && <p className="sx-hint" style={{ margin: 0 }}>{budget.configured ? "This niche searches Google Maps first: its businesses trade under names Companies House doesn't hold. Each one is then matched to Companies House by its name, or by the company number on its own website." : "This niche works best searched on Google Maps first, but Google Maps isn't switched on (add APIFY_TOKEN)."}</p>}
               <label className="sx-field">Town or area<input name="location" placeholder="Leeds" maxLength={60} required value={loc} onChange={(e) => setLoc(e.target.value)} /></label>
               <div className="sx-choice" role="radiogroup" aria-label="Company types">
                 <label><input type="radio" name="types" value="limited" defaultChecked />Limited companies only</label>
@@ -163,15 +181,18 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
             <section className="sx-sec" hidden={collapsed}>
               <h2>Where to look</h2>
               <div className="sx-source">
-                <label><input type="checkbox" name="src_ch" defaultChecked /><span><strong>Companies House</strong><span className="sx-hint">Active limited companies by industry code, with filing health and size.</span></span><span className="sx-cost free">Free</span></label>
+                <label><input type="checkbox" name="src_cqc" checked={cqc && cqcOk} disabled={!cqcOk} onChange={(e) => setCqc(e.target.checked)} /><span><strong>CQC register</strong><span className="sx-hint">{cqcOk ? "Every registered practice in England, with the limited company that runs it, its phone and often its website. Chains left out. Updated weekly by CQC." : "Only for niches CQC regulates (dental, medically led aesthetics)."}</span></span><span className="sx-cost free">Free</span></label>
+                {cqcOk && cqc && <p className="sx-hint" style={{ paddingLeft: 26, margin: 0 }}>Contains CQC data © Care Quality Commission, Open Government Licence v3.0. The first search each week downloads CQC&apos;s directory (about 20 seconds).</p>}
+              </div>
+              <div className="sx-source">
+                <label><input type="checkbox" name="src_ch" checked={ch} onChange={(e) => setCh(e.target.checked)} /><span><strong>Companies House</strong><span className="sx-hint">Active limited companies by industry code, with filing health and size.</span></span><span className="sx-cost free">Free</span></label>
               </div>
               <div className="sx-source">
                 <label><input type="checkbox" name="src_maps" checked={maps} onChange={(e) => setMaps(e.target.checked)} disabled={!budget.configured} /><span><strong>Google Maps</strong><span className="sx-hint">Phone, website, rating, reviews and generic emails.</span></span><span className="sx-cost paid">Credits</span></label>
                 {!budget.configured && <p className="sx-hint" style={{ paddingLeft: 26 }}>Add <code>APIFY_TOKEN</code> to switch this on.</p>}
                 {maps && (
                   <div className="sx-sub">
-                    <label className="sx-field">What to search for<input name="term" list="sx-terms" placeholder={terms[0] ?? "roofer"} maxLength={80} value={term} onChange={(e) => setTerm(e.target.value)} /><datalist id="sx-terms">{terms.map((t) => <option key={t} value={t} />)}</datalist></label>
-                    <label className="row" style={{ gap: 8, fontSize: 13.5, color: "var(--text-2)" }}><input type="checkbox" name="contacts" checked={contacts} onChange={(e) => setContacts(e.target.checked)} />Look on their website for emails and social pages (+{usd(budget.perPlace.withContacts - budget.perPlace.without)} a place)</label>
+                    <label className="row" style={{ gap: 8, fontSize: 13.5, color: "var(--text-2)" }}><input type="checkbox" name="contacts" checked={contacts} onChange={(e) => setContacts(e.target.checked)} />Also have Apify look for emails and social pages (+{usd(budget.perPlace.withContacts - budget.perPlace.without)} a place). Usually not needed: the CRM reads each website itself, free.</label>
                     <div className="sx-meter">
                       <div className="sx-track" role="img" aria-label={`${usd(budget.dailyUsed)} of ${usd(budget.dailyCap)} used today`}><i className="used" style={{ width: `${usedPct}%` }} /><i className="est" style={{ width: `${estPct}%` }} /></div>
                       <span className="sx-hint">{budget.maxPlacesNow < 1 ? (budget.blocked ?? "Today's budget is used up.") : <>This search: about <b>{usd(est)}</b> for {fit} place{fit === 1 ? "" : "s"}{fit < places ? ` (cut from ${places} to fit today's budget)` : ""}. Today so far {usd(budget.dailyUsed)} of {usd(budget.dailyCap)}.</>}</span>
@@ -181,6 +202,14 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
               </div>
               <label className="sx-field">How many to look at<select name="limit" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>{OPTIONS.limit.map((n) => <option key={n}>{n}</option>)}</select></label>
             </section>
+
+            {/* Search sits above the filters, so it is never below the fold (it used to be last, under every filter, on a narrow screen). */}
+            <div className="sx-go">
+              <button disabled={busy}><Search size={16} aria-hidden /> {busy ? "Searching…" : "Search"}</button>
+              <p className="sx-hint">{maps ? "Google Maps uses credits, shown above." : "Free. Nothing is added until you choose."}</p>
+              {start?.error && <p className="error" role="alert" style={{ margin: 0, fontSize: 14 }}><RefusalText text={start.error} /></p>}
+              {start?.notes?.map((n) => <p key={n} role="status" className="sx-hint" style={{ color: "var(--warn)" }}>{n}</p>)}
+            </div>
 
             <section className="sx-sec">
               <h2>Narrow it down</h2>
@@ -201,13 +230,6 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
                 <input aria-label="Name for this search" placeholder="Leave blank to name it after the niche and area" maxLength={80} value={saveName} onChange={(e) => setSaveName(e.target.value)} /></label>
               <button type="button" className="secondary" disabled={saving || nicheKey === "" || loc.trim() === ""} onClick={saveCurrent}>{saving ? "Saving…" : "Save this search"}</button>
             </section>
-
-            <div className="sx-go">
-              <button disabled={busy}><Search size={16} aria-hidden /> {busy ? "Searching…" : "Search"}</button>
-              <p className="sx-hint">{maps ? "Google Maps uses credits, shown above." : "Free. Nothing is added until you choose."}</p>
-              {start?.error && <p className="error" role="alert" style={{ margin: 0, fontSize: 14 }}><RefusalText text={start.error} /></p>}
-              {start?.notes?.map((n) => <p key={n} role="status" className="sx-hint" style={{ color: "var(--warn)" }}>{n}</p>)}
-            </div>
           </form>
         </aside>
 
@@ -231,6 +253,7 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
                 )}
               </div>
               {note && <p role="status" className="muted" style={{ margin: 0 }}>{note}</p>}
+              {res.offNiche > 0 && <p className="sx-hint" style={{ color: "var(--warn)", margin: 0 }}>{res.offNiche} look{res.offNiche === 1 ? "s" : ""} like another industry from the name or Google category. They are at the bottom, greyed and not ticked, so you can still add a real clinic with an odd registered name.</p>}
               {res.warnings.map((w) => <p key={w} className="sx-hint" style={{ color: "var(--warn)" }}>{w}</p>)}
               {res.dropped.length > 0 && <details><summary className="muted">What the filters hid</summary><ul style={{ marginTop: 6 }}>{res.dropped.map(([why, n]) => <li key={why} className="muted" style={{ border: 0, padding: "2px 0" }}>{n} {why}</li>)}</ul></details>}
               <div className="sx-legend" aria-label="What the score bar shows">
@@ -244,14 +267,15 @@ export default function SourcerPanel({ niches, budget, latestRunId, saved }: { n
                     const off = !!r.skip || r.added;
                     return (
                       <li key={r.key}>
-                        <div className={`sx-row${off ? " off" : ""}`}>
+                        <div className={`sx-row${off ? " off" : r.offNiche ? " flag" : ""}`}>
                           <input type="checkbox" disabled={off} checked={picked.has(r.key)} onChange={() => toggle(r.key)} aria-label={`Add ${r.name}`} />
                           <ScoreBar parts={r.parts} score={r.score} tier={r.tier} why={r.why} n={i} />
                           <div className="sx-detail">
                           <div className="sx-biz">
                             <b>{r.name}</b>
                             <span>{[r.chNumber, ...r.categories.slice(0, 2), [r.city, r.postcode].filter(Boolean).join(" ")].filter(Boolean).join(", ") || "No further details"}</span>
-                            <span className="sx-status">{r.added ? "Added" : r.skip ?? (r.eligible === "eligible" ? `Active ${r.chType?.toUpperCase() ?? "company"}, verified` : r.eligible === "not_eligible" ? `Not eligible: ${r.chStatus ?? "status unknown"}` : "Not matched to a limited company")}{r.sources.length > 1 ? ". Found in both sources" : r.sources[0] === "maps" ? ". Google Maps" : ". Companies House"}</span>
+                            <span className="sx-status">{r.added ? "Added" : r.skip ?? (r.eligible === "eligible" ? `Active ${r.chType?.toUpperCase() ?? "company"}, verified` : r.eligible === "not_eligible" ? `Not eligible: ${r.chStatus ?? "status unknown"}` : "Not matched to a limited company")}. {r.sources.map((x) => SOURCE_LABEL[x] ?? x).join(" + ")}{r.registered ? `. Registered as ${r.registered}` : ""}</span>
+                            {r.offNiche && !off && <span className="sx-flag">{r.offNiche}. Not ticked: check it before adding.</span>}
                           </div>
                           <div className="sx-figs">
                           <div className="sx-reach" aria-label="How to reach them">

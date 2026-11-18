@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { bookMeeting } from "@/lib/meetingActions";
 import type { BookableContact } from "@/lib/meetings";
+import { useConfirm } from "./ConfirmDialog";
 
 // One meeting, one click, one confirmation that names the person and the calendar. Nothing is sent until the owner confirms.
 export default function BookMeetingForm({ contacts, calendarEmail, preselect, defaultDate, left }: {
@@ -19,14 +20,25 @@ export default function BookMeetingForm({ contacts, calendarEmail, preselect, de
     return [...m.entries()];
   }, [contacts]);
 
-  const confirmText = (f: FormData) => {
+  // The form is held back until the confirmation is answered, then submitted again with `confirmed` set.
+  const [confirmBooking, confirmDialog] = useConfirm();
+  const confirmed = useRef(false);
+  const ask = async (form: HTMLFormElement) => {
+    const f = new FormData(form);
     const when = new Date(`${f.get("date")}T${f.get("time")}`);
     const day = isNaN(when.getTime()) ? "" : when.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-    return `Send ${chosen?.name ?? "this person"} (${chosen?.email ?? ""}) a Google Calendar invitation with a Meet link?\n\nWhen: ${day} at ${f.get("time")} (UK time), ${f.get("length")} minutes\nFrom calendar: ${calendarEmail}\n\nGoogle emails the invitation as soon as you press OK.`;
+    const yes = await confirmBooking({
+      title: `Send ${chosen?.name ?? "this person"} an invitation?`,
+      details: [["To", chosen?.email ?? ""], ["When", `${day} at ${f.get("time")} (UK time), ${f.get("length")} minutes`], ["From calendar", calendarEmail]],
+      body: "A Google Calendar invitation with a Meet link. Google emails it as soon as you confirm.",
+      confirmLabel: "Send invitation",
+    });
+    if (yes) { confirmed.current = true; form.requestSubmit(); }
   };
 
   return (
-    <form action={action} onSubmit={(e) => { if (!window.confirm(confirmText(new FormData(e.currentTarget)))) e.preventDefault(); }} className="card stack" style={{ gap: 14, maxWidth: 760 }}>
+    <>
+    <form action={action} onSubmit={(e) => { if (confirmed.current) { confirmed.current = false; return; } e.preventDefault(); void ask(e.currentTarget); }} className="card stack" style={{ gap: 14, maxWidth: 760 }}>
       <label className="stack" style={{ gap: 4 }}><span className="field-label">Who is the meeting with?</span>
         <select name="contact_id" required value={contactId} onChange={(e) => setContactId(e.target.value ? Number(e.target.value) : "")} style={{ width: "100%" }}>
           <option value="">Choose a saved contact…</option>
@@ -62,5 +74,7 @@ export default function BookMeetingForm({ contacts, calendarEmail, preselect, de
         <span className="muted">Google sends one email with the Meet link. {left} left today.</span>
       </div>
     </form>
+    {confirmDialog}
+    </>
   );
 }

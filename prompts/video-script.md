@@ -48,13 +48,15 @@ Rules for it: one ask only, under 14 words, said the way I talk, and specific to
 
 ## Provide
 
+- expected_take: the video most people in this niche would make on this idea, in one sentence (the one you are not writing)
+- angle: the angle this video takes instead, in one sentence
 - hooks: the 5 options
 - favourite_hook: the best of the five, copied exactly
 - script: the spoken script, ending with the call to action
 - on_screen_text: one short line per beat, plus what to screen-record; the last line is the end card showing the call to action
 - cta_type: comment, follow, save or dm
 - cta_line: the call to action exactly as spoken
-- caption: under 60 words, opens with a line that is not the hook repeated, and ends with the call to action
+- caption: under 60 words, opens with a line that is not the hook repeated, adds something the video does not say, and ends with the call to action in different words from the spoken one
 - keyword: one uppercase word when cta_type is comment or dm (the word they send); otherwise an empty string
 
 Rules: British English. Only claim results that are true; do not invent clients, numbers or testimonials. If the idea needs a result you can't know, show the build working instead. Business data only, never a client's customers' details, and never name a real client or business.

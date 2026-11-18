@@ -11,6 +11,8 @@ import { scriptEvidence } from "./scriptItem";
 import { loadPosts } from "./contentPerformance";
 import { evidenceDigest } from "./ideaEvidenceMath";
 import type { Breakdown } from "./breakdownMath";
+import { loadFreshness } from "./freshness";
+import { freshProblems } from "./freshnessMath";
 import {
   IMAGE_KINDS, LINKEDIN_FORMAT, assemblePost, cleanPostImage, draftProblems, imageProblems, imageTextProblem, mermaidFromGraph,
   type GraphEdge, type GraphNode, type ImageKind, type ImageSize, type PostImage,
@@ -24,7 +26,8 @@ const prompt = (name: string) => readFile(path.join(root(), "prompts", name), "u
 const S = { type: "string" } as const;
 
 export type Draft = { title: string; opening: string; openingAlt: string; text: string };
-export type DraftSource = { fromItemId?: number | null; topic?: string | null; notes?: string | null };
+/** `rewriteId` is the post being rewritten, whose own wording may be kept. */
+export type DraftSource = { fromItemId?: number | null; topic?: string | null; notes?: string | null; rewriteId?: number | null };
 
 // Shown only when there is no API key (demo mode), so the screen has something to work with. A failed AI call is reported, never replaced by this.
 const EXAMPLE: Draft = {
@@ -90,21 +93,25 @@ export async function draftPost(src: DraftSource): Promise<{ ok: true; draft: Dr
 
   const banned = await loadBanned().catch(() => [] as string[]);
   const evidence = await linkedinEvidence(banned);
-  const base = `${await guide()}\n\n${await prompt("linkedin-post.md")}${evidence.trim() ? `\n\nWHAT HAS WORKED:\n${evidence.trim()}` : ""}\n\nSOURCE:\n${source.text}`;
+  // Freshness: stock phrases and wording from earlier posts are refused (freshnessMath.ts), and the AI is shown what has been used.
+  const fresh = await loadFreshness(src.rewriteId ? [src.rewriteId] : [], banned, source.text);
+  const base = `${await guide()}\n\n${await prompt("linkedin-post.md")}\n\n${fresh.block}${evidence.trim() ? `\n\nWHAT HAS WORKED:\n${evidence.trim()}` : ""}\n\nSOURCE:\n${source.text}`;
   const schema = {
-    type: "object" as const, required: ["title", "hooks", "favourite_hook", "body", "hashtags"],
-    properties: { title: S, hooks: { type: "array" as const, minItems: 2, maxItems: 4, items: S }, favourite_hook: S, body: S, hashtags: { type: "array" as const, maxItems: 3, items: S } },
+    type: "object" as const, required: ["expected_take", "angle", "title", "hooks", "favourite_hook", "body", "hashtags"],
+    properties: { expected_take: S, angle: S, title: S, hooks: { type: "array" as const, minItems: 2, maxItems: 4, items: S }, favourite_hook: S, body: S, hashtags: { type: "array" as const, maxItems: 3, items: S } },
   };
   let problems: string[] = [], draft: Draft | null = null;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  const found = new Set<string>();   // every problem so far, so a retry does not fix one and bring back another
+  for (let attempt = 0; attempt < 3; attempt++) {
     const raw = await askStructured<{ title: string; hooks: string[]; favourite_hook: string; body: string; hashtags: string[] }>(
-      attempt === 0 ? base : `${base}\n\nYour last answer had these problems. Fix them and answer again in full:\n- ${problems.join("\n- ")}`, schema, linkedinModel(), 2500);
+      attempt === 0 ? base : `${base}\n\nYour earlier answers had these problems. Fix all of them and answer again in full:\n- ${[...found].join("\n- ")}`, schema, linkedinModel(), 4500);
     const hooks = (Array.isArray(raw.hooks) ? raw.hooks : []).map((h) => String(h ?? "").trim()).filter(Boolean);
     const fav = String(raw.favourite_hook ?? "").trim();
     const { a, b } = pickHooks(hooks, hooks.includes(fav) ? fav : hooks[0] ?? "");
     draft = { title: String(raw.title ?? "").replace(/\s+/g, " ").trim().slice(0, 120) || source.idea, opening: a, openingAlt: b ?? "", text: assemblePost(a, String(raw.body ?? ""), Array.isArray(raw.hashtags) ? raw.hashtags.map(String) : []) };
-    problems = draftProblems(draft, banned);
+    problems = [...draftProblems(draft, banned), ...freshProblems([{ name: "post", text: draft.text }, { name: "opening line", text: draft.opening, startOnly: true }, { name: "second opening line", text: draft.openingAlt, hook: true }], fresh.rules)];
     if (!problems.length) break;
+    problems.forEach((p) => found.add(p));
   }
   if (problems.length || !draft) return { ok: false, error: `The AI's post did not pass the checks, so nothing was saved: ${problems.join("; ")}. Try again, or write it yourself.` };
   return { ok: true, draft, niche: source.niche, pillar: source.pillar };

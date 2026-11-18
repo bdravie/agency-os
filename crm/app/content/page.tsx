@@ -13,6 +13,9 @@ import ContentTabs from "@/components/ContentTabs";
 import QuickCaptureBox from "@/components/QuickCaptureBox";
 import FootageManager from "@/components/FootageManager";
 import ThumbnailBuilder from "@/components/ThumbnailBuilder";
+import StylesPanel, { type StylesView } from "@/components/styles/StylesPanel";
+import { loadEditStyles } from "@/lib/editStyles";
+import "./styles.css";
 import FollowerTracker from "@/components/FollowerTracker";
 import LinkedInPanel, { type LinkedInRow } from "@/components/LinkedInPanel";
 import LinkedInInsights from "@/components/LinkedInInsights";
@@ -33,10 +36,10 @@ import { Badge, EmptyState, PageHeader, Stat } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Content dashboard" };
 
-export default async function Content({ searchParams }: { searchParams: Promise<{ tab?: string; more?: string; niche?: string; open?: string; post?: string; bucket?: string; stage?: string; view?: string; linkedin?: string; name?: string; reason?: string }> }) {
+export default async function Content({ searchParams }: { searchParams: Promise<{ tab?: string; more?: string; niche?: string; open?: string; post?: string; bucket?: string; stage?: string; view?: string; edit?: string; linkedin?: string; name?: string; reason?: string }> }) {
   const sp = await searchParams;
   // A link that opens a video (?open=, e.g. "Enter numbers" in the sidebar card) needs the Board, the only tab with the drawer.
-  const tab = sp.tab && ["overview", "board", "projects", "linkedin", "followers", "footage", "thumbnails"].includes(sp.tab) ? sp.tab : sp.open ? "board" : "overview";
+  const tab = sp.tab && ["overview", "board", "projects", "linkedin", "followers", "footage", "thumbnails", "styles"].includes(sp.tab) ? sp.tab : sp.open ? "board" : "overview";
   const override = sp.more === "1";
   const validStages: Record<string, string> = {
     all: "all",
@@ -90,6 +93,9 @@ export default async function Content({ searchParams }: { searchParams: Promise<
   // This week's content mix against each niche's platforms (docs/NICHE_FOCUS_PLAN.md, N4). Only read on the Overview.
   const mix = tab === "overview" ? await loadContentMix().catch((e) => { console.error(`Content mix: ${e instanceof Error ? e.message : e}`); return null; }) : null;
   const coverAssets = tab === "thumbnails" ? (await query<any>(`SELECT id, name FROM thumbnail_assets ORDER BY lower(name)`).catch(() => [])).map((a: any) => ({ id: Number(a.id), name: a.name as string })) : [];
+  // The editing catalogue (config/edit-styles.yaml and the owner's saved templates), only read when the Styles tab is open.
+  const styles = tab === "styles" ? await loadEditStyles() : null;
+  const stylesView: StylesView = sp.view === "templates" || sp.view === "rules" ? sp.view : "elements";
   // LinkedIn posts (content items with the LinkedIn format) and how far each has got, only read when that tab is open.
   // The LinkedIn tab has three views: the posts, What's working on LinkedIn, and the swipe file.
   const liView = sp.view === "working" || sp.view === "swipe" ? sp.view : "posts";
@@ -378,6 +384,8 @@ export default async function Content({ searchParams }: { searchParams: Promise<
           lastFolder={clips[0]?.folder_path}
         />
       )}
+
+      {tab === "styles" && styles && <StylesPanel cat={styles} view={stylesView} edit={sp.edit?.slice(0, 60)} />}
 
       {tab === "thumbnails" && (
         <ThumbnailBuilder

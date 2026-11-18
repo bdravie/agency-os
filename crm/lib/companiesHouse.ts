@@ -2,7 +2,7 @@
 // Public company data only. Key from COMPANIES_HOUSE_API_KEY. Limit is 600 requests per 5 minutes; callers pace themselves.
 const API = "https://api.company-information.service.gov.uk";
 
-export type ChProfile = { number: string; name: string; type: string; status: string; statusDetail: string | null; address: string | null };
+export type ChProfile = { number: string; name: string; type: string; status: string; statusDetail: string | null; address: string | null; sic: string[] };
 export type ChCandidate = { number: string; name: string; type: string | null; status: string | null; address: string | null };
 
 /** "1234567" -> "01234567", "sc 123456" -> "SC123456". Returns null if it can't be a company number. */
@@ -41,7 +41,8 @@ const addr = (a: any) => (a ? [a.address_line_1, a.locality, a.postal_code].filt
 export async function fetchProfile(number: string): Promise<ChProfile | null> {
   const { status, json } = await get(`/company/${encodeURIComponent(number)}`);
   if (status === 404 || !json) return null;
-  return { number: json.company_number, name: json.company_name, type: String(json.type ?? ""), status: String(json.company_status ?? ""), statusDetail: json.company_status_detail ?? null, address: addr(json.registered_office_address) };
+  return { number: json.company_number, name: json.company_name, type: String(json.type ?? ""), status: String(json.company_status ?? ""), statusDetail: json.company_status_detail ?? null, address: addr(json.registered_office_address),
+    sic: (Array.isArray(json.sic_codes) ? json.sic_codes : []).map(String).slice(0, 4) };
 }
 
 export async function searchByName(name: string): Promise<ChCandidate[]> {

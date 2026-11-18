@@ -6,6 +6,7 @@ import { ShieldAlert, X } from "lucide-react";
 import { bypassVerificationAction } from "@/lib/gateBypassActions";
 import { BYPASS_REASON_MAX, BYPASS_REASON_MIN, checkBypassReason } from "@/lib/gateBypass";
 import { useToast } from "./Toast";
+import Modal from "./Modal";
 
 // For a company that cannot be found on Companies House (it may be registered under a different name) but that the owner knows is a real
 // limited company. Write the reason and tick the box, press the button, and a pop-up asks for the login password before anything is saved.
@@ -82,13 +83,13 @@ export default function BypassPanel({ companyId }: { companyId: number }) {
       </div>
 
       {asking && (
-        <div className="palette-wrap" role="dialog" aria-modal="true" aria-label="Confirm with your password" onMouseDown={(e) => { if (e.target === e.currentTarget && !pending) close(); }}>
+        <Modal label="Confirm with your password" onClose={() => { if (!pending) close(); }}>
           <form className="card stack dialog" style={{ width: "min(440px, calc(100vw - 32px))" }} onSubmit={(e) => { e.preventDefault(); confirm(); }}>
             <div className="row-between"><h2 style={{ margin: 0 }}>Confirm with your password</h2><button type="button" className="icon-btn" aria-label="Close" onClick={close} disabled={pending}><X size={18} /></button></div>
             <p className="muted" style={{ margin: 0 }}>This company isn't verified on Companies House. Enter your CRM password to treat it as a limited company that can be contacted.</p>
             <div>
               <label className="field-label" htmlFor={`${id}-password`}>Your CRM password</label>
-              <input id={`${id}-password`} type="password" autoComplete="off" autoFocus value={password} onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }} style={{ width: "100%" }} />
+              <input id={`${id}-password`} type="password" autoComplete="off" data-autofocus value={password} onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }} style={{ width: "100%" }} />
             </div>
             {passwordError && <p className="error" role="alert" style={{ margin: 0 }}>{passwordError}</p>}
             <div className="row">
@@ -96,7 +97,7 @@ export default function BypassPanel({ companyId }: { companyId: number }) {
               <button type="button" className="secondary" onClick={close} disabled={pending}>Cancel</button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </details>
   );

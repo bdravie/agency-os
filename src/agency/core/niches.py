@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import yaml
@@ -55,3 +56,46 @@ def source_block(table: dict[str, dict[str, Any]], key: str | None) -> str | Non
     reason = {"seeding": "is seeding: LinkedIn content and a few connection notes only",
               "audience": "is an audience niche: content only"}.get(status, "is parked")
     return f"Niche '{key}' {reason}, so no lead searches. Only active niches are searched; change the status in config/niches.yaml."
+
+
+# Off-niche check, the same rule as crm/lib/nicheRelevance.ts (both are tested against tests/fixtures/niche_relevance_cases.json).
+# A name or category holding one of the niche's name_excludes words and none of its name_includes words is flagged, never hidden in the CRM.
+
+def _words(s: str) -> list[str]:
+    return [w for w in re.split(r"[^a-z0-9]+", (s or "").lower()) if w]
+
+
+def relevance_rules(niche: dict[str, Any] | None) -> dict[str, list[str]]:
+    """name_includes, name_excludes and name_excludes_always from a niche in config/niches.yaml; anything that is not a list means no rule."""
+    def as_list(v: Any) -> list[str]:
+        return [str(x).strip().lower() for x in v if _words(str(x))][:60] if isinstance(v, list) else []
+    n = niche or {}
+    return {"include": as_list(n.get("name_includes")), "exclude": as_list(n.get("name_excludes")), "always": as_list(n.get("name_excludes_always"))}
+
+
+def has_keyword(text: str, keyword: str) -> bool:
+    """Each keyword word must match the start of consecutive words in the text: "hair" matches "Hairdressing", not "Chair"."""
+    t, k = _words(text), _words(keyword)
+    if not k:
+        return False
+    return any(all(t[i + j].startswith(w) for j, w in enumerate(k)) for i in range(len(t) - len(k) + 1))
+
+
+def _reason_from(name: str, categories: list[str], keywords: list[str]) -> str | None:
+    in_name = next((k for k in keywords if has_keyword(name, k)), None)
+    if in_name:
+        return f'Looks off-niche: the name says "{in_name}"'
+    cat = next((c for c in categories if any(has_keyword(c, k) for k in keywords)), None)
+    return f'Looks off-niche: Google lists it as "{cat}"' if cat else None
+
+
+def off_niche_reason(name: str, categories: list[str], rules: dict[str, list[str]]) -> str | None:
+    """Why a result looks like another industry, or None. An "always" word flags it outright; otherwise any include word clears it."""
+    always = _reason_from(name, categories, rules.get("always", []))
+    if always:
+        return always
+    if not rules.get("exclude"):
+        return None
+    if any(has_keyword(t, k) for k in rules.get("include", []) for t in [name, *categories]):
+        return None
+    return _reason_from(name, categories, rules["exclude"])

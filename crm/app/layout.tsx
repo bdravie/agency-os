@@ -16,7 +16,11 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: "Agency OS", statusBarStyle: "default" },   // added to an iPhone home screen, it opens full screen
 };
 // Browser bar colour on a phone: Cream in light mode, Navy in dark (raw hex, because metadata cannot read the CSS tokens).
-export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#F4EDE0" }, { media: "(prefers-color-scheme: dark)", color: "#14213D" }] };
+// It follows the CRM's own theme switch (the cookie), not the phone's setting, so a light CRM on a dark phone gets a Cream bar.
+export async function generateViewport(): Promise<Viewport> {
+  const dark = (await cookies()).get("theme")?.value === "dark";
+  return { themeColor: dark ? "#14213D" : "#F4EDE0" };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const jar = await cookies();

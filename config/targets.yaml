@@ -40,3 +40,8 @@ posts_by_platform:
   linkedin: 3       # 2 clinic (dental or aesthetics), 1 property
   instagram: 2      # beauty or aesthetics
   tiktok: 2         # the same videos as Instagram
+
+# Lead Sourcer > This week: how many companies go on the week's list. It is shared between the niches that use email
+# in proportion to their weekly "emails" targets above (30 dental and 20 aesthetics make 50).
+weekly_list:
+  size: 50

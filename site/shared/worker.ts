@@ -45,9 +45,21 @@ export async function increment(env: Env, day: string, experiment: string, varia
   ).bind(day, experiment, variant, type).run();
 }
 
+/** Security headers for every page. Cloudflare applies public/_headers to static files only, not to what a Function returns,
+ *  so the home page gets the same list here. No includeSubDomains on HSTS: it must never reach another subdomain by accident.
+ *  frame-ancestors is the one CSP rule set so far (nobody may frame the page); a full policy has to allow Cal.com's scripts first. */
+export const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Strict-Transport-Security": "max-age=31536000",
+  "Content-Security-Policy": "frame-ancestors 'none'",
+};
+
 async function serve(request: Request, env: Env, variant: string, extra: Record<string, string> = {}) {
   const asset = await env.ASSETS.fetch(new Request(new URL(`/v/${variant}`, request.url), { headers: { accept: "text/html" } }));
   const res = new Response(asset.body, asset);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
   res.headers.set("Cache-Control", "private, no-store");
   res.headers.set("Vary", "Cookie");
   for (const [k, v] of Object.entries(extra)) res.headers.append(k, v);

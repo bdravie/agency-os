@@ -1,0 +1,137 @@
+{
+  "_note": "Made-up emails for a demo; example.com addresses only.",
+  "emails": [
+    {
+      "id": "msg-01",
+      "received": "2026-10-02T09:01:00Z",
+      "from": "accounts@quillbeck.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice INV-20417",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/01-quillbeck-INV-20417.pdf"
+      ]
+    },
+    {
+      "id": "msg-02",
+      "received": "2026-10-05T09:02:00Z",
+      "from": "accounts@brindlewire.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice BW-1182",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/02-brindlewire-BW-1182.pdf"
+      ]
+    },
+    {
+      "id": "msg-03",
+      "received": "2026-10-07T09:03:00Z",
+      "from": "accounts@corrowstone.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice CS/2026/311",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/03-corrowstone-CS-2026-311.pdf"
+      ]
+    },
+    {
+      "id": "msg-04",
+      "received": "2026-10-09T09:04:00Z",
+      "from": "accounts@fenmoor.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice FP-5530",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/04-fenmoor-FP-5530.pdf"
+      ]
+    },
+    {
+      "id": "msg-05",
+      "received": "2026-10-12T09:05:00Z",
+      "from": "accounts@highpeg.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice SH-0907",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/05-highpeg-SH-0907.pdf"
+      ]
+    },
+    {
+      "id": "msg-06",
+      "received": "2026-10-14T09:06:00Z",
+      "from": "accounts@tarnbrook.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice TG-2291",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/06-tarnbrook-TG-2291.pdf"
+      ]
+    },
+    {
+      "id": "msg-07",
+      "received": "2026-10-16T09:07:00Z",
+      "from": "accounts@quillbeck.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice INV-20452",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/07-quillbeck-INV-20452.pdf"
+      ]
+    },
+    {
+      "id": "msg-09",
+      "received": "2026-10-20T09:09:00Z",
+      "from": "accounts@corrowstone.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice CS/2026/318",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/09-corrowstone-CS-2026-318.pdf"
+      ]
+    },
+    {
+      "id": "msg-10",
+      "received": "2026-10-21T09:10:00Z",
+      "from": "accounts@fenmoor.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice attached",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/10-fenmoor-no-number.pdf"
+      ]
+    },
+    {
+      "id": "msg-11",
+      "received": "2026-10-23T09:11:00Z",
+      "from": "accounts@tarnbrook.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice TG-2304",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/11-tarnbrook-TG-2304.pdf"
+      ]
+    },
+    {
+      "id": "msg-12",
+      "received": "2026-10-26T09:12:00Z",
+      "from": "accounts@highpeg.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Invoice SH-0921",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/12-highpeg-SH-0921.pdf"
+      ]
+    },
+    {
+      "id": "msg-08",
+      "received": "2026-10-27T08:15:00Z",
+      "from": "accounts@brindlewire.example.com",
+      "to": "invoices.demo@example.com",
+      "subject": "Reminder: invoice BW-1182 still unpaid",
+      "body": "Please find our invoice attached. (Made-up email for a demo.)",
+      "attachments": [
+        "pdfs/08-brindlewire-BW-1182.pdf"
+      ]
+    }
+  ]
+}

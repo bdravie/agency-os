@@ -1,0 +1,27 @@
+{
+  "_about": "Shared cases for the off-niche check: crm/lib/nicheRelevance.ts and src/agency/core/niches.py (off_niche_reason) must both pass every one, so the two never drift.",
+  "rules": {
+    "include": ["aesthetic", "skin", "injectable", "botox", "filler", "derma", "cosmetic", "laser", "anti ageing"],
+    "exclude": ["hair", "barber", "nail", "ambulance", "care home", "physio"],
+    "always": ["laborator", "academy"]
+  },
+  "cases": [
+    { "name": "Glow Aesthetics Ltd", "categories": [], "flag": null },
+    { "name": "TOP CUTS BARBERS LIMITED", "categories": [], "flag": "name:barber" },
+    { "name": "Skin & Hair Clinic Ltd", "categories": [], "flag": null },
+    { "name": "JS Holdings Ltd", "categories": [], "flag": null },
+    { "name": "JS Holdings Ltd", "categories": ["Hair salon"], "flag": "category:Hair salon" },
+    { "name": "JS Holdings Ltd", "categories": ["Hair salon", "Skin care clinic"], "flag": null },
+    { "name": "Meadow View Care Home Ltd", "categories": [], "flag": "name:care home" },
+    { "name": "Careful Steps Ltd", "categories": [], "flag": null },
+    { "name": "The Nail Bar (Leeds) Ltd", "categories": [], "flag": "name:nail" },
+    { "name": "Hairdressing World Ltd", "categories": [], "flag": "name:hair" },
+    { "name": "Chair Studio Ltd", "categories": [], "flag": null },
+    { "name": "Anti-Ageing Rooms Ltd", "categories": [], "flag": null },
+    { "name": "Physiotherapy Plus Ltd", "categories": [], "flag": "name:physio" },
+    { "name": "Skin Laboratory Ltd", "categories": [], "flag": "name:laborator" },
+    { "name": "Glow Clinic Ltd", "categories": ["Aesthetics academy"], "flag": "category:Aesthetics academy" },
+    { "name": "", "categories": [], "flag": null }
+  ],
+  "no_rules": { "name": "Top Cuts Barbers Ltd", "flag": null }
+}

@@ -17,6 +17,7 @@ export const CONTENT_RIGHT: SectionTab[] = [
   { key: "followers", label: "Followers", href: "/content?tab=followers" },
   { key: "footage", label: "Footage", href: "/content?tab=footage" },
   { key: "thumbnails", label: "Thumbnails", href: "/content?tab=thumbnails" },
+  { key: "styles", label: "Styles", href: "/content?tab=styles" },
 ];
 
 export default function ContentTabs({ current, boardCount, projectCount }: { current: string; boardCount?: number; projectCount?: number }) {

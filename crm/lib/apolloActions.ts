@@ -7,6 +7,7 @@ import { logActivity } from "./activity";
 import { loadGate } from "./complianceGate";
 import { apolloRoles } from "./apolloConfig";
 import { apolloKey, revealPerson, searchPeople, ApolloError } from "./apollo";
+import { APOLLO_NEEDS_REAL_MATCH, apolloPreflight } from "./apolloPreflight";
 import { importConsentText, parseApolloCsv } from "./apolloImport";
 import { apolloSettings, consentText, linkedinProfile, parsePeople, planReveal, rankPeople, workEmail, type Person } from "./apolloMath";
 
@@ -35,20 +36,8 @@ export async function apolloStatusAction(companyId: number): Promise<ApolloStatu
     used, cap: s.dailyCredits, left: Math.max(0, s.dailyCredits - used), maxPerClick: s.maxPerClick, seniorities: roles.seniorities, titles: roles.titles, saved: Number(n) };
 }
 
-// A bypass (owner-approved 6 Nov 2026) opens drafts and one-at-a-time sends only. Apollo spends credits and stores people, so it keeps the strict rule.
-const APOLLO_NEEDS_REAL_MATCH = "Apollo and the Apollo CSV import need a company verified on Companies House. A bypassed company can still be given people by pasting them in.";
-
-type Preflight = { error: string } | { domain: string };
-async function preflight(companyId: number): Promise<Preflight> {
-  if (!apolloKey()) return { error: "The server can't see APOLLO_API_KEY. Add it to .env (or as a Codespaces secret) and restart the CRM." };
-  const [c] = await query<{ domain: string | null }>(`SELECT domain FROM companies WHERE id = $1`, [companyId]);
-  if (!c) return { error: "Company not found." };
-  const gate = await loadGate(companyId);
-  if (gate?.bypassed) return { error: APOLLO_NEEDS_REAL_MATCH };
-  if (!gate?.sendable) return { error: `Apollo is only used for verified active limited companies that can be contacted. ${gate?.reasons.join(" ") ?? ""}`.trim() };
-  if (!c.domain) return { error: "Add the company's website first: Apollo finds people by their website address." };
-  return { domain: c.domain.toLowerCase().replace(/^www\./, "") };
-}
+// The checks before any Apollo call live in apolloPreflight.ts, shared with Lead Sourcer > This week.
+const preflight = apolloPreflight;
 
 export type FoundPerson = Person & { saved: boolean };
 

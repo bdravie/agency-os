@@ -10,6 +10,8 @@ export default function ThemeToggle({ initial }: { initial: "light" | "dark" }) 
     setTheme(t);
     document.documentElement.dataset.theme = t;
     document.cookie = `theme=${t}; path=/; max-age=31536000; samesite=lax`;
+    // The phone's browser bar follows straight away (the server sets the same colours from the cookie, app/layout.tsx).
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "dark" ? "#14213D" : "#F4EDE0");
   };
   return (
     <div className="seg" role="group" aria-label="Colour theme">

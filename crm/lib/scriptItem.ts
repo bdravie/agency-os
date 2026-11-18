@@ -5,6 +5,7 @@ import { loadBanned } from "./ideaGeneration";
 import { loadInsights } from "./contentInsights";
 import { evidenceDigest } from "./ideaEvidenceMath";
 import type { Breakdown } from "./breakdownMath";
+import { loadFreshness } from "./freshness";
 
 /**
  * What has worked, for the script prompt: your own hooks that beat your usual numbers and the structures from outliers you have broken down.
@@ -70,7 +71,9 @@ export async function scriptItem(
     }
   }
 
-  const s = await writeScript(item.idea, notesToRewrite || null, await scriptEvidence());
+  // The idea's own earlier wording may be kept (a rewrite); every other post's wording counts as used.
+  const fresh = await loadFreshness([id], await loadBanned().catch(() => [] as string[]), `${item.idea}\n${notesToRewrite}`);
+  const s = await writeScript(item.idea, notesToRewrite || null, await scriptEvidence(), fresh);
   const { a, b } = pickHooks(s.hooks ?? [], s.favourite_hook ?? "");
   await query(
     `UPDATE content_items SET hook = $2, hook_alt = $3, script = $4, caption = $5, keyword = $6, status = CASE WHEN status = 'Idea' THEN 'Scripted' ELSE status END WHERE id = $1`,

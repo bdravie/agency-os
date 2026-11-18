@@ -13,7 +13,7 @@ export const SORTS = [
 export const FILTERS = {
   added: { label: "Added", options: [["", "Any time"], ["today", "Today"], ["7", "Last 7 days"], ["30", "Last 30 days"]] },
   tier: { label: "Suitability", options: [["", "Any"], ["a", "A: most suitable"], ["ab", "A or B"], ["hideskip", "Hide skipped"]] },
-  source: { label: "Source", options: [["", "Any"], ["ch", "Companies House"], ["maps", "Google Maps (Apify)"], ["other", "Added by hand, imported or demo"]] },
+  source: { label: "Source", options: [["", "Any"], ["ch", "Companies House"], ["maps", "Google Maps (Apify)"], ["cqc", "CQC register"], ["other", "Added by hand, imported or demo"]] },
   contact: { label: "Contact details", options: [["", "Any"], ["site", "Has a website"], ["email", "Has a generic email"], ["phone", "Has a phone"], ["route", "Any way to reach them"]] },
   rev: { label: "Est. revenue", options: [["", "Any"], ["50", "£50k or more"], ["100", "£100k or more"], ["250", "£250k or more"]] },
   rating: { label: "Google rating", options: [["", "Any"], ["45", "4.5 or more"], ["4", "4.0 or more"], ["lt4", "Under 4.0 (room to improve)"]] },
@@ -26,7 +26,7 @@ const allowed = (key: FilterKey, v: string | undefined) => (FILTERS[key].options
 const CLAUSES: Record<FilterKey, Record<string, string>> = {
   added: { today: "created_at >= current_date", "7": "created_at > now() - interval '7 days'", "30": "created_at > now() - interval '30 days'" },
   tier: { a: "tier = 'A'", ab: "tier IN ('A', 'B')", hideskip: "tier <> 'Skip'" },
-  source: { ch: "source = 'Companies House'", maps: "source = 'Apify Google Maps'", other: "source IS DISTINCT FROM 'Companies House' AND source IS DISTINCT FROM 'Apify Google Maps'" },
+  source: { ch: "source = 'Companies House'", maps: "source = 'Apify Google Maps'", cqc: "source = 'CQC register'", other: "source IS DISTINCT FROM 'Companies House' AND source IS DISTINCT FROM 'Apify Google Maps' AND source IS DISTINCT FROM 'CQC register'" },
   contact: { site: "domain IS NOT NULL", email: "generic_email IS NOT NULL", phone: "phone IS NOT NULL",
     route: "(generic_email IS NOT NULL OR linkedin_url IS NOT NULL OR instagram_url IS NOT NULL OR facebook_url IS NOT NULL OR contact_url IS NOT NULL)" },
   rev: { "50": "est_revenue_gbp >= 50000", "100": "est_revenue_gbp >= 100000", "250": "est_revenue_gbp >= 250000" },

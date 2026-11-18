@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle2, X } from "lucide-react";
 
 type Tone = "good" | "bad";
@@ -20,10 +20,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => dismiss(id), tone === "bad" ? 7000 : 3500);
   }, [dismiss]);
 
+  // The list is a manual popover, so it can show above an open pop-up (a <dialog> sits in the top layer, above any z-index).
+  // A new toast re-shows it, which puts it back on top if a pop-up opened since. Browsers without popovers keep the fixed corner.
+  const box = useRef<HTMLDivElement>(null);
+  const shown = useRef(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || typeof el.showPopover !== "function") return;
+    try {
+      if (toasts.length === 0) { if (el.matches(":popover-open")) el.hidePopover(); }
+      else if (toasts.length > shown.current || !el.matches(":popover-open")) {
+        if (el.matches(":popover-open")) el.hidePopover();
+        el.showPopover();
+      }
+    } catch { /* never let a toast break the page */ }
+    shown.current = toasts.length;
+  }, [toasts]);
+
   return (
     <Ctx.Provider value={push}>
       {children}
-      <div className="toasts" role="status" aria-live="polite">
+      <div ref={box} popover="manual" className="toasts" role="status" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast-${t.tone}`}>
             {t.tone === "good" ? <CheckCircle2 size={17} aria-hidden /> : <AlertCircle size={17} aria-hidden />}

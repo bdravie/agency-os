@@ -1,0 +1,7 @@
+{
+  "_note": "IDs in the owner's Google Workspace account used by the Make scenario blueprint. Not secrets: an ID alone gives no access. Fill in the rest as they are set up.",
+  "drive_needs_review_folder_id": "1FFl6QB06zKLD4VDoSxIRMSZMrCM5ooAw",
+  "drive_root_folder_id": "1eDV0jROna6-fDfRR7obN4DcJZCXBFapk",
+  "tracker_spreadsheet_id": "1lWY7swOx0dQ_WnqtSwvWlSC1DBNr7CsVnKUlaMp0kHk",
+  "web_app_url": "https://script.google.com/macros/s/AKfycbwkIwN_NgUUibij6qriyd585NwKJCJ2Dn6N9x7QWHfnznu4Jr1upe-Kwdv1L8J3pRhs/exec"
+}

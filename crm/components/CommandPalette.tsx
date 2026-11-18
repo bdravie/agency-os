@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CornerDownLeft } from "lucide-react";
 import { ALL_ITEMS } from "./nav-items";
+import Modal from "./Modal";
 
 type Result = { key: string; label: string; sub: string; href: string; icon: React.ReactNode };
 
@@ -15,7 +16,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
   const [i, setI] = useState(0);
   const input = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (open) { setQ(""); setCompanies([]); setI(0); setTimeout(() => input.current?.focus(), 0); } }, [open]);
+  useEffect(() => { if (open) { setQ(""); setCompanies([]); setI(0); } }, [open]);
   useEffect(() => {
     if (q.trim().length < 2) { setCompanies([]); return; }
     const ctl = new AbortController();
@@ -38,16 +39,15 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
 
   const go = (r: Result | undefined) => { if (r) { onClose(); router.push(r.href); } };
   return (
-    <div className="palette-wrap" role="dialog" aria-modal="true" aria-label="Quick jump" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Modal label="Quick jump" onClose={onClose}>
       <div className="palette">
         <input
-          ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Jump to a page or search companies…" aria-label="Search"
+          ref={input} data-autofocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Jump to a page or search companies…" aria-label="Search"
           role="combobox" aria-expanded="true" aria-controls="palette-list" aria-activedescendant={results[i] ? `pal-${results[i].key}` : undefined}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") { e.preventDefault(); setI((n) => Math.min(n + 1, results.length - 1)); }
             else if (e.key === "ArrowUp") { e.preventDefault(); setI((n) => Math.max(n - 1, 0)); }
-            else if (e.key === "Enter") go(results[i]);
-            else if (e.key === "Escape") onClose();
+            else if (e.key === "Enter" && !e.nativeEvent.isComposing) go(results[i]);
           }}
         />
         <ul id="palette-list" role="listbox">
@@ -59,6 +59,6 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
           {results.length === 0 && <li className="muted" style={{ padding: 16 }}>No matches.</li>}
         </ul>
       </div>
-    </div>
+    </Modal>
   );
 }

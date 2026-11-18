@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { saveCompanyNamesAction } from "@/lib/companyNamesActions";
 import { jumpTo } from "@/lib/jump";
+import Modal from "./Modal";
 import { useToast } from "./Toast";
 
 type Company = { id: number; name: string; trading_name: string | null; address: string | null; postcode: string | null };
@@ -33,11 +34,11 @@ export default function EditNamesButton({ company }: { company: Company }) {
     <>
       <button type="button" className="secondary" onClick={() => { setF({ trading_name: company.trading_name ?? "", name: company.name, address: company.address ?? "", postcode: company.postcode ?? "" }); setOpen(true); }}><Pencil size={15} aria-hidden /> Edit names &amp; address</button>
       {open && (
-        <div className="palette-wrap" role="dialog" aria-modal="true" aria-label="Edit names and address" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+        <Modal label="Edit names and address" onClose={close}>
           <form className="card stack dialog" onSubmit={(e) => { e.preventDefault(); save(); }}>
             <h2 style={{ margin: 0 }}>Edit names &amp; address</h2>
             <label className="stack" style={{ gap: 4 }}><span className="field-label">Trading name (what they call themselves now)</span>
-              <input value={f.trading_name} onChange={set("trading_name")} placeholder="Leave empty if it is the same as the registered name" autoFocus maxLength={120} />
+              <input value={f.trading_name} onChange={set("trading_name")} placeholder="Leave empty if it is the same as the registered name" data-autofocus maxLength={120} />
               <span className="muted">Searches, research and drafts use this. Clear it to go back to the registered name.</span></label>
             <label className="stack" style={{ gap: 4 }}><span className="field-label">Registered name (legal name)</span>
               <input value={f.name} onChange={set("name")} required maxLength={120} />
@@ -47,7 +48,7 @@ export default function EditNamesButton({ company }: { company: Company }) {
             {error && <p className="error" role="alert">{error}</p>}
             <div className="row"><button disabled={pending}>{pending ? "Saving…" : "Save"}</button><button type="button" className="secondary" onClick={close}>Cancel</button></div>
           </form>
-        </div>
+        </Modal>
       )}
     </>
   );

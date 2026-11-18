@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseSourcerForm, chLimit, mapsPlaces, mapsStars, mapsWebsite, hasSizeFilter } from "../lib/sourcerFilters.ts";
-import { mergeRows, applyFilters } from "../lib/sourcerMerge.ts";
+import { mergeRows, applyFilters, splitForAdd } from "../lib/sourcerMerge.ts";
 
 const form = (o) => (k) => (k in o ? o[k] : null);
 const BASE = { src_ch: "on", niche: "roofing", location: "Leeds" };
@@ -56,6 +56,31 @@ test("a Maps result matched to a Companies House company joins its row; others s
 test("already-added or suppressed flags survive the merge", () => {
   const rows = mergeRows([ch("1", { skip: "Already in the CRM" })], [mp("p1", { chNumber: "1", eligible: "eligible", added: true })], TODAY);
   assert.equal(rows[0].skip, "Already in the CRM"); assert.equal(rows[0].added, true);
+});
+
+const cq = (loc, o = {}) => ({ id: Number(loc.replace(/\D/g, "")) || 1, locationId: loc, name: `Practice ${loc}`, provider: "SMILE GROUP LTD", address: null, postcode: "LS2 7AA", phone: null, website: null, domain: null,
+  serviceTypes: ["Dental service"], localAuthority: "Leeds", chNumber: null, chName: null, chType: null, chStatus: null, eligible: "unmatched", skip: null, added: false, ...o });
+const SAME_CO = { chNumber: "00244415", chName: "SMILE GROUP LTD", chType: "ltd", chStatus: "active", eligible: "eligible" };
+
+test("two Google Maps branches of one company merge into one Maps row, never claiming Companies House (Leeds dental, 18 Nov 2026)", () => {
+  // The Companies House part of the search failed, so no row came from it. Two branches of one group were matched to the same number, and a CQC location too.
+  const rows = mergeRows([], [mp("p1", { ...SAME_CO, phone: null }), mp("p2", { ...SAME_CO, phone: "0113 222", website: "https://other.co.uk", domain: "other.co.uk" })], TODAY, [cq("1-1", SAME_CO), cq("1-2")]);
+  const group = rows.filter((r) => r.chNumber === "00244415");
+  assert.equal(group.length, 1);
+  assert.deepEqual(group[0].sources, ["maps", "cqc"]);
+  assert.equal(group[0].key, "m:p1"); assert.equal(group[0].mapsPlaceId, "p1");
+  assert.equal(group[0].phone, "0113 222");            // a gap filled from the other branch
+  assert.equal(group[0].domain, "x.co.uk");            // what the first branch had is kept
+  const { ch: viaCh, others } = splitForAdd(rows);
+  assert.equal(viaCh.length, 0, "nothing may be sent to the Companies House add when that search found nothing");
+  assert.equal(others.length, rows.length);
+});
+
+test("a second Maps place for a Companies House company fills gaps only, and the row still adds through Companies House", () => {
+  const rows = mergeRows([ch("1")], [mp("p1", { chNumber: "1", eligible: "eligible", phone: null }), mp("p2", { chNumber: "1", eligible: "eligible", phone: "0113 999", domain: "two.co.uk" })], TODAY);
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0].sources, ["ch", "maps"]); assert.equal(rows[0].mapsPlaceId, "p1"); assert.equal(rows[0].phone, "0113 999"); assert.equal(rows[0].domain, "x.co.uk");
+  assert.deepEqual(splitForAdd(rows).ch.map((r) => r.key), ["c:1"]);
 });
 
 const F = (o) => parseSourcerForm(form({ ...BASE, src_maps: "on", ...o })).filters;

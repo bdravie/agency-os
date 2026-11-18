@@ -94,8 +94,20 @@ export function postcodeDistrict(text: string | null | undefined): string | null
   return m ? m[1] : null;
 }
 
+/**
+ * A Google Maps name without the advertising Google lets businesses add: "Skin Clinix | Chorlton Skin & Aesthetic Clinic" -> "Skin Clinix",
+ * "Day One Medical Aesthetics Clinic - Dr Emily Swift" -> "Day One Medical Aesthetics Clinic". Cuts at "|" or a dash with spaces round it
+ * (never inside a word, so "Day-One" stays), and drops bracketed asides. Returns the name unchanged if cutting would leave too little.
+ * On 17 Nov 2026 this matched 3 of 15 aesthetics results the full names could not.
+ */
+export function cleanMapsTitle(title: string): string {
+  const cut = title.split(/\s*\|\s*|\s+[-–—]\s+/)[0].replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  return cut.replace(/[^a-z0-9]/gi, "").length >= 3 ? cut : title.trim();
+}
+
 // ---------- matching to Companies House ----------
-export type ChMatch = { match: "exact+postcode" | "exact" | "ambiguous" | "none"; candidate: ChCandidate | null };
+/** "website": matched through the company number the business's own website shows (apifyActions.ts, siteMatchMath.ts). */
+export type ChMatch = { match: "exact+postcode" | "exact" | "website" | "ambiguous" | "none"; candidate: ChCandidate | null };
 
 /** Only an exact name match counts, and a match in the same postcode area is trusted most. A trading name that differs from the registered name won't match: that is expected and safe. */
 export function matchCompanyHouse(place: Pick<Place, "title" | "postcode">, candidates: ChCandidate[]): ChMatch {

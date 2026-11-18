@@ -11,6 +11,7 @@ import { generateOutreachAction } from "@/lib/outreachActions";
 import { generateOfferOutreachAction } from "@/lib/outreachOfferActions";
 import { findRapportAction } from "@/lib/rapportActions";
 import AddToDealsButton from "./AddToDealsButton";
+import { useConfirm } from "./ConfirmDialog";
 
 type Draft = { subject: string; body: string };
 type Route = { label: string; href: string };
@@ -41,6 +42,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
   const router = useRouter();
   const [mailboxId, setMailboxId] = useState<string>(() => String(mailboxes.find((m) => m.remaining > 0)?.id ?? mailboxes[0]?.id ?? ""));
   const [sending, startSend] = useTransition();
+  const [confirmSend, confirmDialog] = useConfirm();
   const chosen = recipients.find((r) => String(r.id) === toId) ?? null;
   const toEmail = chosen ? chosen.email : to;
   const iceList: Ice[] = chosen ? found[chosen.id] ?? chosen.ice : [];
@@ -168,9 +170,15 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
                   <label className="row" style={{ gap: 8 }}><span className="field-label" style={{ margin: 0 }}>Send from</span>
                     <select value={mailboxId} onChange={(e) => setMailboxId(e.target.value)} aria-label="Mailbox to send from">{mailboxes.map((m) => <option key={m.id} value={m.id}>{m.email} ({m.remaining} left today)</option>)}</select></label>
                   <button type="button" disabled={sending || !!cantSend} title={cantSend ?? ""}
-                    onClick={() => {
+                    onClick={async () => {
                       if (!box || !toEmail) return;
-                      if (!window.confirm(`Send this ${kind === "first" ? "first email" : "follow-up"} now?\n\nTo: ${toEmail}${chosen ? ` (${chosen.name})` : ""}\nFrom: ${box.email}\nSubject: ${d.subject}\n\nIt goes out immediately and cannot be recalled.`)) return;
+                      const yes = await confirmSend({
+                        title: `Send this ${kind === "first" ? "first email" : "follow-up"} now?`,
+                        details: [["To", `${toEmail}${chosen ? ` (${chosen.name})` : ""}`], ["From", box.email], ["Subject", d.subject]],
+                        body: "It goes out immediately and cannot be recalled.",
+                        confirmLabel: "Send now",
+                      });
+                      if (!yes) return;
                       startSend(async () => {
                         try {
                           const r = await sendEmailAction({ companyId, contactId: chosen?.id ?? null, kind: kind === "followup" ? "followup" : "first", subject: d.subject, body: d.body, mailboxId: box.id });
@@ -189,6 +197,7 @@ export default function OutreachDraft({ companyId, to, recipients, routes, block
       {why && <p className="muted">Mark as sent is off: {why}</p>}
       {note && <p className="muted"><RefusalText text={note} /></p>}
       {genError && <p className="error" role="alert"><RefusalText text={genError} /></p>}
+      {confirmDialog}
     </div>
   );
 }

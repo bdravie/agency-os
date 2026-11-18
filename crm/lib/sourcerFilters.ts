@@ -1,7 +1,14 @@
 // The Lead Sourcer search form: the choices on offer, reading them safely from a submitted form, and turning them into what each source needs.
 // Every option is a fixed choice, so nothing typed can change what is searched beyond the niche, the place and the search phrase.
 
-export type Source = "ch" | "maps";
+export const SOURCES = ["ch", "maps", "cqc"] as const;
+export type Source = (typeof SOURCES)[number];
+
+/** A niche's `search_first` in niches.yaml read safely: a list or one name, known sources only; Companies House if nothing usable is given. */
+export function readSearchFirst(v: unknown): Source[] {
+  const list = (Array.isArray(v) ? v : [v]).map((x) => String(x ?? "").trim()).filter((x): x is Source => (SOURCES as readonly string[]).includes(x));
+  return list.length ? [...new Set(list)] : ["ch"];
+}
 export type Website = "any" | "has" | "none";
 export type Rating = "any" | "4" | "45" | "lt4";
 
@@ -22,7 +29,7 @@ export type Parsed = { ok: true; filters: SourcerFilters } | { ok: false; error:
 
 /** Reads the form. Unknown or out-of-range values become "no filter", never an error or a guess. */
 export function parseSourcerForm(get: (k: string) => string | null): Parsed {
-  const sources = (["ch", "maps"] as const).filter((s) => get(`src_${s}`) === "on");
+  const sources = SOURCES.filter((s) => get(`src_${s}`) === "on");
   if (sources.length === 0) return { ok: false, error: "Choose at least one place to look." };
   const niche = (get("niche") ?? "").trim();
   if (!niche) return { ok: false, error: "Choose a niche." };
@@ -44,6 +51,8 @@ export function parseSourcerForm(get: (k: string) => string | null): Parsed {
 export const hasSizeFilter = (f: SourcerFilters) => f.revMin !== null || f.revMax !== null || f.empMin !== null || f.empMax !== null;
 export const chLimit = (f: SourcerFilters) => Math.min(100, hasSizeFilter(f) ? f.limit * 2 : f.limit);
 /** Google Maps places cost credits, so never more than 50, and fewer if the budget says so. */
+/** The CQC register is free and local, so it takes the number asked for. */
+export const cqcLimit = (f: SourcerFilters) => Math.min(100, f.limit);
 export const mapsPlaces = (f: SourcerFilters) => Math.min(50, f.limit);
 export const mapsWebsite = (f: SourcerFilters): "allPlaces" | "withWebsite" | "withoutWebsite" => (f.website === "has" ? "withWebsite" : f.website === "none" ? "withoutWebsite" : "allPlaces");
 export const mapsStars = (f: SourcerFilters): "" | "four" | "fourAndHalf" => (f.rating === "4" ? "four" : f.rating === "45" ? "fourAndHalf" : "");

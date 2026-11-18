@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Video, ExternalLink } from "lucide-react";
-import ConfirmButton from "@/components/ConfirmButton";
-import { cancelMeeting } from "@/lib/meetingActions";
+import CancelMeetingButton from "@/components/CancelMeetingButton";
 import { dayLabel, timeLabel } from "@/lib/meetingMath";
 import type { MeetingRow } from "@/lib/meetings";
 
@@ -24,8 +23,8 @@ export default function MeetingList({ rows, empty, cancellable = true, showCompa
           {m.status === "scheduled" && m.meet_url && <a className="btn secondary" href={m.meet_url} target="_blank" rel="noreferrer"><Video size={15} aria-hidden /> Join</a>}
           {m.status === "scheduled" && m.html_link && <a className="muted" href={m.html_link} target="_blank" rel="noreferrer" aria-label="Open in Google Calendar"><ExternalLink size={15} aria-hidden /></a>}
           {m.status === "scheduled" && cancellable && (
-            <form action={cancelMeeting}><input type="hidden" name="id" value={m.id} />
-              <ConfirmButton className="secondary danger" message={`Cancel "${m.title}" with ${m.contact_name ?? m.attendee_email}?\n\nGoogle will email them that it is cancelled.`}>Cancel</ConfirmButton></form>
+            <CancelMeetingButton id={m.id} title={m.title} who={m.contact_name ?? m.attendee_email} email={m.attendee_email}
+              when={`${dayLabel(new Date(m.starts_at))}, ${timeLabel(new Date(m.starts_at))} to ${timeLabel(new Date(m.ends_at))}`} />
           )}
         </div>
       </li>

@@ -15,6 +15,7 @@ import DealStageBar from "./DealStageBar";
 import DeleteDealButton from "./DeleteDealButton";
 import ToastForm from "./ToastForm";
 import { Badge } from "./ui";
+import Modal from "./Modal";
 
 type Data = {
   deal: { id: number; title: string; stage: string; setup: number; monthly: number; source: string | null; expected_close: string | null; lost_reason: string | null; lost_note: string | null; channel: string | null; created_at: string; updated_at: string; company_id: number | null; company_name: string | null; domain: string | null; generic_email: string | null; company_status: string | null };
@@ -38,20 +39,14 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
 
   useEffect(() => { setData(null); load(); }, [load]);
   useEffect(() => { panel.current?.focus(); }, [dealId]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const d = data?.deal;
   const current = (stage ?? d?.stage ?? "New") as Stage;
   const meta = STAGE_META[current];
 
   return (
-    <>
-      <div className="drawer-scrim" onClick={onClose} aria-hidden />
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={d ? `Deal: ${d.title}` : "Deal"} tabIndex={-1} ref={panel}>
+    <Modal drawer label={d ? `Deal: ${d.title}` : "Deal"} onClose={onClose}>
+      <aside className="drawer" tabIndex={-1} ref={panel}>
         <header className="drawer-head">
           <div style={{ minWidth: 0 }}>
             <div className="muted">{d?.company_id ? <Link href={`/companies/${d.company_id}`}>{d.company_name}</Link> : "Deal"}</div>
@@ -159,6 +154,6 @@ export default function DealDrawer({ dealId, stage, onMove, onClose }: { dealId:
           </div>
         )}
       </aside>
-    </>
+    </Modal>
   );
 }

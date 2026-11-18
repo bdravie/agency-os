@@ -25,7 +25,7 @@ import httpx
 
 from agency import ch_health, compliance, config
 from agency.core import db
-from agency.core.niches import all_niches, source_block
+from agency.core.niches import all_niches, off_niche_reason, relevance_rules, source_block
 
 API = "https://api.company-information.service.gov.uk"
 PAGE = 100
@@ -206,6 +206,7 @@ def main() -> None:
     p.add_argument("--stage", type=int, metavar="SEARCH_ID", help="Keep the results for the CRM to show (used by the Find companies panel); saves nothing to companies")
     p.add_argument("--add", type=int, metavar="SEARCH_ID", help="Add chosen companies from a staged search")
     p.add_argument("--numbers", help="Comma-separated company numbers to add (with --add)")
+    p.add_argument("--keep-off-niche", action="store_true", help="Also save companies whose name looks like another industry (name_excludes in config/niches.yaml)")
     a = p.parse_args()
 
     if a.enrich:
@@ -246,18 +247,24 @@ def main() -> None:
             facts[c["company_number"]] = f
             kept.append(c)
         companies = kept
-    if a.stage:
+    rules = relevance_rules(table.get(a.niche))
+    flags = {c["company_number"]: off_niche_reason(c["name"] or "", [], rules) for c in companies}
+    if a.stage:  # the CRM shows the flag on each result (crm/lib/nicheRelevance.ts), so everything is kept here
         rows, skipped = stage(a.stage, companies, facts, a.niche)
         print(f"Found {rows} companies ({skipped} already in the CRM or suppressed), {dropped} dropped for filing problems or low fit. Nothing added yet. API requests: about {n}. Cost: £0.")
         return
     if a.dry_run:
         for c in companies[:20]:
             f = facts.get(c["company_number"], {})
-            print(f"{c['company_number']}  {c['name']}  {c['postcode'] or ''}  fit {f.get('fit_score', '-')}")
-        print(f"Dry run: {len(companies)} kept, {dropped} dropped for filing problems or low fit, nothing saved. API requests: about {n}. Cost: £0.")
+            flag = flags.get(c["company_number"])
+            print(f"{c['company_number']}  {c['name']}  {c['postcode'] or ''}  fit {f.get('fit_score', '-')}{f'  [{flag}]' if flag else ''}")
+        print(f"Dry run: {len(companies)} kept ({sum(1 for v in flags.values() if v)} look off-niche), {dropped} dropped for filing problems or low fit, nothing saved. API requests: about {n}. Cost: £0.")
         return
-    new, skipped = save(companies, a.niche, facts)
-    print(f"Saved {new} new companies, {skipped} already in the CRM, {dropped} dropped for filing problems or low fit. API requests: about {n}. Cost: £0.")
+    off = [c for c in companies if flags.get(c["company_number"])] if not a.keep_off_niche else []
+    for c in off:
+        print(f"Not saved: {c['name']} ({flags[c['company_number']]}). Use --keep-off-niche to save it anyway.")
+    new, skipped = save([c for c in companies if c not in off], a.niche, facts)
+    print(f"Saved {new} new companies, {skipped} already in the CRM, {len(off)} left out as off-niche, {dropped} dropped for filing problems or low fit. API requests: about {n}. Cost: £0.")
 
 
 if __name__ == "__main__":

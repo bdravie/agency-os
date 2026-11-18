@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { BellRing, CalendarClock, CheckCircle2, Circle, Copy, Download, ExternalLink, Rocket, Send } from "lucide-react";
 import { useToast } from "./Toast";
 import PostedDialog from "./PostedDialog";
+import { useConfirm } from "./ConfirmDialog";
 import { schedulePostAction } from "@/lib/linkedinActions";
 import { openingLine, cleanPostImage, imageFileName } from "@/lib/linkedinMath";
 import { plannedLabel, readiness, type Slot } from "@/lib/linkedinScheduleMath";
@@ -33,6 +34,7 @@ export default function LinkedInSchedule({ post, slots, image, footer, calendarC
   const [busy, setBusy] = useState(false);
   const [posting, setPosting] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [confirmPost, confirmDialog] = useConfirm();
   const [published, setPublished] = useState<string | null>(null);
   const dirty = date !== (post.day ?? "") || time !== (post.time ?? "") || (!!date && remind !== post.reminderOpen);
   const checks = readiness({ text: post.text, problem: post.problem, hasImage: image !== null, date: post.day, reminder: post.reminderOpen, posted: post.posted });
@@ -63,7 +65,13 @@ export default function LinkedInSchedule({ post, slots, image, footer, calendarC
     const who = account.connected;
     if (!who) return;
     const kind = image === null ? null : cleanPostImage(image).kind === "carousel" ? "the carousel (as a PDF document)" : "the chosen image";
-    if (!window.confirm(`Post this to LinkedIn now, publicly, as ${who.name}?\n\nIt goes out straight away${kind ? ` with ${kind}` : " as text only"}, using the saved text. It can only be edited or deleted on LinkedIn afterwards.`)) return;
+    const yes = await confirmPost({
+      title: "Post this to LinkedIn now?",
+      details: [["As", `${who.name} (public)`], ["With", kind ?? "text only"], ["Text", "the saved version"]],
+      body: "It goes out straight away. It can only be edited or deleted on LinkedIn afterwards.",
+      confirmLabel: "Post now",
+    });
+    if (!yes) return;
     setPublishing(true);
     try {
       const fd = new FormData();
@@ -183,6 +191,7 @@ export default function LinkedInSchedule({ post, slots, image, footer, calendarC
           onDone={() => { setPosting(false); router.refresh(); }}
         />
       )}
+      {confirmDialog}
     </section>
   );
 }

@@ -48,3 +48,25 @@ def test_only_active_niches_are_searched():
     for key in ("hvac", "old", "odd", "missing", None):   # no status, an unknown one or an unknown niche counts as parked
         assert niche_status(table, key) == "parked"
         assert "parked" in source_block(table, key)
+
+
+def test_off_niche_matches_the_crm_rule():
+    """Runs the shared cases in tests/fixtures/niche_relevance_cases.json, which crm/tests/nicheRelevance.test.mjs runs too."""
+    import json
+    from pathlib import Path
+
+    from agency.core.niches import has_keyword, off_niche_reason, relevance_rules
+
+    fx = json.loads((Path(__file__).parent / "fixtures" / "niche_relevance_cases.json").read_text())
+    rules = relevance_rules({"name_includes": fx["rules"]["include"], "name_excludes": fx["rules"]["exclude"], "name_excludes_always": fx["rules"]["always"]})
+
+    def expected(flag):
+        if flag is None:
+            return None
+        return f'Looks off-niche: the name says "{flag[5:]}"' if flag.startswith("name:") else f'Looks off-niche: Google lists it as "{flag[9:]}"'
+
+    for c in fx["cases"]:
+        assert off_niche_reason(c["name"], c["categories"], rules) == expected(c["flag"]), c["name"]
+    assert off_niche_reason(fx["no_rules"]["name"], [], relevance_rules(None)) is None
+    assert relevance_rules({"name_excludes": "hair"}) == {"include": [], "exclude": [], "always": []}
+    assert has_keyword("Chair Studio", "hair") is False

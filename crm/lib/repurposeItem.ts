@@ -4,6 +4,9 @@ import { query } from "./db";
 import { askStructured } from "./llm";
 import { guide, loadContentConfig } from "./content";
 import { VARIANT_LABEL, parseScript, variantProblems, variantTargets, type Variant } from "./filmMath";
+import { loadBanned } from "./ideaGeneration";
+import { loadFreshness } from "./freshness";
+import { freshProblems, sharedBetween } from "./freshnessMath";
 
 /**
  * One filmed video becomes a post for each place you publish (Reels, LinkedIn, TikTok, Shorts as configured) plus an Upwork portfolio blurb.
@@ -19,15 +22,21 @@ export async function repurposeItem(id: number): Promise<{ ok: true; labels: str
   const targets = variantTargets(config.platforms);
   const rules = await readFile(path.join(path.resolve(process.cwd(), ".."), "prompts/repurpose-item.md"), "utf8");
   const parsed = parseScript(item.script);
-  const prompt = `${await guide()}\n\n${rules}\n\nTARGETS: ${targets.map((t) => `${t} (${VARIANT_LABEL[t]})`).join(", ")}\n\nORIGINAL:\nIdea: ${item.idea}\nHook: ${item.hook ?? "(none)"}\nKeyword viewers comment: ${item.keyword ?? "(none)"}\nCaption: ${item.caption ?? "(none)"}\nScript:\n${parsed.script || "(none)"}`;
+  // Freshness: each social post is checked against every earlier post and against the others written in the same go.
+  // The video's own wording is left out, because a caption sits under that very video. The Upwork blurb is not a post and is not checked.
+  const fresh = await loadFreshness([id], await loadBanned().catch(() => [] as string[]), `${item.idea}\n${parsed.script}`);
+  const prompt = `${await guide()}\n\n${rules}\n\n${fresh.block}\n\nTARGETS: ${targets.map((t) => `${t} (${VARIANT_LABEL[t]})`).join(", ")}\n\nORIGINAL:\nIdea: ${item.idea}\nHook: ${item.hook ?? "(none)"}\nKeyword viewers comment: ${item.keyword ?? "(none)"}\nCaption: ${item.caption ?? "(none)"}\nScript:\n${parsed.script || "(none)"}`;
   const S = { type: "string" } as const;
   const schema = { type: "object" as const, required: ["variants"], properties: { variants: { type: "array", minItems: targets.length, maxItems: targets.length, items: { type: "object", required: ["target", "text"], properties: { target: { type: "string", enum: targets }, text: S } } } } };
   let problems: string[] = [], variants: Variant[] = [];
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const raw = await askStructured<{ variants: Variant[] }>(attempt === 0 ? prompt : `${prompt}\n\nYour last answer had these problems. Fix them and answer again in full:\n- ${problems.join("\n- ")}`, schema, "sonnet", 3500);
+  const found = new Set<string>();   // every problem so far, so a retry does not fix one and bring back another
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const raw = await askStructured<{ variants: Variant[] }>(attempt === 0 ? prompt : `${prompt}\n\nYour earlier answers had these problems. Fix all of them and answer again in full:\n- ${[...found].join("\n- ")}`, schema, "sonnet", 6000);
     variants = (raw.variants ?? []).map((v) => ({ target: String(v.target), text: String(v.text ?? "").trim() }));
-    problems = variantProblems(variants, targets);
+    const social = variants.filter((v) => v.target !== "upwork").map((v) => ({ name: VARIANT_LABEL[v.target] ?? v.target, text: v.text }));
+    problems = [...variantProblems(variants, targets), ...freshProblems(social, fresh.rules), ...sharedBetween(social, fresh.rules.allowed)];
     if (!problems.length) break;
+    problems.forEach((p) => found.add(p));
   }
   if (problems.length) return { ok: false, error: `The AI's answer did not pass the checks, so nothing was saved: ${problems.join("; ")}. Try again.` };
   for (const v of variants) {

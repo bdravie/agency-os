@@ -53,3 +53,5 @@ Up to 3, single words or joined words a business owner in that trade would follo
 - British English.
 
 title: a working title of 3 to 8 words for the owner's own list. It is never posted.
+
+expected_take: the post most people in this niche would write on this subject, in one sentence (the one you are not writing). angle: the angle this post takes instead, in one sentence. Neither is posted.

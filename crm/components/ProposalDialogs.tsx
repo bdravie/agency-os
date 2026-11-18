@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Modal from "./Modal";
 import { archiveProposals, deleteProposals } from "@/lib/proposalActions";
 import { ARCHIVE_REASONS, DELETION_CATEGORIES, NOTE_MAX, NOTE_MIN, deletionProblem } from "@/lib/proposalStatus";
 
@@ -20,7 +21,7 @@ export function ArchiveDialog({ target, onClose, onDone }: { target: Target; onC
     onDone(r.done);
   });
   return (
-    <div className="palette-wrap" role="dialog" aria-modal="true" aria-label="Archive proposals" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Modal label="Archive proposals" onClose={onClose}>
       <form className="card stack dialog" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <h2 style={{ margin: 0 }}>Archive {many ? `${target.ids.length} proposals` : "this proposal"}?</h2>
         <p className="muted">{target.label}. {many ? "They leave" : "It leaves"} the pipeline but {many ? "are" : "is"} kept. Show archived brings {many ? "them" : "it"} back, and Restore puts {many ? "them" : "it"} in the pipeline again.</p>
@@ -32,11 +33,11 @@ export function ArchiveDialog({ target, onClose, onDone }: { target: Target; onC
         <p className="muted" style={{ margin: 0 }}>A reason is optional.</p>
         {error && <p className="error" role="alert">{error}</p>}
         <div className="row">
-          <button disabled={pending} autoFocus>{pending ? "Archiving…" : "Archive"}</button>
+          <button disabled={pending} data-autofocus>{pending ? "Archiving…" : "Archive"}</button>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }
 
@@ -56,7 +57,7 @@ export function DeleteDialog({ target, sentCount = 0, onClose, onDone }: { targe
     });
   };
   return (
-    <div className="palette-wrap" role="dialog" aria-modal="true" aria-label="Delete proposals" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Modal label="Delete proposals" onClose={onClose}>
       <form className="card stack dialog" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <h2 style={{ margin: 0 }}>Delete {many ? `${target.ids.length} proposals` : "this proposal"} for good?</h2>
         <p className="muted">{target.label}. This can't be undone; the reason is kept in the deletion log. To keep {many ? "them" : "it"} out of the way without losing {many ? "them" : "it"}, archive instead.</p>
@@ -67,13 +68,13 @@ export function DeleteDialog({ target, sentCount = 0, onClose, onDone }: { targe
           ))}
         </div>
         <p className="muted" style={{ margin: 0 }}>{DELETION_CATEGORIES.find((c) => c.code === category)?.hint ?? "Why is this being deleted?"}</p>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={NOTE_MAX} autoFocus aria-label="Note" placeholder={`What happened? (at least ${NOTE_MIN} characters)`} />
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={NOTE_MAX} data-autofocus aria-label="Note" placeholder={`What happened? (at least ${NOTE_MIN} characters)`} />
         {error && <p className="error" role="alert">{error}</p>}
         <div className="row">
           <button disabled={pending}>{pending ? "Deleting…" : many ? `Delete ${target.ids.length} proposals` : "Delete proposal"}</button>
           <button type="button" className="secondary" onClick={onClose}>Cancel</button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -5,22 +5,28 @@ import { query, tx } from "./db";
 import { logActivity } from "./activity";
 import { DEFAULT_CONSENT_BASIS } from "./compliance";
 import { normaliseSocial } from "./contact";
-import { tidyName } from "./apifyMath";
+import { cleanMapsTitle, tidyName } from "./apifyMath";
+import { normaliseName } from "./companiesHouse";
+import { mapsFoundBy } from "./siteMatchMath";
 import { ROOT } from "./launch";
 
 // Turning a Google Maps result into a company in the CRM. A plain server module: the actions that call it check you are logged in first.
 
 type MapsRow = Record<string, any>;
 const social = (r: MapsRow, k: "linkedin" | "instagram" | "facebook") => normaliseSocial(k, (r.socials ?? {})[k]).value;
-const contactSource = (r: MapsRow) => ["Google Maps listing (via Apify)", (r.emails ?? [])[0] ? "company website (via Apify contact enrichment)" : ""].filter(Boolean).join(" + ");
+const contactSource = (r: MapsRow) => ["Google Maps listing (via Apify)", (r.emails ?? [])[0] ? ((r.site_read?.emails ?? 0) > 0 ? "company website (read by the CRM)" : "company website (via Apify contact enrichment)") : ""].filter(Boolean).join(" + ");
+/** The Maps name is the trading name; keep it when the company was matched under a different registered name, so drafts greet the business by the name it uses. */
+const tradingName = (r: MapsRow, eligible: boolean) => { const t = cleanMapsTitle(String(r.title ?? "")); return eligible && r.ch_name && t && normaliseName(t) !== normaliseName(r.ch_name) ? t.slice(0, 160) : null; };
+const contactUrl = (r: MapsRow) => { const v = r.site_read?.contact_url; return typeof v === "string" ? normaliseSocial("contact", v).value : null; };
 
 /** Inserts a company from a Maps result (verified limited companies arrive ready to contact, others blocked until checked). Throws a unique-violation (23505) if it is already in the CRM. */
 export async function insertApifyRow(r: MapsRow, niche: string | null): Promise<{ id: number; eligible: boolean }> {
   const eligible = r.eligible === "eligible" && !!r.ch_number;
   const cols: Record<string, unknown> = {
-    name: eligible ? tidyName(r.ch_name) : tidyName(r.title), domain: r.domain, phone: r.phone, address: r.address, postcode: r.postcode, city: r.city, latitude: r.latitude, longitude: r.longitude,
+    name: eligible ? tidyName(r.ch_name) : tidyName(cleanMapsTitle(r.title)), domain: r.domain, phone: r.phone, address: r.address, postcode: r.postcode, city: r.city, latitude: r.latitude, longitude: r.longitude,
     niche, company_number: eligible ? r.ch_number : null, is_ltd: eligible ? true : null, source: "Apify Google Maps", status: "New", generic_email: (r.emails ?? [])[0] ?? null,
     linkedin_url: social(r, "linkedin"), instagram_url: social(r, "instagram"), facebook_url: social(r, "facebook"), contact_source: contactSource(r),
+    trading_name: tradingName(r, eligible), contact_url: contactUrl(r),
     consent_basis: eligible ? DEFAULT_CONSENT_BASIS : null, company_type: eligible ? r.ch_type : null, company_status: eligible ? r.ch_status : null,
     compliance_status: eligible ? "eligible" : "unchecked", compliance_checked_at: eligible ? new Date().toISOString() : null,
     maps_place_id: r.place_id, maps_url: r.maps_url, maps_rating: r.rating, maps_reviews: r.reviews, maps_categories: r.categories,
@@ -31,7 +37,7 @@ export async function insertApifyRow(r: MapsRow, niche: string | null): Promise<
     await c.query(`UPDATE apify_results SET added_at = now() WHERE id = $1`, [r.id]);
     return res;
   });
-  await logActivity("lead_added", { company_id: Number(co.id), channel: "apify", body: `${r.title}${r.priority != null ? ` (priority ${r.priority})` : ""}` });
+  await logActivity("lead_added", { company_id: Number(co.id), channel: "apify", body: `${r.title}${r.priority != null ? ` (priority ${r.priority})` : ""}`, meta: { found_by: mapsFoundBy(r) } });
   return { id: Number(co.id), eligible };
 }
 
@@ -46,7 +52,11 @@ export async function patchCompanyFromMaps(companyNumber: string, r: MapsRow): P
   if (r.domain) {   // the website has its own unique index: skip it quietly if another company already has it
     try { await query(`UPDATE companies SET domain = $2 WHERE company_number = $1 AND domain IS NULL`, [companyNumber, r.domain]); } catch (e: any) { if (e?.code !== "23505") throw e; }
   }
+  await query(`UPDATE companies SET trading_name = COALESCE(NULLIF(trading_name, ''), $2), contact_url = COALESCE(contact_url, $3) WHERE company_number = $1`,
+    [companyNumber, tradingName(r, true), contactUrl(r)]);
   await query(`UPDATE apify_results SET added_at = now() WHERE id = $1`, [r.id]);
+  const [co] = await query<{ id: number }>(`SELECT id FROM companies WHERE company_number = $1`, [companyNumber]);
+  if (co) await logActivity("contact_details_found", { company_id: Number(co.id), channel: "apify", body: "Google Maps details added", meta: { found_by: mapsFoundBy(r), via: "lead sourcer" } });
 }
 
 /** Fetches filing health and the fit score for newly added limited companies (free, in the background). */

@@ -55,7 +55,7 @@ export default function ContactMethods({ companyId, methods, draft, onDraft }: {
           {groups.map((g) => <optgroup key={g} label={g}>{METHOD_KINDS.filter((m) => m.group === g).map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}</optgroup>)}
         </select>
         <input value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} style={{ flex: 1, minWidth: 200 }} aria-label="Address, number or link"
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (value.trim()) add(); } }} />
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); if (value.trim()) add(); } }} />
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" maxLength={80} style={{ width: 160 }} aria-label="Note" />
         <button type="button" className="secondary" disabled={pending || !value.trim()} onClick={add}><Plus size={15} aria-hidden /> Add contact method</button>
       </div>

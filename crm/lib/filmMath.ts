@@ -31,10 +31,11 @@ const plain = (s: string) => s.toLowerCase().replace(/[‘’]/g, "'").replace(/
 /**
  * Hook options with the weak ones removed: stock openers and anything over 14 words (the prompt asks for under 12; two words of slack).
  * Never leaves fewer than two when there were two to start with, so the A and B hooks survive; if the favourite was dropped, the first one kept takes its place.
+ * `stale` adds a further reason to drop one (a stock phrase or an opening an earlier post used: freshnessMath.ts).
  */
-export function cleanHooks(hooks: string[], favourite: string): { hooks: string[]; favourite: string; dropped: number } {
+export function cleanHooks(hooks: string[], favourite: string, stale: (hook: string) => boolean = () => false): { hooks: string[]; favourite: string; dropped: number } {
   const all = hooks.map((h) => String(h ?? "").trim()).filter(Boolean);
-  const weak = (h: string) => STOCK_OPENERS.some((o) => plain(h).startsWith(o)) || h.split(/\s+/).length > 14;
+  const weak = (h: string) => STOCK_OPENERS.some((o) => plain(h).startsWith(o)) || h.split(/\s+/).length > 14 || stale(h);
   let kept = all.filter((h) => !weak(h));
   if (kept.length < 2) kept = [...kept, ...all.filter(weak)].slice(0, Math.max(kept.length, Math.min(2, all.length)));
   const fav = favourite.trim();

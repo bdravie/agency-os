@@ -35,7 +35,7 @@
       })(window, "https://app.cal.com/embed/embed.js", "init");
       Cal("init", { origin: "https://app.cal.com" });
       Cal("on", { action: "bookingSuccessful", callback: function () { send("booked"); } });
-    } else box.innerHTML = "";   // the answers changed after the calendar was drawn: draw it again with the new notes
+    } else box.replaceChildren();   // the answers changed after the calendar was drawn: draw it again with the new notes
     loaded = true;
     shownNotes = notes;
     var opts = { elementOrSelector: "#cal", calLink: path, layout: "month_view" };

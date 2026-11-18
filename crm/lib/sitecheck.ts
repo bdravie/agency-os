@@ -3,6 +3,7 @@ import { normaliseSocial } from "./contact";
 import { normaliseMethod } from "./contactMethods.ts";
 import { domainBases, nameWords, pageNamesCompany, socialCandidates } from "./siteLinks.ts";
 import { fetchPublicHtml } from "./safeFetch";
+import { companyNumbersIn } from "./siteMatchMath.ts";
 
 // Free checks that read a company's own public website. No paid API, no Google API. Run only when you click.
 const UA = "AgencyOSBot";
@@ -69,6 +70,28 @@ export function analyseHtml(html: string, domain: string): Omit<SiteFindings, "p
     if (!out.contact_url && /\/contact/i.test(href)) {
       try { const u = new URL(href, `https://${domain}`); if (u.hostname.replace(/^www\./, "") === domain.replace(/^www\./, "")) out.contact_url = u.toString(); } catch { /* ignore */ }
     }
+  }
+  return out;
+}
+
+export type SiteRead = { pages: number; numbers: string[]; findings: Omit<SiteFindings, "pages"> | null };
+
+/**
+ * For a Google Maps result: reads up to 4 of the business's own pages (robots.txt respected) for the company number it must show, plus
+ * generic emails, company social pages and a contact page. Stops once it has a number and an email. Free; nothing is saved here.
+ */
+export async function readSiteForMatch(domain: string): Promise<SiteRead> {
+  const out: SiteRead = { pages: 0, numbers: [], findings: null };
+  for (const p of ["/", "/contact", "/privacy-policy", "/terms"]) {
+    if (out.numbers.length && out.findings?.emails.length) break;
+    const html = await fetchPage(domain, p).catch(() => null);
+    if (!html) { if (p === "/") return out; continue; }   // no homepage: the site can't be read, so don't try the rest
+    out.pages++;
+    out.numbers = [...new Set([...out.numbers, ...companyNumbersIn(html)])].slice(0, 3);
+    const g = analyseHtml(html, domain), f = out.findings;
+    out.findings = !f ? g : { ...f, emails: [...new Set([...f.emails, ...g.emails])].slice(0, 3), linkedin: f.linkedin ?? g.linkedin, instagram: f.instagram ?? g.instagram, facebook: f.facebook ?? g.facebook,
+      tiktok: f.tiktok ?? g.tiktok, youtube: f.youtube ?? g.youtube, x: f.x ?? g.x, contact_url: f.contact_url ?? g.contact_url ?? (p === "/contact" ? `https://${domain}${p}` : null),
+      signals: Object.fromEntries(Object.keys(f.signals).map((k) => [k, f.signals[k] || g.signals[k]])) };
   }
   return out;
 }

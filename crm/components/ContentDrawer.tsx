@@ -14,6 +14,7 @@ import ContentTags from "./ContentTags";
 import ScriptEditor from "./ScriptEditor";
 import ScriptSyncInput from "./ScriptSyncInput";
 import type { PostView } from "@/lib/contentPerformance";
+import Modal from "./Modal";
 import { useToast } from "./Toast";
 
 type Item = { id: number; idea: string; hook: string | null; hook_alt: string | null; format: string | null; script: string | null; caption: string | null; keyword: string | null; status: string; posted_at: string | null; created_at: string; day: string | null; pillar: string | null; hook_type: string | null; niche: string | null; length_s: number | null };
@@ -43,20 +44,14 @@ export default function ContentDrawer({ itemId, status, openNumbers = null, onMo
   const mayLeave = () => !unsaved.current || window.confirm("Discard the changes to this script?");
   const close = useCallback(() => { if (mayLeave()) onClose(); }, [onClose]);
   const stopEditing = () => { if (mayLeave()) { unsaved.current = false; setEditing(false); } };
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [close]);
 
   const current = (status ?? item?.status ?? "Idea") as ContentStatus;
   const meta = CONTENT_META[current] ?? ARCHIVED_META;
   const copy = async (text: string, label: string) => { await navigator.clipboard.writeText(text); toast(`${label} copied`); };
 
   return (
-    <>
-      <div className="drawer-scrim" onClick={close} aria-hidden />
-      <aside className="drawer" role="dialog" aria-modal="true" aria-label={item ? `Content: ${item.idea}` : "Content"} tabIndex={-1} ref={panel}>
+    <Modal drawer label={item ? `Content: ${item.idea}` : "Content"} onClose={close}>
+      <aside className="drawer" tabIndex={-1} ref={panel}>
         <header className="drawer-head">
           <div style={{ minWidth: 0 }}>
             <div className="muted">{item?.format ?? "Content idea"}</div>
@@ -168,7 +163,7 @@ export default function ContentDrawer({ itemId, status, openNumbers = null, onMo
           </div>
         )}
       </aside>
-    </>
+    </Modal>
   );
 }
 

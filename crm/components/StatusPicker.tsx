@@ -26,7 +26,7 @@ export default function StatusPicker({ stage, stages, label, onPick, meta: metaM
         <div className="status-menu" role="listbox" aria-label="Select an option">
           <p className="status-menu-title">Select an option</p>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Type to search…" aria-label="Search statuses"
-            onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); if (e.key === "Enter" && options[0]) pick(options[0]); }} />
+            onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); if (e.key === "Enter" && !e.nativeEvent.isComposing && options[0]) pick(options[0]); }} />
           <div className="status-options">
             {options.map((s) => (
               <button key={s} type="button" role="option" aria-selected={s === stage} className={`status-option${s === stage ? " current" : ""}`} style={{ background: metaMap[s].colour }} onClick={() => pick(s)}>

@@ -78,7 +78,7 @@ export async function redraftLinkedInPostAction(input: { id: number; steer?: str
     const from = post.source_ref?.match(/^linkedin:content:(\d+)$/)?.[1];
     const steer = String(input.steer ?? "").trim().slice(0, 500);
     const r = await draftPost({
-      fromItemId: from ? Number(from) : null, topic: post.idea,
+      fromItemId: from ? Number(from) : null, topic: post.idea, rewriteId: Number(post.id),
       notes: [post.script?.trim() ? `The current version of the post, to improve on (keep its facts):\n${post.script.trim()}` : "", steer ? `What the owner wants changed: ${steer}` : ""].filter(Boolean).join("\n\n"),
     });
     if (!r.ok) return { error: r.error };

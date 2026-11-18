@@ -1,0 +1,423 @@
+# Editing styles: the one catalogue of how a video is edited.
+# The CRM draws Content > Styles from this file, and Claude reads this same file before an edit.
+# It mirrors the approved brand sheet "Brad Reels" (3 Nov 2026) and the video-editor skill.
+# Change a rule here and both follow. Measurements are in pixels on a 1080 x 1920 frame.
+#
+# An element's `key` is what the CRM knows how to draw (crm/components/styles/ReelFrame.tsx).
+# A new key still lists, but shows a plain frame until a drawing is added for it.
+# `on` is the layout the preview sits on, `with` is anything else shown alongside it.
+
+groups:
+  - key: layouts
+    name: Layouts
+    blurb: What fills the frame. Every beat of a video uses exactly one.
+  - key: titles
+    name: Captions and titles
+    blurb: The words on screen. Captions run start to finish on every video.
+  - key: motion
+    name: Motion graphics
+    blurb: The brand kit. One graphic at a time, on the exact word it illustrates.
+  - key: cuts
+    name: Cuts and treatments
+    blurb: How shots move and join, and what must be hidden.
+  - key: sound
+    name: Sound
+    blurb: A quiet bed and three soft effects. No booms, no risers.
+  - key: generated
+    name: Generated footage
+    blurb: Made with Higgsfield when there is no footage for a line. These use credits.
+
+# Layouts a beat may use. The first six are real layouts; `plate` is the full-screen ground a step plate sits on.
+elements:
+  - key: face
+    group: layouts
+    name: Face
+    when: Hook and outro.
+    rule: Full-frame talking head with a slow push. The outro outfit matches the hook.
+    on: face
+  - key: over_shoulder
+    group: layouts
+    name: Over-shoulder
+    when: The default for the walkthrough.
+    rule: Hand-filmed iPhone footage of the laptop or phone, full frame. Hand footage first, always.
+    on: over_shoulder
+  - key: screen_card
+    group: layouts
+    name: Screen card
+    when: Only when hand footage does not show the step.
+    rule: Screen recording cropped to the content, on a chalk card over a blurred, darkened copy of itself.
+    on: screen_card
+  - key: punch
+    group: layouts
+    name: Punch
+    when: Emphasis lines, the payoff, the call to action.
+    rule: Face crop at 1.18x. An instant cut, never animated.
+    on: punch
+    timing: instant
+
+  - key: hook_title
+    group: titles
+    name: Hook title
+    when: The first 3 seconds only.
+    rule: Instrument Serif, top third, two lines at most, with a hi-vis tape bar under line 2. The only serif in the system.
+    on: face
+    timing: lines rise over 8 frames
+  - key: spoken_hook
+    group: titles
+    name: Spoken hook
+    when: A hook that is said, not shown ("I Clauded so hard...").
+    rule: Large bold words in the upper third, slammed in one at a time, key words in hi-vis with a tape underline.
+    on: face
+    timing: one word per beat
+  - key: site_captions
+    group: titles
+    name: Site Captions
+    when: Every video, start to finish, with no gaps.
+    rule: Inter Tight Bold, sentence case, 1 to 3 words, popping in as spoken. One key word per group turns hi-vis with a tape underline. White with a shadow on footage, ink on bright screens.
+    on: face
+    timing: pop 4 frames, tape 6 frames
+  - key: chapter_title
+    group: titles
+    name: Chapter title
+    when: Numbered sections and feature lists (1 to 5).
+    rule: Bold title and a sub-heading, centred in the middle safe area. Readable and screenshot-friendly.
+    on: screen_card
+
+  - key: progress_bar
+    group: motion
+    name: Progress bar
+    when: Every frame.
+    rule: A thin hi-vis bar along the top edge that fills across the video.
+    on: over_shoulder
+  - key: step_plate
+    group: motion
+    name: Step plate
+    when: Between walkthrough sections.
+    rule: Full-screen chalk plate with an eyebrow ("STEP 02") and a title. Three at most in a video.
+    on: plate
+    timing: 0.8s, wipes up
+    sfx: swoosh
+  - key: callout_pill
+    group: motion
+    name: Callout pill
+    when: To confirm what the screen just did.
+    rule: Chalk pill with a hi-vis glyph disc, 2 to 4 words.
+    on: over_shoulder
+    timing: pop 4 frames, holds 1.2 to 2s
+    sfx: tick
+  - key: spotlight
+    group: motion
+    name: Spotlight
+    when: To point at the part of the screen being described.
+    rule: A hi-vis outline draws around the element and the rest dims.
+    on: screen_card
+    timing: draws in 8 frames
+    sfx: tick
+  - key: tape_counter
+    group: motion
+    name: Tape counter
+    when: A count worth showing.
+    rule: A number counts up on a chalk card with ruler ticks. Never a figure that is not true.
+    on: over_shoulder
+    timing: 0.7s count
+    sfx: tick
+  - key: job_ticket
+    group: motion
+    name: Job ticket
+    when: A list of things the system does.
+    rule: Dark checklist. Each row ticks green on its own word.
+    on: over_shoulder
+    timing: 6 frames a tick
+    sfx: tick
+  - key: payoff_slam
+    group: motion
+    name: Payoff slam
+    when: The payoff line, once.
+    rule: The old way is struck through in stop-red, then the new line slams in.
+    on: punch
+    timing: strike 8 frames, slam 6 frames
+    sfx: thud
+  - key: end_plate
+    group: motion
+    name: End plate
+    when: The outro.
+    rule: '"DM me" and the keyword on hi-vis tape, with a gentle pulse. Text on hi-vis is near-black, never white.'
+    on: face
+    timing: pop, then a gentle pulse
+    sfx: bed
+
+  - key: slow_push
+    group: cuts
+    name: Slow push
+    when: Every shot.
+    rule: A 4 to 8% push across the length of the shot. No zoom-outs except a reveal.
+    on: over_shoulder
+  - key: hard_cut
+    group: cuts
+    name: Hard cut
+    when: The default join between shots.
+    rule: Cut every pause over 0.2s. Keep the last take when a line is said twice. No white flashes.
+    on: face
+  - key: slide_blur
+    group: cuts
+    name: Slide-blur
+    when: Between sections only.
+    rule: The next shot slides up with a directional blur. No spins or glitches.
+    on: over_shoulder
+    timing: 8 frames
+    sfx: swoosh
+  - key: speed_match
+    group: cuts
+    name: Speed match
+    when: Whenever the footage is slower or faster than the voiceover.
+    rule: Every action word lands on the screen it describes. Speed footage 0.85 to 3x; past that, jump-cut. No frozen holds.
+    on: over_shoulder
+  - key: redaction
+    group: cuts
+    name: Privacy blur
+    when: Any dashboard, inbox or email screen.
+    rule: Blur every financial figure, revenue number, client goal and visible email address.
+    on: screen_card
+
+  - key: music_bed
+    group: sound
+    name: Music bed
+    when: Under the whole video.
+    rule: A minimal instrumental 18 dB under the voice, ducked a further 4 dB while speaking, swelling on the end plate.
+    on: face
+    sfx: bed
+  - key: swoosh
+    group: sound
+    name: Swoosh
+    when: Section transitions and step plates.
+    rule: A soft air swoosh at -22 dB.
+    on: plate
+    with: [step_plate]
+    sfx: swoosh
+  - key: tick
+    group: sound
+    name: Tick
+    when: Pills, spotlight and ticket rows.
+    rule: A click at -20 dB.
+    on: over_shoulder
+    with: [callout_pill]
+    sfx: tick
+  - key: thud
+    group: sound
+    name: Thud
+    when: The payoff, once.
+    rule: One soft low thud at -16 dB.
+    on: punch
+    with: [payoff_slam]
+    sfx: thud
+
+  - key: broll
+    group: generated
+    name: B-roll clip
+    when: Any line with no matching footage.
+    rule: A Higgsfield clip (Kling, 9:16, 5s, sound off) under captions. Never hold a frozen frame instead.
+    on: broll
+    cost: About 9 Higgsfield credits a clip
+  - key: kinetic_type
+    group: generated
+    name: Kinetic type
+    when: A line that is all words and no footage.
+    rule: Vibe Motion text animation in the brand colours and fonts. Text stays crisp because it is drawn in code.
+    on: plate
+    cost: Uses Higgsfield credits
+  - key: logo_sting
+    group: generated
+    name: Logo sting
+    when: An intro or outro bumper.
+    rule: Vibe Motion logo reveal. Clean, not flashy. Your own logo only.
+    on: plate
+    cost: Uses Higgsfield credits
+  - key: stat_card
+    group: generated
+    name: Stat animation
+    when: A count that deserves its own moment.
+    rule: Vibe Motion stat reveal. Only a true figure you supplied, and never a client's numbers.
+    on: plate
+    cost: Uses Higgsfield credits
+
+# The non-negotiables. `tag` groups them on the Rules view.
+rules:
+  - tag: Footage
+    text: Hand-recorded iPhone footage first. Screen recordings only if there is none, or not enough.
+  - tag: Footage
+    text: If a line is said twice, keep the last take and cut the first.
+  - tag: Footage
+    text: The outro clip must match the outfit worn in the hook.
+  - tag: Footage
+    text: Trim dead air at the start of every clip and voiceover.
+  - tag: Pacing
+    text: Every action word in the voiceover lands on the screen it describes. Speed footage 0.85 to 3x; past that, jump-cut. No frozen holds.
+  - tag: Pacing
+    text: Any held moment gets a brand-kit graphic or B-roll. Never dead frames, and never a still frame over 3 seconds.
+  - tag: Pacing
+    text: Hard cuts by default. Slide-blur between sections only. No white flashes.
+  - tag: Words on screen
+    text: Site Captions on every video from start to finish, with every spoken word captioned. Fix mishears first.
+  - tag: Words on screen
+    text: Chapter titles are bold, centred in the middle safe area, and readable in a screenshot.
+  - tag: Words on screen
+    text: A spoken hook is written large in the upper third, word by word, with key words in hi-vis.
+  - tag: Words on screen
+    text: One graphic on screen at a time, plus captions. Hi-vis covers less than 5% of any frame.
+  - tag: Sound
+    text: The voiceover is audible from start to finish. After any cut, check the volume in 2-second windows.
+  - tag: Sound
+    text: Export at -14 LUFS with a true peak of -1 dBTP. No booms or risers.
+  - tag: Privacy
+    text: Blur all financial figures, revenue numbers, client goals and any visible email address or inbox.
+  - tag: Privacy
+    text: Videos show business data only, never a client's customers' or patients' details. Call a demo a demo.
+
+# Safe zones on a 1080 x 1920 frame. The Rules view draws these.
+safe:
+  top: 220          # nothing above this except the progress bar (Instagram header)
+  bottom: 380       # caption, buttons and audio label live here
+  rail: 150         # right edge: like, comment and share
+  side: 64          # left and right margin for all text
+  caption_face: 1240      # caption baseline on Face and Punch
+  caption_screen: 1420    # caption baseline on Over-shoulder and Screen card
+
+# Starter templates: a whole video as beats in order. Duplicate one in the CRM to make your own.
+# A beat is one layout, the elements on it, and roughly how long it runs.
+# The build walkthrough follows the brand sheet's hook, body, payoff, outro formula.
+# The other three are starting points written from the content plan's formats: change them to suit.
+templates:
+  - key: build_walkthrough
+    name: Build walkthrough
+    format: Format A
+    niche: trades
+    length: 30 to 45s
+    blurb: Hook to camera, a customer's-eye walkthrough of the build, the payoff, then the keyword.
+    beats:
+      - label: Hook
+        layout: face
+        elements: [hook_title, site_captions, progress_bar]
+        seconds: 3
+        note: First word within 0.3s. Name the trade and the thing.
+      - label: Step 1
+        layout: over_shoulder
+        elements: [site_captions, callout_pill, slow_push]
+        seconds: 8
+        note: One step per beat. Hand footage.
+      - label: Section break
+        layout: plate
+        elements: [step_plate, swoosh]
+        seconds: 1
+      - label: Step 2
+        layout: over_shoulder
+        elements: [site_captions, spotlight, speed_match]
+        seconds: 8
+      - label: Step 3
+        layout: screen_card
+        elements: [site_captions, job_ticket]
+        seconds: 7
+        note: Screen card only where the hand footage does not show it.
+      - label: Payoff
+        layout: punch
+        elements: [payoff_slam, thud]
+        seconds: 3
+      - label: Outro
+        layout: face
+        elements: [end_plate, music_bed]
+        seconds: 4
+        note: Same outfit as the hook.
+  - key: eye_candy
+    name: Eye-candy
+    format: Format B
+    niche: trades
+    length: 15 to 25s
+    blurb: Short and visual. The finished thing first, a fast look around it, then the keyword.
+    beats:
+      - label: Hook
+        layout: over_shoulder
+        elements: [hook_title, site_captions, progress_bar]
+        seconds: 3
+        note: Open on the best-looking screen, not on your face.
+      - label: Look 1
+        layout: over_shoulder
+        elements: [site_captions, slow_push]
+        seconds: 4
+      - label: Look 2
+        layout: screen_card
+        elements: [site_captions, spotlight]
+        seconds: 4
+      - label: Cutaway
+        layout: broll
+        elements: [site_captions, broll]
+        seconds: 3
+        note: Only if there is no footage for the line.
+      - label: Outro
+        layout: face
+        elements: [end_plate, music_bed]
+        seconds: 4
+  - key: talking_tip
+    name: Talking tip
+    format: Format C
+    niche: trades
+    length: 25 to 40s
+    blurb: One tip to camera, kept moving with punches and a graphic on each key word.
+    beats:
+      - label: Hook
+        layout: face
+        elements: [spoken_hook, progress_bar]
+        seconds: 3
+      - label: The problem
+        layout: face
+        elements: [site_captions, slow_push]
+        seconds: 7
+      - label: Emphasis
+        layout: punch
+        elements: [site_captions, hard_cut]
+        seconds: 4
+      - label: Show it
+        layout: screen_card
+        elements: [site_captions, chapter_title]
+        seconds: 8
+      - label: Payoff
+        layout: punch
+        elements: [payoff_slam, thud]
+        seconds: 3
+      - label: Outro
+        layout: face
+        elements: [end_plate, music_bed]
+        seconds: 4
+  - key: clinic_walkthrough
+    name: Clinic front-desk walkthrough
+    format: Format A
+    niche: clinics
+    length: 30 to 45s
+    blurb: The build walkthrough for a clinic demo. Booking steps only, fake data, and every detail on screen blurred.
+    beats:
+      - label: Hook
+        layout: face
+        elements: [hook_title, site_captions, progress_bar]
+        seconds: 3
+        note: Name the clinic type and the missed enquiry. No figures.
+      - label: The enquiry
+        layout: over_shoulder
+        elements: [site_captions, callout_pill, slow_push]
+        seconds: 8
+        note: A demo with made-up names. Say it is a demo.
+      - label: Section break
+        layout: plate
+        elements: [step_plate, swoosh]
+        seconds: 1
+      - label: Booked in
+        layout: screen_card
+        elements: [site_captions, redaction, job_ticket]
+        seconds: 9
+        note: Booking logistics only. Never clinical questions, treatments or medicines.
+      - label: Payoff
+        layout: punch
+        elements: [payoff_slam, thud]
+        seconds: 3
+        note: What it is designed to do, not a result.
+      - label: Outro
+        layout: face
+        elements: [end_plate, music_bed]
+        seconds: 4

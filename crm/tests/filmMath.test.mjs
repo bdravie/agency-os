@@ -77,3 +77,9 @@ test("weak hooks are dropped: stock openers and over-long lines, but A and B alw
   assert.deepEqual(cleanHooks(["Kept as it is", "Also fine"], "Also fine"), { hooks: ["Kept as it is", "Also fine"], favourite: "Also fine", dropped: 0 });
   assert.deepEqual(cleanHooks([], ""), { hooks: [], favourite: "", dropped: 0 });
 });
+
+test("a hook the freshness rules call stale is dropped like a stock opener", async () => {
+  const { cleanHooks } = await import("../lib/filmMath.ts");
+  const r = cleanHooks(["Steal this quote trick", "The quote sat in a van", "A diary with a hole in it"], "Steal this quote trick", (h) => h.startsWith("Steal"));
+  assert.deepEqual(r, { hooks: ["The quote sat in a van", "A diary with a hole in it"], favourite: "The quote sat in a van", dropped: 1 });
+});

@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Building2, X } from "lucide-react";
 import { createDealAction } from "@/lib/actions";
 import { CHANNELS } from "@/lib/stages";
+import Modal from "./Modal";
 import { useToast } from "./Toast";
 
 type Company = { id: number; name: string; domain: string | null; status: string };
@@ -27,16 +28,11 @@ export default function NewDealDialog({ onClose, onCreated }: { onClose: () => v
     const t = setTimeout(() => fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctl.signal }).then((r) => r.json()).then((d) => setResults(d.companies ?? [])).catch(() => {}), 150);
     return () => { clearTimeout(t); ctl.abort(); };
   }, [q, company]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const pick = (c: Company) => { setCompany(c); setQ(""); setResults([]); if (!title) setTitle(`${c.name}: `); };
 
   return (
-    <div className="palette-wrap" role="dialog" aria-modal="true" aria-label="New deal" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Modal label="New deal" onClose={onClose}>
       <form className="card stack dialog" style={{ width: "min(520px, calc(100vw - 32px))" }} onSubmit={(e) => {
         e.preventDefault();
         if (!company) { setError("Choose a company first."); return; }
@@ -55,7 +51,7 @@ export default function NewDealDialog({ onClose, onCreated }: { onClose: () => v
             <div className="row-between chip-box"><span className="row" style={{ gap: 8 }}><Building2 size={15} aria-hidden /><b>{company.name}</b></span><button type="button" className="link" onClick={() => setCompany(null)}>Change</button></div>
           ) : (
             <>
-              <input id="nd-company" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Start typing a company name…" autoComplete="off" autoFocus style={{ width: "100%" }} />
+              <input id="nd-company" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Start typing a company name…" autoComplete="off" data-autofocus style={{ width: "100%" }} />
               {results.length > 0 && (
                 <ul className="pick-list">{results.map((c) => (
                   <li key={c.id}><button type="button" className="pick" onClick={() => pick(c)}><span>{c.name}</span><span className="muted">{[c.domain, c.status].filter(Boolean).join(" · ")}</span></button></li>
@@ -82,6 +78,6 @@ export default function NewDealDialog({ onClose, onCreated }: { onClose: () => v
         {error && <p className="error" role="alert">{error}</p>}
         <div className="row"><button disabled={pending}>{pending ? "Creating…" : "Create deal"}</button><button type="button" className="secondary" onClick={onClose}>Cancel</button></div>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -119,7 +119,7 @@ function NicheCardView({ n, stop }: { n: NicheCard; stop?: StopRow }) {
           <label className="stack" style={{ gap: 4 }}>
             <span className="field-label">Your CRM password</span>
             <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && password) change({ reason, password }); }} />
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && password) change({ reason, password }); }} />
           </label>
           <span className="row" style={{ gap: 8 }}>
             <button type="button" className="secondary" disabled={pending || !password} onClick={() => change({ reason, password })}>{pending ? "Checking…" : `Make ${n.label} active`}</button>

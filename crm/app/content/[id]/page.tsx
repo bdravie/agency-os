@@ -7,6 +7,9 @@ import CopyButton from "@/components/CopyButton";
 import ProjectChecklist from "@/components/ProjectChecklist";
 import { DEFAULT_CHECKLIST } from "@/lib/quickCaptureMath";
 import { Badge, PageHeader } from "@/components/ui";
+import EditStyleCard from "@/components/styles/EditStyleCard";
+import { findTemplate, loadEditStyles } from "@/lib/editStyles";
+import "../styles.css";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +21,7 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
     query<any>(`SELECT * FROM content_projects WHERE content_item_id = $1`, [id]),
   ]);
   if (!c) notFound();
+  const styles = await loadEditStyles();
   return (
     <>
       <PageHeader
@@ -64,6 +68,13 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
         </ToastForm>
         <div className="stack" style={{ gap: 14 }}>
           <ProjectChecklist contentItemId={id} checklist={project?.checklist || DEFAULT_CHECKLIST} />
+          <EditStyleCard
+            id={id}
+            cat={styles}
+            chosen={findTemplate(styles, c.edit_template)}
+            chosenKey={c.edit_template ?? null}
+            item={{ idea: c.idea, hook: c.hook, hookAlt: c.hook_alt, script: c.script, caption: c.caption, keyword: c.keyword, niche: c.niche }}
+          />
 
           {(project?.raw_notes || c.notes) && (
             <section className="card" style={{ background: "var(--surface)" }}>

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { handleHome, handleEvent, handleStats, pickVariant, parseCookies, isBot, ukDay } from "../shared/worker.ts";
+import { readFileSync } from "node:fs";
+import { handleHome, handleEvent, handleStats, pickVariant, parseCookies, isBot, ukDay, SECURITY_HEADERS } from "../shared/worker.ts";
 
 const EXP = { id: "headline-angle", status: "running", started: "2026-11-10", variants: [{ id: "a", weight: 34 }, { id: "b", weight: 33 }, { id: "c", weight: 33 }] };
 const NOW = () => new Date("2026-11-20T10:00:00Z");
@@ -46,6 +47,15 @@ test("a new visitor gets a version, a cookie with the version only, and is count
   assert.match(cookie, /HttpOnly/);
   assert.equal(res.headers.get("cache-control"), "private, no-store");
   assert.deepEqual([...f.rows], [["2026-11-20|headline-angle|b|view", 1]]);
+});
+
+test("the home page carries the same security headers as the static files", async () => {
+  const f = fake();
+  const res = await handleHome(req("/"), f.env, f.ctx, EXP, { rand: () => 0.5, now: NOW });
+  await f.settle();
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) assert.equal(res.headers.get(k), v, k);
+  const file = readFileSync(new URL("../public/_headers", import.meta.url), "utf8");
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) assert.ok(file.includes(`  ${k}: ${v}`), `public/_headers is missing ${k}: ${v}`);
 });
 
 test("a returning visitor keeps their version and is not counted again", async () => {

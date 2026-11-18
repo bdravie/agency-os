@@ -62,7 +62,7 @@ export default function LinkedInPanel({ posts, sources, aiReady }: { posts: Link
           <p className="muted" style={{ margin: "0 0 12px" }}>Start an empty post and write it in your own words. You can still build its image from the text.</p>
           <div className="stack stack-tight" style={{ gap: 8 }}>
             <label className="field-label" htmlFor="li-title">Working title</label>
-            <input id="li-title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && title.trim() && !busy) startBlank(); }} placeholder="Only you see this" />
+            <input id="li-title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && title.trim() && !busy) startBlank(); }} placeholder="Only you see this" />
             <button type="button" className="secondary" disabled={!title.trim() || busy} onClick={startBlank}>{busy ? "Starting…" : "Start post"}</button>
           </div>
         </section>

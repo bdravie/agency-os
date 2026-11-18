@@ -31,7 +31,7 @@
 
 /* ---------- the workbench: the brief on the left, the ledger on the right ---------- */
 .sx-bench { display: grid; grid-template-columns: minmax(300px, 350px) minmax(0, 1fr); gap: 28px; align-items: start; }
-.sx-rail { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
+.sx-rail { position: sticky; top: 16px; max-height: calc(100vh - 32px); max-height: calc(100svh - 32px); overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 0; }
 .sx-sec { padding: 16px 18px; border-bottom: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 12px; }
 .sx-sec h2 { margin: 0; font-family: var(--font-display), sans-serif; font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
 .sx-sec[hidden] { display: none; }
@@ -83,6 +83,9 @@
 .sx-biz { flex: 1 1 240px; min-width: 0; }
 .sx-figs { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; flex: 0 1 auto; max-width: 100%; min-width: 0; }
 .sx-row.off { opacity: 0.55; }
+.sx-row.flag .sx-biz > :not(.sx-flag), .sx-row.flag .sx-figs, .sx-row.flag .sx-score { opacity: 0.6; }
+.sx-biz .sx-flag { color: var(--warn); font-size: 13px; }
+.sx-go { border-bottom: 1px solid var(--line-soft); }
 .sx-row:hover { background: var(--accent-soft); }
 .sx-score { display: flex; align-items: center; gap: 10px; }
 .sx-bar { position: relative; flex: 1; height: 12px; border-radius: 3px; background: var(--surface-2); display: flex; gap: 1px; overflow: hidden; }
@@ -112,6 +115,19 @@
 .sx-dot.done { background: var(--good); } .sx-dot.failed { background: var(--bad); }
 .sx-dot.run { animation: sx-pulse 1.1s ease-in-out infinite; }
 
+/* ---------- this week ---------- */
+.sx-week { display: flex; flex-direction: column; gap: 14px; }
+.sx-week-head { display: flex; flex-direction: column; gap: 14px; }
+.sx-week-figs { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+.sx-week-niches { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 14px; }
+.sx-week-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sx-week-actions .sx-cost { margin-left: 0; margin-right: 8px; }
+.sx-week table select { max-width: min(340px, calc(100vw - 32px)); width: 100%; }
+.sx-week-off { opacity: 0.55; }
+.sx-run { padding: 0; }
+.sx-run > summary { padding: 14px 18px; cursor: pointer; }
+.sx-run[open] > summary { border-bottom: 1px solid var(--line); }
+
 @keyframes sx-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes sx-pulse { 50% { opacity: 0.35; } }
 @media (prefers-reduced-motion: reduce) { .sx-bar i, .sx-dot.run { animation: none; } }
@@ -130,3 +146,7 @@
   .sx-figs { flex-wrap: wrap; gap: 12px 18px; }
   .sx-pair { grid-template-columns: 1fr 1fr; }
 }
+/* Enrich > Fill in the gaps (docs/LEAD_SOURCER_PLAN.md, step 3) */
+.sx-fill { display: flex; flex-direction: column; gap: 10px; }
+.sx-fill .sx-cost { margin-left: 0; }
+.sx-older > summary { cursor: pointer; font-size: 14px; }

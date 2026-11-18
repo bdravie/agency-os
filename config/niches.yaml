@@ -57,7 +57,15 @@ niches:
     pain_points: ["missed calls while the front desk is busy", "enquiries left unanswered after hours", "empty slots from no-shows and late cancellations"]
     offer: "Missed calls and enquiries answered and booked into your diary"
     search_terms: ["dentist", "dental practice", "cosmetic dentist"]
+    search_first: [cqc]            # Lead Sourcer ticks the CQC register first: free, and it names the company behind each practice (docs/LEAD_SOURCER_PLAN.md)
+    cqc: { service_types: ["Dentist"], max_provider_locations: 2 }   # independents only: a provider with more locations is a chain
     sic_codes: ["86230"]
+    # Off-niche check (crm/lib/nicheRelevance.ts): a result whose name or Google category has an exclude word and no include word is flagged
+    # (shown last, greyed, not ticked; never hidden); a name_excludes_always word flags it even with an include word. Words match the start of
+    # a word ("physio" catches "Physiotherapy"); phrases word by word.
+    name_includes: ["dent", "smile", "orthodont", "implant", "tooth", "teeth", "oral"]
+    name_excludes: ["pharmacy", "optician", "optical", "optic", "eyecare", "veterinary", "vets", "physio", "care home", "care services", "carers", "consult", "agency", "recruit"]
+    name_excludes_always: ["laborator", "lab", "labs", "locum", "technician", "supplies", "academy", "training", "hygiene therapist"]   # flag even with "dental" in the name
     shows:
       - name: "The Dentistry Show"
         exhibitor_url: ""
@@ -75,7 +83,15 @@ niches:
     pain_points: ["DMs and enquiries answered too late to book", "missed calls during treatments", "consultation slots left empty"]
     offer: "Missed calls and enquiries answered and booked in for a consultation"
     search_terms: ["aesthetics clinic", "skin clinic", "botox clinic"]
+    search_first: [maps, cqc]      # Maps finds most clinics; CQC adds the medically led ones it regulates, free
+    cqc: { service_types: ["Doctors/GPs", "Clinic"], name_must_match: true, max_provider_locations: 2 }   # only names with a name_includes word ("skin", "aesthetic"), so GP surgeries never come in
+    maps_keywords: ["dermal filler clinic", "lip filler", "chemical peel", "anti-wrinkle injections"]   # extra suggestions for the Lead Sourcer's keywords box only (in place of sub-niches); never used in content or copy
     sic_codes: ["96020", "86900"]
+    # 96020 also covers hairdressers, barbers and nail bars, and 86900 physios, ambulances and care services, so the exclude list is long. "clinic" is
+    # deliberately not an include word (it would let "Physio Clinic" through), and "care" only counts in phrases (so "skin care" is never caught).
+    name_includes: ["aesthetic", "skin", "injectable", "inject", "botox", "filler", "derma", "cosmetic", "laser", "medispa", "rejuven", "anti ageing", "anti aging", "lip", "face"]
+    name_excludes_always: ["academy", "training", "laborator", "supplies", "wholesale"]   # flag even with an include word ("Aesthetics Training Academy" is not a clinic)
+    name_excludes: ["hair", "barber", "nail", "beauty", "salon", "tanning", "tattoo", "piercing", "lash", "brow bar", "brow studio", "brows", "massage", "ambulance", "care home", "home care", "homecare", "care services", "care ltd", "care limited", "carers", "eyecare", "healthcare", "ophthalm", "sports", "consult", "domiciliary", "nursing", "supported living", "dementia", "physio", "chiropract", "osteopath", "podiat", "chiropod", "counsel", "psycholog", "mental health", "hearing", "audiolog", "optic", "pharma", "recruit", "staffing", "transport", "laborator", "ultrasound", "baby scan", "acupunct"]
     shows:
       - name: "CCR Expo"
         exhibitor_url: ""
