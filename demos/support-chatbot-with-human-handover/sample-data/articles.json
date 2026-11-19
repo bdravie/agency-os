@@ -1,0 +1,89 @@
+{
+  "_note": "Made-up help articles for a fictional online shop, Thistledown Home. Demo data only: no real shop, policy or person.",
+  "articles": [
+    {
+      "id": "delivery-times",
+      "title": "Delivery times and costs",
+      "category": "Delivery",
+      "tags": ["delivery", "shipping", "postage", "express", "next day", "cost", "areas", "highlands", "international", "abroad"],
+      "body": "We deliver to UK addresses only. We do not ship abroad yet.\n\nStandard delivery takes 3 to 5 working days and costs £4.95. It is free on orders over £50.\n\nExpress delivery arrives the next working day if you order before 1pm, Monday to Friday. It costs £7.95.\n\nOrders to the Scottish Highlands, the islands and Northern Ireland can take 2 extra working days. There is no extra charge."
+    },
+    {
+      "id": "track-order",
+      "title": "Tracking your order",
+      "category": "Delivery",
+      "tags": ["track", "tracking", "where", "dispatched", "dispatch", "courier", "status", "order"],
+      "body": "When your order leaves our warehouse we send a dispatch email with a tracking link.\n\nYou can also sign in and open My orders to see the status of every order and the courier's tracking link.\n\nTracking can take up to 24 hours to show the first scan after dispatch."
+    },
+    {
+      "id": "late-delivery",
+      "title": "My order has not arrived",
+      "category": "Delivery",
+      "tags": ["late", "not arrived", "missing", "delayed", "lost", "late delivery", "where is my order", "safe place", "neighbour"],
+      "body": "First, check the tracking link in your dispatch email or in My orders.\n\nIf tracking says delivered, check your safe place, with neighbours and for a card from the courier.\n\nIf tracking has not moved for 2 working days, or your order is more than 2 working days past its expected date, contact our customer team with your order number. We will chase the courier and, if the parcel is lost, send a replacement or a refund."
+    },
+    {
+      "id": "returns-policy",
+      "title": "Our returns policy",
+      "category": "Returns",
+      "tags": ["return", "returns", "policy", "change my mind", "unwanted", "sale", "personalised", "days"],
+      "body": "You can return most items within 30 days of delivery if they are unused and in their original packaging.\n\nSale items can be returned on the same terms.\n\nPersonalised items and opened bedding cannot be returned unless they are faulty.\n\nReturns are free for faulty items. For anything else, a £3.50 return label charge is taken from your refund."
+    },
+    {
+      "id": "how-to-return",
+      "title": "How to send a return",
+      "category": "Returns",
+      "tags": ["return", "send back", "label", "drop off", "post office", "parcel", "start a return"],
+      "body": "Sign in and open My orders, choose the order and press Start a return.\n\nPick the items and the reason, then download your return label.\n\nPack the items securely, stick the label on the parcel and drop it at any Post Office. Keep your receipt until your refund arrives."
+    },
+    {
+      "id": "refunds",
+      "title": "When will I get my refund?",
+      "category": "Returns",
+      "tags": ["refund", "money back", "refunded", "how long", "payment back"],
+      "body": "We refund within 5 working days of your return reaching our warehouse.\n\nThe money goes back to the card, PayPal account or gift card you paid with. Your bank may take a further 3 to 5 working days to show it.\n\nWe email you when the refund has been sent."
+    },
+    {
+      "id": "damaged-item",
+      "title": "My item arrived damaged or faulty",
+      "category": "Returns",
+      "tags": ["damaged", "broken", "faulty", "cracked", "wrong item", "missing part", "photo"],
+      "body": "We are sorry if something arrived damaged, faulty or wrong.\n\nPlease tell our customer team within 48 hours of delivery and send a photo of the item and the packaging. You do not need to send it back until we ask.\n\nWe will send a replacement or a full refund, including the delivery charge."
+    },
+    {
+      "id": "reset-password",
+      "title": "Resetting your password",
+      "category": "Account",
+      "tags": ["password", "reset", "forgot", "log in", "login", "sign in", "can't sign in", "reset link", "email"],
+      "body": "On the sign-in page press Forgot password and enter the email address on your account.\n\nWe send a reset link that works for 30 minutes. If it does not arrive within a few minutes, check your spam or junk folder.\n\nIf the link has expired, request a new one. Only the newest link works."
+    },
+    {
+      "id": "account-locked",
+      "title": "My account is locked",
+      "category": "Account",
+      "tags": ["locked", "lock", "too many attempts", "blocked", "account", "sign in", "login"],
+      "body": "After 5 wrong passwords in a row your account locks for 15 minutes to keep it safe.\n\nWait 15 minutes and try again, or reset your password, which also unlocks the account.\n\nIf it is still locked after a reset, contact our customer team."
+    },
+    {
+      "id": "payment-methods",
+      "title": "Ways to pay",
+      "category": "Payments",
+      "tags": ["pay", "payment", "card", "paypal", "apple pay", "google pay", "gift card", "klarna", "instalments", "cash"],
+      "body": "We accept Visa, Mastercard and American Express cards, PayPal, Apple Pay, Google Pay and Thistledown Home gift cards.\n\nWe do not offer pay-later or instalment plans at the moment.\n\nYou are charged when you place the order."
+    },
+    {
+      "id": "payment-declined",
+      "title": "My payment was declined",
+      "category": "Payments",
+      "tags": ["declined", "payment failed", "card declined", "card", "rejected", "3d secure", "bank", "billing", "postcode"],
+      "body": "Check the card number, expiry date and security code, and that the billing postcode matches the one your bank holds.\n\nMany banks ask you to approve the payment in their app (3D Secure). Keep the app open while you pay.\n\nIf it is still declined, try another card or PayPal, or ask your bank. We never see your full card details, so we cannot tell why a bank declined a payment."
+    },
+    {
+      "id": "opening-hours",
+      "title": "Customer team opening hours",
+      "category": "Contact",
+      "tags": ["opening hours", "hours", "open", "closed", "contact", "phone", "speak", "customer team", "bank holiday", "weekend", "shop"],
+      "body": "We are an online shop with no stores.\n\nOur customer team is available Monday to Friday 9am to 5pm and Saturday 10am to 2pm. We are closed on Sundays and bank holidays.\n\nMessages sent outside these hours are answered on the next working day."
+    }
+  ]
+}

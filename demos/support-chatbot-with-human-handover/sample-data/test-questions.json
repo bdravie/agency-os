@@ -1,0 +1,20 @@
+{
+  "_note": "Made-up customer questions for the demo shop. 'expect' is the article that should answer it, or null when the help pages do not cover it and the bot must say it is not sure.",
+  "questions": [
+    { "q": "How long does standard delivery take?", "expect": "delivery-times" },
+    { "q": "Is delivery free?", "expect": "delivery-times" },
+    { "q": "Do you ship to France?", "expect": "delivery-times" },
+    { "q": "Where can I see where my parcel is?", "expect": "track-order" },
+    { "q": "The tracking says delivered but I haven't got anything", "expect": "late-delivery" },
+    { "q": "Can I return something I bought in the sale?", "expect": "returns-policy" },
+    { "q": "How do I send an item back?", "expect": "how-to-return" },
+    { "q": "I sent my return last week, when do I get my money back?", "expect": "refunds" },
+    { "q": "My vase arrived cracked", "expect": "damaged-item" },
+    { "q": "My password reset link has expired", "expect": "reset-password" },
+    { "q": "Can I pay with Klarna in instalments?", "expect": "payment-methods" },
+    { "q": "Are you open on Sundays?", "expect": "opening-hours" },
+    { "q": "Do you offer gift wrapping?", "expect": null },
+    { "q": "Can I collect my order from your warehouse?", "expect": null },
+    { "q": "Do you price match other shops?", "expect": null }
+  ]
+}

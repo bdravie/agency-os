@@ -1,0 +1,128 @@
+{
+  "_note": "Scripted troubleshooting flows for the fictional shop Thistledown Home. One question at a time, buttons only. Demo data only.",
+  "flows": [
+    {
+      "id": "late-delivery",
+      "label": "My order is late",
+      "article": "late-delivery",
+      "start": "tracking",
+      "steps": {
+        "tracking": {
+          "text": "Let's find your parcel. Have you opened the tracking link in your dispatch email (or in My orders)?",
+          "options": [
+            { "label": "Yes, I've checked it", "next": "status" },
+            { "label": "I can't find the email", "next": "find-email" }
+          ]
+        },
+        "find-email": {
+          "text": "No problem. Sign in and open My orders: every order shows its courier tracking link there. Can you see it now?",
+          "options": [
+            { "label": "Yes, found it", "next": "status" },
+            { "label": "No, it isn't there", "end": "not-fixed" }
+          ]
+        },
+        "status": {
+          "text": "What does the tracking say?",
+          "options": [
+            { "label": "Delivered", "next": "delivered" },
+            { "label": "Not moved for 2+ working days", "end": "not-fixed" },
+            { "label": "On its way", "next": "on-its-way" }
+          ]
+        },
+        "delivered": {
+          "text": "Couriers often leave parcels in a safe place or with a neighbour. Please check around your door, with neighbours and for a card from the courier.",
+          "options": [
+            { "label": "Found it", "end": "check" },
+            { "label": "Still can't find it", "end": "not-fixed" }
+          ]
+        },
+        "on-its-way": {
+          "text": "It's still moving, which is a good sign. Standard delivery takes 3 to 5 working days, plus 2 for the Highlands, islands and Northern Ireland. Is it within that time?",
+          "options": [
+            { "label": "Yes, I'll wait", "end": "check" },
+            { "label": "No, it's past that", "end": "not-fixed" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "password-reset",
+      "label": "I can't sign in",
+      "article": "reset-password",
+      "start": "message",
+      "steps": {
+        "message": {
+          "text": "Let's get you back in. What happens when you try to sign in?",
+          "options": [
+            { "label": "Wrong password", "next": "reset" },
+            { "label": "It says my account is locked", "next": "locked" }
+          ]
+        },
+        "locked": {
+          "text": "After 5 wrong tries the account locks for 15 minutes. Resetting your password unlocks it straight away. Shall we do that?",
+          "options": [
+            { "label": "Yes, reset it", "next": "reset" },
+            { "label": "I'll wait 15 minutes", "end": "check" }
+          ]
+        },
+        "reset": {
+          "text": "On the sign-in page press Forgot password and enter the email address on your account. Did the reset email arrive?",
+          "options": [
+            { "label": "Yes", "next": "link" },
+            { "label": "No", "next": "spam" }
+          ]
+        },
+        "spam": {
+          "text": "Please check your spam or junk folder. If it isn't there, request a new link: only the newest one works. Has it arrived now?",
+          "options": [
+            { "label": "Yes", "next": "link" },
+            { "label": "Still nothing", "end": "not-fixed" }
+          ]
+        },
+        "link": {
+          "text": "Open the link within 30 minutes and choose a new password. Were you able to sign in?",
+          "options": [
+            { "label": "Yes, I'm in", "end": "check" },
+            { "label": "The link says it expired", "next": "spam" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "payment-declined",
+      "label": "My payment was declined",
+      "article": "payment-declined",
+      "start": "details",
+      "steps": {
+        "details": {
+          "text": "Sorry about that. First, are the card number, expiry date and security code all correct?",
+          "options": [
+            { "label": "Yes, all correct", "next": "postcode" },
+            { "label": "I'll check and retry", "end": "check" }
+          ]
+        },
+        "postcode": {
+          "text": "Does the billing postcode match the one your bank holds for the card?",
+          "options": [
+            { "label": "Yes", "next": "bank-app" },
+            { "label": "Not sure, I'll fix it", "end": "check" }
+          ]
+        },
+        "bank-app": {
+          "text": "Many banks ask you to approve the payment in their app. Keep the app open while you pay, then try again. Did it go through?",
+          "options": [
+            { "label": "Yes, it worked", "end": "check" },
+            { "label": "Still declined", "next": "another-way" }
+          ]
+        },
+        "another-way": {
+          "text": "Try another card or PayPal. We never see your full card details, so only your bank can say why it declined. Did another way work?",
+          "options": [
+            { "label": "Yes", "end": "check" },
+            { "label": "No", "end": "not-fixed" }
+          ]
+        }
+      }
+    }
+  ]
+}

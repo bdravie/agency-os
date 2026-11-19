@@ -1,0 +1,6 @@
+# Local demo state (articles as edited, tickets, unanswered questions). Reset with: npm run reset
+data/
+.next/
+node_modules/
+next-env.d.ts
+*.tsbuildinfo
