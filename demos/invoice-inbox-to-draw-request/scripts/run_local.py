@@ -372,7 +372,8 @@ def cmd_make_body(_args) -> None:
     from agency import llm
 
     body = request_body(b"", prompt_text(), llm.resolve_model(MODEL))
-    body["messages"][0]["content"][0]["source"]["data"] = '{{toString(2.data; "base64")}}'
+    # The scenario's variable holding the PDF as standard base64 (module 10, see make/scenario.md).
+    body["messages"][0]["content"][0]["source"]["data"] = "{{10.pdf_base64}}"
     out = DEMO / "make" / "claude-request-body.json"
     out.write_text(json.dumps(body, indent=2, ensure_ascii=False) + "\n")
     print(

@@ -63,7 +63,7 @@ Not done yet: this needs the free Make.com account (API token already working) a
 Measured on the run above: about 3,200 tokens in and 300 out per invoice with Haiku 5.5.
 
 - **AI:** about $0.0005 per invoice at Haiku 5.5's list price ($0.10 / $0.50 per million tokens), so roughly $0.10 for 200 invoices a month. Check the Anthropic usage page after the first real runs.
-- **Make.com:** about 7 credits per invoice by my count (see `make/scenario.md`). The demo's 12 fit the Free plan (1,000 credits a month); 150 to 200 invoices a month would need a paid plan. Prices are on Make's pricing page.
+- **Make.com:** about 8 credits per invoice plus 2 per email (see `make/scenario.md`). The demo's 12 fit the Free plan (1,000 credits a month); 150 to 200 invoices a month would need a paid plan. Prices are on Make's pricing page.
 - **Google Sheets, Drive, Gmail, Apps Script:** no charge for this use on a normal Google account.
 
 ## What data it touches
@@ -78,7 +78,8 @@ Read on 16 Nov 2026 from each tool's own documentation and Make's help and commu
 
 **Make.com (new to me)**
 - A scenario is a chain of modules; each module run uses a credit (most actions 1 credit; routers and error handlers are free). The Free plan has 1,000 credits a month; paid plans add credits, and Make's own AI modules can use more than 1 credit.
-- Gmail > Watch emails returns each email with its attachments as an array; an **Iterator** splits them so each PDF goes through the rest of the scenario on its own (without it, only the first attachment is handled). The attachment carries its file data, so it can go straight into Drive's Upload a file.
+- Gmail > Watch emails returns each email with its attachments as an array, and the documentation suggests the attachment carries its file data. **In practice (17 Nov 2026) the data was empty**, so Claude refused the PDF. What works: Gmail > List email attachments (one bundle per attachment, so no Iterator is needed), then Gmail > Make an API Call to fetch each one, then convert Gmail's base64url to standard base64 before Claude and Drive. Map one real run before trusting a module's output.
+- A Google Sheets `403 PERMISSION_DENIED` on Add a row means the connected account cannot edit that spreadsheet, not a missing scope: check which Google account owns the sheet.
 - **Gmail catch:** for a personal @gmail.com account, Make's documentation says you must create your own OAuth client in Google Cloud because Gmail's scopes are restricted; Google Workspace accounts are simpler. Community threads report this as the most common setup problem.
 - Make's **Anthropic Claude** app has Create a Prompt, file modules and **Make an API Call**. Its documentation does not describe sending a PDF through Create a Prompt, so the demo uses Make an API Call with the same Messages API body as the local runner, which keeps one prompt and one schema.
 - Scheduling: intervals, daily, on demand, or "immediately" for some triggers; the shortest interval depends on the plan.

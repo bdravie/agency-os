@@ -25,7 +25,7 @@ LABEL_QUERY = "label:invoices-demo has:attachment filename:pdf"
 # Tracker columns in order (TRACKER_HEADERS in apps-script/Logic.gs), as Make maps them by column index.
 TRACKER_VALUES = [
     "{{1.date}}",  # Received
-    "{{1.from.address}}",  # Email from
+    "{{ifempty(1.fromEmail; 1.from.address)}}",  # Email from (the v4 trigger calls it fromEmail)
     "{{1.subject}}",  # Subject
     "{{6.name}}",  # File
     "{{6.webViewLink}}",  # Drive link
@@ -35,10 +35,7 @@ TRACKER_VALUES = [
     "{{4.amount}}",  # Amount
     "{{4.project}}",  # Project
     '{{join(4.unclear; "; ")}}',  # Extraction notes
-    "New",  # Status
-    "",  # Notes
-    "",  # Draw no
-    "",  # Checked at
+    "New",  # Status (Notes, Draw no and Checked at are left for the sheet's script)
 ]
 
 
@@ -78,25 +75,56 @@ def blueprint(ids: dict, conns: dict[str, int], check_key: str) -> dict:
             "mapper": {},
             "metadata": at(0),
         },
+        # Watch emails' own attachments came through with empty data (Claude: "PDF cannot be
+        # empty", 17 Nov 2026), so each attachment is listed, then fetched through Gmail's API.
+        # The module ids 9 and 10 are the ones the working scenario has; later modules map {{10.…}}.
         {
             "id": 2,
-            "module": "builtin:BasicFeeder",
+            "module": "google-email:listEmailAttachments",
+            "version": 4,
+            "parameters": {"__IMTCONN__": conns["google-email"]},
+            "mapper": {"messageId": "{{1.id}}"},
+            "metadata": at(300),
+        },
+        {
+            "id": 9,
+            "module": "google-email:makeAnApiCall",
+            "version": 4,
+            "parameters": {"__IMTCONN__": conns["google-email"]},
+            "filter": {
+                "name": "PDF only",
+                # Either condition passes (OR): some mail apps send PDFs as octet-stream.
+                "conditions": [
+                    [{"a": "{{2.mimeType}}", "b": "application/pdf", "o": "text:equal"}],
+                    [{"a": "{{lower(2.filename)}}", "b": ".pdf", "o": "text:contain"}],
+                ],
+            },
+            "mapper": {
+                "url": "/v1/users/me/messages/{{1.id}}/attachments/{{2.id}}",
+                "method": "GET",
+                "qs": [],
+                "headers": [],
+            },
+            "metadata": at(600),
+        },
+        {
+            # Gmail returns base64url; Claude and Drive want standard base64.
+            "id": 10,
+            "module": "util:SetVariable2",
             "version": 1,
             "parameters": {},
-            "mapper": {"array": "{{1.attachments}}"},
-            "metadata": at(300),
+            "mapper": {
+                "name": "pdf_base64",
+                "scope": "roundtrip",
+                "value": '{{replace(replace(9.body.data; "/-/g"; "+"); "/_/g"; "/")}}',
+            },
+            "metadata": at(900),
         },
         {
             "id": 3,
             "module": "anthropic-claude:makeAnApiCall",
             "version": 1,
             "parameters": {"__IMTCONN__": conns["anthropic-claude"]},
-            "filter": {
-                "name": "PDF only",
-                "conditions": [
-                    [{"a": "{{2.contentType}}", "b": "application/pdf", "o": "text:equal"}]
-                ],
-            },
             "mapper": {
                 "url": "/v1/messages",
                 "method": "POST",
@@ -142,7 +170,7 @@ def blueprint(ids: dict, conns: dict[str, int], check_key: str) -> dict:
                 "folderId": f'{{{{ifempty(5.id; "{ids["drive_needs_review_folder_id"]}")}}}}',
                 "title": '{{4.invoice_date}} {{4.vendor}} {{ifempty(4.invoice_number; "no number")}}.pdf',
                 "filename": '{{4.invoice_date}} {{4.vendor}} {{ifempty(4.invoice_number; "no number")}}.pdf',
-                "data": "{{2.data}}",
+                "data": '{{toBinary(10.pdf_base64; "base64")}}',
                 "convert": False,
             },
             "metadata": at(1500),
@@ -153,11 +181,11 @@ def blueprint(ids: dict, conns: dict[str, int], check_key: str) -> dict:
             "version": 2,
             "parameters": {"__IMTCONN__": conns["google"]},
             "mapper": {
+                # As Make saved it once the module was opened by hand.
                 "mode": "map",
-                "from": "drive",
                 "spreadsheetId": ids["tracker_spreadsheet_id"],
                 "sheetId": "Tracker",
-                "includesHeaders": True,
+                "tableFirstRow": "A1:Z1",
                 "insertUnformatted": False,
                 "valueInputOption": "USER_ENTERED",
                 "insertDataOption": "INSERT_ROWS",

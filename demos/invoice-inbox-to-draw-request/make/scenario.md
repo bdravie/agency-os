@@ -17,14 +17,26 @@ Everything below uses test accounts and the made-up PDFs in `sample-data/pdfs/`.
 
 | # | Module | Settings |
 |---|---|---|
-| 1 | **Gmail > Watch emails** | Connection: the test Google account (see "Gmail connection" below). Filter type: Gmail filter. Query: `label:invoices-demo has:attachment filename:pdf`. Mark email as read: yes. Maximum number of results: 10. |
-| 2 | **Flow control > Iterator** | Array: `{{1.attachments}}`. Add a **filter** on the link after it: `{{2.contentType}}` equal to `application/pdf` (so a logo or a .docx is skipped). |
-| 3 | **Anthropic Claude > Make an API Call** | URL: `/v1/messages`. Method: POST. Body: paste `claude-request-body.json` from this folder. Its `data` field holds `{{toString(2.data; "base64")}}`, which turns the attachment into base64 text. (Check this on the first run: Make's mapping panel shows the attachment's binary field as **Data**; if the name differs, map that field into `toString(...; "base64")`.) Regenerate the file with `run_local.py make-body` whenever you edit `prompts/invoice-extract.md`. |
-| 4 | **JSON > Parse JSON** | JSON string: the text block of the reply, `{{last(map(3.body.content; "text"; "type"; "text"))}}`. Data structure: generate it from one example reply (the cached replies in `.cache/invoice-extract/` are examples). |
-| 5 | **Google Drive > Search for files/folders** | Search: folders, query `name contains '{{4.project}} - '` inside `Invoices (demo)`. Limit 1. |
-| 6 | **Google Drive > Upload a file** | Folder: `{{ifempty(5.id; "<id of the _Needs review folder>")}}`. File name: `{{4.invoice_date}} {{4.vendor}} {{ifempty(4.invoice_number; "no number")}}.pdf`. Data: `{{2.data}}`. |
-| 7 | **Google Sheets > Add a row** | Sheet: the tracker, tab `Tracker`, table contains headers: yes. Map: Received `{{1.date}}`, Email from `{{1.from.address}}`, Subject `{{1.subject}}`, File `{{6.name}}`, Drive link `{{6.webViewLink}}`, Vendor `{{4.vendor}}`, Invoice no `{{4.invoice_number}}`, Invoice date `{{4.invoice_date}}`, Amount `{{4.amount}}`, Project `{{4.project}}`, Extraction notes `{{join(4.unclear; "; ")}}`, Status `New`. |
-| 8 | **HTTP > Make a request** | GET `<web app address>?key=<CHECK_KEY>`. Follow redirects: yes (Apps Script answers through a redirect). Parse response: yes. The reply is `{"ok":true,"checked":1}`. |
+The numbers in brackets are Make's module ids, which the mappings refer to (`{{10.pdf_base64}}` is module 10's output), so they are not in running order.
+
+| # | Module | Settings |
+|---|---|---|
+| 1 | **Gmail > Watch emails** | Connection: the test Google account (see "Gmail connection" below). Filter type: Gmail filter. Query: `label:invoices-demo has:attachment filename:pdf`. Mark email as read: no (the label is what limits it). Maximum number of results: 10. |
+| 2 | **Gmail > List email attachments** | Message ID: `{{1.id}}`. One bundle per attachment, so it also does the Iterator's job. |
+| 3 (9) | **Gmail > Make an API Call** | URL `/v1/users/me/messages/{{1.id}}/attachments/{{2.id}}`, method GET. Add a **filter** "PDF only" on the link into it, two conditions joined with **OR**: `{{2.mimeType}}` equal to `application/pdf`, or `{{lower(2.filename)}}` contains `.pdf` (some mail apps send PDFs as octet-stream; a logo or a .docx is skipped). |
+| 4 (10) | **Tools > Set variable** | Name `pdf_base64`, lifetime one cycle, value `{{replace(replace(9.body.data; "/-/g"; "+"); "/_/g"; "/")}}`. Gmail's API returns base64url (`-` and `_`); Claude and Drive want standard base64 (`+` and `/`). |
+| 5 (3) | **Anthropic Claude > Make an API Call** | URL: `/v1/messages`. Method: POST. Header `content-type: application/json`. Body: paste `claude-request-body.json` from this folder; its `data` field holds `{{10.pdf_base64}}`. Regenerate the file with `run_local.py make-body` whenever you edit `prompts/invoice-extract.md`. |
+| 6 (4) | **JSON > Parse JSON** | JSON string: the text block of the reply, `{{last(map(3.body.content; "text"; "type"; "text"))}}`. Data structure: generate it from one example reply (the cached replies in `.cache/invoice-extract/` are examples). |
+| 7 (5) | **Google Drive > Search for files/folders** | Search: folders, query `name contains '{{4.project}} - '` inside `Invoices (demo)`. Limit 1. |
+| 8 (6) | **Google Drive > Upload a file** | Folder: `{{ifempty(5.id; "<id of the _Needs review folder>")}}`. File name: `{{4.invoice_date}} {{4.vendor}} {{ifempty(4.invoice_number; "no number")}}.pdf`. Data: `{{toBinary(10.pdf_base64; "base64")}}`. |
+| 9 (7) | **Google Sheets > Add a row** | Sheet: the tracker, tab `Tracker`, table contains headers: yes (range `A1:Z1`). Map: Received `{{1.date}}`, Email from `{{ifempty(1.fromEmail; 1.from.address)}}`, Subject `{{1.subject}}`, File `{{6.name}}`, Drive link `{{6.webViewLink}}`, Vendor `{{4.vendor}}`, Invoice no `{{4.invoice_number}}`, Invoice date `{{4.invoice_date}}`, Amount `{{4.amount}}`, Project `{{4.project}}`, Extraction notes `{{join(4.unclear; "; ")}}`, Status `New`. |
+| 10 (8) | **HTTP > Make a request** | GET `<web app address>?key=<CHECK_KEY>`. Follow redirects: yes (Apps Script answers through a redirect). Parse response: yes. The reply is `{"ok":true,"checked":1}`. |
+
+## Problems met on the first runs (17 Nov 2026)
+
+- **`PDF cannot be empty` from Claude.** The attachments that come with Watch emails had no file data in this account, so `toString(2.data; "base64")` sent an empty string. Fixed by listing the attachments and fetching each one through Gmail's API (steps 2 to 4 above).
+- **`403: PERMISSION_DENIED - The caller does not have permission` on Add a row**, after the PDF had already been read and filed. The Sheets connection is the same Workspace account as Drive and has the spreadsheets scope, so the cause is the sheet itself: it was not editable by that account (most likely made while the browser was signed in to another Google account). Open the tracker, check the account at the top right, and either share it with the Workspace account as an Editor or make it again in that account (then update `tracker_spreadsheet_id` in `demo-ids.json` and the web app address, since the script is bound to the sheet). A protected Tracker tab gives a different message ("protected cell or object").
+- Each failed run still filed its PDF in Drive, so empty the project folders before a take.
 
 Scheduling: every 15 minutes is plenty for invoices; for the Loom, press **Run once** after sending the test emails.
 
@@ -38,4 +50,4 @@ Error handling: right-click module 3 > **Add error handler > Break** with 3 retr
 
 ## Credits per invoice (estimate)
 
-Roughly 7 credits per PDF (trigger share, iterator, Claude call, parse, Drive search, upload, sheet row, check call). 12 sample invoices ≈ 85 credits, inside the Free plan's 1,000 a month. At the client's 150 to 200 invoices a month that is about 1,000 to 1,400, so the client would need a paid Make plan: check Make's pricing page before quoting. Confirm the real count in the scenario's History after the first run.
+8 credits per PDF (attachment fetch, set variable, Claude call, parse, Drive search, upload, sheet row, check call) plus 2 per email (trigger, list attachments). A failed run on 17 Nov used 9 for one email up to the sheet row, which matches. 12 sample invoices in 3 emails ≈ 100 credits, inside the Free plan's 1,000 a month. At the client's 150 to 200 invoices a month that is about 1,300 to 1,800, so the client would need a paid Make plan: check Make's pricing page before quoting. Confirm the count in the scenario's History after the first full run.

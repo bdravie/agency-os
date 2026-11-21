@@ -74,7 +74,7 @@
           "source": {
             "type": "base64",
             "media_type": "application/pdf",
-            "data": "{{toString(2.data; \"base64\")}}"
+            "data": "{{10.pdf_base64}}"
           }
         },
         {
