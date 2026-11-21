@@ -216,34 +216,28 @@
       }
     },
     {
-      "id": 8,
-      "module": "http:ActionSendData",
-      "version": 3,
+      "id": 12,
+      "module": "http:MakeRequest",
+      "version": 4,
       "parameters": {
-        "handleErrors": false,
-        "useNewZLibDeCompress": true
+        "tlsType": "",
+        "authenticationType": "noAuth"
       },
       "mapper": {
         "url": "https://script.google.com/macros/s/AKfycbwkIwN_NgUUibij6qriyd585NwKJCJ2Dn6N9x7QWHfnznu4Jr1upe-Kwdv1L8J3pRhs/exec",
         "method": "get",
-        "useQuerystring": true,
-        "useMtls": false,
-        "qs": [
+        "queryParameters": [
           {
             "name": "key",
             "value": "<CHECK_KEY>"
           }
         ],
-        "followRedirect": true,
+        "allowRedirects": true,
         "parseResponse": true,
-        "serializeUrl": false,
+        "stopOnHttpError": true,
         "shareCookies": false,
-        "rejectUnauthorized": true,
-        "followAllRedirects": false,
-        "timeout": "",
-        "gzip": true,
-        "headers": [],
-        "bodyType": ""
+        "requestCompressedContent": true,
+        "timeout": "40"
       },
       "metadata": {
         "designer": {

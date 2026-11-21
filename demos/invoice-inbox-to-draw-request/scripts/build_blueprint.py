@@ -194,28 +194,23 @@ def blueprint(ids: dict, conns: dict[str, int], check_key: str) -> dict:
             "metadata": at(1800),
         },
         {
-            "id": 8,
-            "module": "http:ActionSendData",
-            "version": 3,
-            "parameters": {"handleErrors": False, "useNewZLibDeCompress": True},
+            # The current HTTP app, as Make saved it (21 Nov 2026). The legacy
+            # `http:ActionSendData` v3 built by API failed with BundleValidationError
+            # (missing `useQuerystring` and `useMtls`) and Make flags it for upgrade.
+            "id": 12,
+            "module": "http:MakeRequest",
+            "version": 4,
+            "parameters": {"tlsType": "", "authenticationType": "noAuth"},
             "mapper": {
                 "url": ids["web_app_url"],
                 "method": "get",
-                # Both are required: left out, the run fails with BundleValidationError
-                # "Missing value of required parameter 'useQuerystring' / 'useMtls'" (21 Nov 2026).
-                "useQuerystring": True,
-                "useMtls": False,
-                "qs": [{"name": "key", "value": check_key}],
-                "followRedirect": True,
+                "queryParameters": [{"name": "key", "value": check_key}],
+                "allowRedirects": True,  # Apps Script answers through a redirect
                 "parseResponse": True,
-                "serializeUrl": False,
+                "stopOnHttpError": True,
                 "shareCookies": False,
-                "rejectUnauthorized": True,
-                "followAllRedirects": False,
-                "timeout": "",
-                "gzip": True,
-                "headers": [],
-                "bodyType": "",
+                "requestCompressedContent": True,
+                "timeout": "40",
             },
             "metadata": at(2100),
         },
