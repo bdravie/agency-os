@@ -1,0 +1,43 @@
+# The assistant's knowledge base (the core of the dashboard brain, crm/lib/assistant.ts).
+# "Training" it means adding Markdown files here: write a file under knowledge/<topic>/ (or point at any Markdown file in the
+# repo) and list it under its topic. The assistant reads the passages that best match each question and cites them, so a fact
+# it should know must be written down in one of these files. Files are re-read when they change; no restart needed.
+#
+# Each topic: label (shown in the topic picker), description (shown under the box), sources (paths from the repo root;
+# a trailing /*.md takes every Markdown file in that folder).
+
+topics:
+  crm:
+    label: CRM
+    description: Where things live in the CRM, how each feature works and the business rules behind it.
+    sources:
+      - knowledge/crm/*.md
+      - CLAUDE.md
+      - BUILD_PLAN.md
+      - docs/SETUP.md
+  research:
+    label: Research
+    description: How to research niches, companies and content within the rules. Tick Search the web for anything outside the files.
+    sources:
+      - knowledge/research/*.md
+      - docs/NICHE_FOCUS_PLAN.md
+      - docs/LEAD_SOURCER_PLAN.md
+  design:
+    label: Design
+    description: Interface, motion and content design techniques, the brand sheet and GSAP animation.
+    sources:
+      - knowledge/design/*.md
+      - BRAND_SHEET.md
+      - .claude/skills/gsap-core/SKILL.md
+      - .claude/skills/gsap-timeline/SKILL.md
+      - .claude/skills/gsap-scrolltrigger/SKILL.md
+      - .claude/skills/gsap-react/SKILL.md
+      - .claude/skills/gsap-performance/SKILL.md
+  contracts:
+    label: Contracts
+    description: Which agreements to send a client and when, and what each should cover. Not legal advice.
+    sources:
+      - knowledge/contracts/*.md
+
+# How much the assistant reads per question.
+passages_per_question: 8

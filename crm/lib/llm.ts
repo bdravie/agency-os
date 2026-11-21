@@ -48,6 +48,16 @@ export const outreachModel = () => resolve(process.env.OUTREACH_MODEL?.trim() ||
 /** The model for LinkedIn connection notes: set LINKEDIN_NOTE_MODEL in .env. Defaults to Haiku, since a note is a couple of sentences. */
 export const linkedinNoteModel = () => resolve(process.env.LINKEDIN_NOTE_MODEL?.trim() || "haiku");
 
+/** The model for the dashboard assistant: set ASSISTANT_MODEL in .env (an alias or a full model id). Defaults to Sonnet, since contract and design answers need judgement. */
+export const assistantModel = () => resolve(process.env.ASSISTANT_MODEL?.trim() || "sonnet");
+
+/** The shared client, for callers that need more than `ask` (the assistant's web search). */
+export function anthropicClient(): Anthropic {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
+  g._anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  return g._anthropic;
+}
+
 export async function ask(prompt: string, model: ModelChoice = "sonnet", maxTokens = 1500): Promise<string> {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not set");
   g._anthropic ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

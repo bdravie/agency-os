@@ -26,6 +26,8 @@ import { loadMonthView, loadWeekView } from "@/lib/meetings";
 import { dayKey, dayLabel, timeLabel } from "@/lib/meetingMath";
 import { loadPace, loadPipelineSnapshot } from "@/lib/pace";
 import { FUNNEL_STAGES, STAGE_META } from "@/lib/stages";
+import BrainHub from "@/components/brain/BrainHub";
+import { knowledgeTopics } from "@/lib/knowledge";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard" };
@@ -35,7 +37,7 @@ const TABS = ["today", "week", "month", "pipeline", "activity"] as const;
 export default async function Today({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const asked = (await searchParams).tab;
   const tab = TABS.find((t) => t === asked) ?? "today";
-  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot, week, monthView, nichePace] = await Promise.all([
+  const [tasks, stale, recent, backup, revenue, outreach, outcomes, training, contentStats, contentOverdue, contentConfig, briefRow, pace, snapshot, week, monthView, nichePace, topics] = await Promise.all([
     query<any>(
       `SELECT t.id, t.title, t.due_at, t.company_id, c.name AS company_name, (t.due_at < now()::date) AS overdue
          FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
@@ -70,6 +72,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
     loadWeekView(dayKey(new Date())),
     tab === "month" ? loadMonthView(dayKey(new Date())) : null,   // only read when that tab is open
     loadNichePace().catch((e) => { console.error(`This week by niche: ${e instanceof Error ? e.message : e}`); return []; }),
+    knowledgeTopics(),
   ]);
   const openDeals = FUNNEL_STAGES.filter((st) => st !== "Won").map((st) => { const x = snapshot.find((y) => y.stage === st); return { stage: st, n: x?.n ?? 0, value: x?.value ?? 0 }; }).filter((x) => x.n > 0);
   const openTotal = openDeals.reduce((a, x) => a + x.n, 0);
@@ -110,6 +113,7 @@ export default async function Today({ searchParams }: { searchParams: Promise<{ 
             <Link href="/content" className="btn secondary"><Video size={16} aria-hidden /> Content ideas</Link>
           </div>
         </div>
+        <BrainHub topics={topics} />
         <div className="pace-grid">
           <PaceCard card={pace.today} />
           <PaceCard card={pace.week} />
