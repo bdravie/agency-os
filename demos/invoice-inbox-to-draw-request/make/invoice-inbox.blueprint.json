@@ -226,6 +226,8 @@
       "mapper": {
         "url": "https://script.google.com/macros/s/AKfycbwkIwN_NgUUibij6qriyd585NwKJCJ2Dn6N9x7QWHfnznu4Jr1upe-Kwdv1L8J3pRhs/exec",
         "method": "get",
+        "useQuerystring": true,
+        "useMtls": false,
         "qs": [
           {
             "name": "key",

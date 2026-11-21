@@ -201,6 +201,10 @@ def blueprint(ids: dict, conns: dict[str, int], check_key: str) -> dict:
             "mapper": {
                 "url": ids["web_app_url"],
                 "method": "get",
+                # Both are required: left out, the run fails with BundleValidationError
+                # "Missing value of required parameter 'useQuerystring' / 'useMtls'" (21 Nov 2026).
+                "useQuerystring": True,
+                "useMtls": False,
                 "qs": [{"name": "key", "value": check_key}],
                 "followRedirect": True,
                 "parseResponse": True,
