@@ -1,0 +1,519 @@
+{
+  "id": "VoiceReceptnst01",
+  "name": "AI voice receptionist (call-backs and booking requests)",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 560,
+        "height": 280,
+        "content": "## AI voice receptionist\n**Top lane:** the website's *Have us call you* form asks ElevenLabs to ring the person back straight away (one call per number per 10 minutes, `daily_call_cap` a day).\n\n**Bottom lane:** the voice agent's `send_booking_request` tool lands here; the front desk gets a one-line request on WhatsApp.\n\nCredentials: ElevenLabs (Header auth: `xi-api-key`) and, for the WhatsApp heads-up, Twilio (Basic auth)."
+      },
+      "id": "a7a0bc89-4ebe-5fe6-b1a7-ed7a42a7b9ae",
+      "name": "About this workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -380
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voice-demo/call-me-back",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "2ff39898-6692-5339-b877-a5e94f8e7831",
+      "name": "Call-back form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "e2ce5f77-2202-52e9-b213-b0a8dff10173"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "voice-demo/booking-request",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cf2f9337-743c-5793-875c-74145664bb61",
+      "name": "Booking request (voice agent tool)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        420
+      ],
+      "webhookId": "18e37f55-8910-5e0a-8e51-3f4a065feb5c"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f01796d2-60ad-56ad-a011-839e16c9c09f",
+              "name": "clinic_name",
+              "value": "Lumen Skin Clinic",
+              "type": "string"
+            },
+            {
+              "id": "8dc4fcee-b1d8-520b-923f-d8ac0b581c26",
+              "name": "clinic_twilio_number",
+              "value": "+441134960456",
+              "type": "string"
+            },
+            {
+              "id": "24875b09-a7fb-50d0-afbc-7914b7ebc163",
+              "name": "elevenlabs_agent_id",
+              "value": "CHANGE ME",
+              "type": "string"
+            },
+            {
+              "id": "d9dcf59f-a4c5-58f2-9f86-1de64248edea",
+              "name": "elevenlabs_phone_number_id",
+              "value": "CHANGE ME",
+              "type": "string"
+            },
+            {
+              "id": "83b372bd-27d7-5786-8fd1-d434f0bc5f4a",
+              "name": "call_back_first_message",
+              "value": "Hi {first_name}, it's the AI assistant at {clinic}, calling back about {reason}. This call is recorded. Is now still a good time?",
+              "type": "string"
+            },
+            {
+              "id": "258294ab-48ac-5e22-85cd-3d95f90444f7",
+              "name": "tool_secret",
+              "value": "CHANGE ME",
+              "type": "string"
+            },
+            {
+              "id": "ab86bcca-6c87-54e2-b68d-167fca380616",
+              "name": "dedupe_minutes",
+              "value": "10",
+              "type": "string"
+            },
+            {
+              "id": "cd54672c-3253-520b-9a48-5127c93b02f2",
+              "name": "daily_call_cap",
+              "value": "20",
+              "type": "string"
+            },
+            {
+              "id": "4309c2b2-581a-58cc-8fed-ae2085a7f4e6",
+              "name": "twilio_account_sid",
+              "value": "CHANGE ME (starts AC)",
+              "type": "string"
+            },
+            {
+              "id": "f8875576-ef6c-5763-865c-4808a4bc3bd2",
+              "name": "whatsapp_from",
+              "value": "+14155238886",
+              "type": "string"
+            },
+            {
+              "id": "50378618-b49a-5443-aa9c-1f5cf45129cb",
+              "name": "frontdesk_whatsapp",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "fb76cbeb-a499-5999-b0b0-01740505b8d0",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9c78d1d5-73fe-590f-b153-97a2584e747a",
+              "leftValue": "={{ $json.body?.source ?? '' }}",
+              "rightValue": "web-form",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2118fc1f-dd39-56ed-8b21-2b7397be3e0e",
+      "name": "Which webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// The website's \"Have us call you\" form. Checks the request, then builds the ElevenLabs\n// outbound-call request so the assistant rings the person within seconds.\n// Guards: a usable number, the consent tick, one call per number per dedupe_minutes, and a daily cap\n// (every call costs money, and a public form can be abused).\nconst s = $input.first().json;\nconst b = s.body || {};\nconst store = $getWorkflowStaticData('global');\nstore.calls ??= {}; store.day ??= { date: '', count: 0 };\nconst now = Date.now();\nfor (const k of Object.keys(store.calls)) if (now - store.calls[k] > DAY) delete store.calls[k];\nconst today = new Date().toLocaleDateString('en-GB', { timeZone: 'Europe/London' });\nif (store.day.date !== today) store.day = { date: today, count: 0 };\n\nconst answer = (ok, note, extra = {}) => [{ json: { place_call: false, response_type: 'application/json', response_body: JSON.stringify({ ok }), messages: [], note, ...extra } }];\n\nconst REASONS = {\n  consultation: 'booking a consultation',\n  followup: 'booking a follow-up',\n  change: 'changing an appointment',\n  other: 'your enquiry',\n};\n\nconst to = e164(b.phone);\nif (!to) return answer(false, 'Number not recognised');\nif (b.consent !== 'yes') return answer(false, 'No consent tick');\nconst key = hash(to);\nif (store.calls[key] && now - store.calls[key] < Number(s.dedupe_minutes) * 60000) return answer(true, 'Called this number recently, not calling again');\nif (store.day.count >= Number(s.daily_call_cap)) {\n  const messages = s.frontdesk_whatsapp\n    ? [{ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp, `Call-back request from ${to} not placed: the daily limit of ${s.daily_call_cap} calls is reached. Please ring them.`) }]\n    : [];\n  return answer(true, 'Daily call cap reached', { messages });\n}\n\nstore.calls[key] = now;\nstore.day.count += 1;\nconst first = (String(b.first_name || '').match(/[A-Za-z\u00c0-\u00ff'-]{1,30}/) || [''])[0];\nconst reason = REASONS[b.reason] || REASONS.other;\nconst values = { clinic: s.clinic_name, first_name: first || 'there', reason };\n\nconst request = {\n  agent_id: s.elevenlabs_agent_id,\n  agent_phone_number_id: s.elevenlabs_phone_number_id,\n  to_number: to,\n  conversation_initiation_client_data: {\n    conversation_config_override: { agent: { first_message: fill(s.call_back_first_message, values) } },\n    dynamic_variables: { first_name: first, reason },\n  },\n};\nreturn [{ json: { place_call: true, to, request, response_type: 'application/json', response_body: JSON.stringify({ ok: true }), messages: [], note: `Calling ${to.slice(0, -3)}***` } }];\n"
+      },
+      "id": "d97b6526-4ee1-50fc-b01e-933dbf91b3bb",
+      "name": "Check the call-back request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.response_body }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "={{ $json.response_type }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "a14b9d7a-4011-5513-b123-846a86486be3",
+      "name": "Answer the page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        940,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eedb730a-338a-5abb-a94b-8ec5c880f006",
+              "leftValue": "={{ $json.place_call }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b5613164-f757-5387-b520-dd596f6c2933",
+      "name": "Place the call?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/convai/twilio/outbound-call",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "c42efff8-0fa6-5150-b9cd-43e65da88d73",
+      "name": "Ask ElevenLabs to ring them",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// ElevenLabs could not place the call (wrong ID, no credit, number not allowed). The person was promised\n// a call, so the front desk is told to ring them instead.\nconst s = $('Settings').first().json;\nconst req = $('Check the call-back request').first().json;\nconst messages = s.frontdesk_whatsapp\n  ? [{ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp, `The assistant could not ring ${req.to} back. Please call them.`) }]\n  : [];\nreturn [{ json: { messages, note: 'Outbound call failed' } }];\n"
+      },
+      "id": "d580b196-6987-52aa-95e6-2afcec481dba",
+      "name": "Call failed: tell the front desk",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per WhatsApp to send. No messages means no items, so the Twilio step does not run.\nreturn ($input.first().json.messages || []).map((m) => ({ json: m }));\n"
+      },
+      "id": "694a6549-5660-5a86-a474-d20b505e0063",
+      "name": "One item per message (form)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// The voice agent's send_booking_request tool. Checks the shared secret, tidies what the agent\n// collected, works out the caller's number, and words a one-line request for the front desk.\n// The reply tells the agent what to say next.\nconst s = $input.first().json;\nconst b = s.body || {};\nconst headers = s.headers || {};\nconst tell = (result, say, messages = [], note = '') =>\n  [{ json: { response_type: 'application/json', response_body: JSON.stringify({ result, say }), messages, note } }];\n\nif (!s.tool_secret || s.tool_secret.startsWith('CHANGE ME') || headers['x-demo-secret'] !== s.tool_secret)\n  return tell('refused', 'Apologise and say the team will call them back on this number today.', [], 'Wrong or missing x-demo-secret');\n\n// Never pass on contact details or long free text from the conversation.\nconst clean = (v, max) => String(v || '')\n  .replace(/[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+/g, '')\n  .replace(/\\+?\\d[\\d\\s().-]{8,}\\d/g, '')\n  .replace(/\\s+/g, ' ').trim().slice(0, max);\n\nconst clinic = e164(s.clinic_twilio_number);\nconst number = [b.caller_id, b.called_number].map(e164).find((n) => n && n !== clinic) || null;\nconst first = (clean(b.first_name, 30).match(/[A-Za-z\u00c0-\u00ff'-]{1,30}/) || ['Caller'])[0];\nconst type = /exist|before|been/i.test(b.patient_type) ? 'existing' : /new|first/i.test(b.patient_type) ? 'new' : 'unknown';\nconst about = clean(b.about, 80) || 'not given';\nconst when = clean(b.preferred_time, 60) || 'as soon as possible';\n\nconst line = `Call back request (phone assistant): ${first}, ${type} client, about ${about}. Call ${when}${number ? ` on ${number}` : ', number not available (check ElevenLabs)'}.`;\nconst messages = s.frontdesk_whatsapp ? [{ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp, line) }] : [];\nreturn tell('sent', `The team has the request and will call back ${when}.`, messages, line);\n"
+      },
+      "id": "2af45983-4df7-5ac1-954d-666b067bb114",
+      "name": "Word the booking request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.response_body }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "={{ $json.response_type }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "75df84e3-5487-5a53-97d6-cf5121aece15",
+      "name": "Answer the voice agent",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        940,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per WhatsApp to send. No messages means no items, so the Twilio step does not run.\nreturn ($input.first().json.messages || []).map((m) => ({ json: m }));\n"
+      },
+      "id": "f8741094-57a0-552c-89a0-f40553942ab9",
+      "name": "One item per message (agent)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('Settings').first().json.twilio_account_sid }}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ $json.form }}",
+        "options": {}
+      },
+      "id": "1b32bf1f-7c27-5d13-be78-4d924426c3c9",
+      "name": "Send WhatsApp (Twilio)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Call-back form": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking request (voice agent tool)": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Which webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Which webhook?": {
+      "main": [
+        [
+          {
+            "node": "Check the call-back request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Word the booking request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check the call-back request": {
+      "main": [
+        [
+          {
+            "node": "Answer the page",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Place the call?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Place the call?": {
+      "main": [
+        [
+          {
+            "node": "Ask ElevenLabs to ring them",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "One item per message (form)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask ElevenLabs to ring them": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Call failed: tell the front desk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call failed: tell the front desk": {
+      "main": [
+        [
+          {
+            "node": "One item per message (form)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per message (form)": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp (Twilio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Word the booking request": {
+      "main": [
+        [
+          {
+            "node": "Answer the voice agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "One item per message (agent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per message (agent)": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp (Twilio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "note": "Demo. Fictional clinic. Test with your own phone only."
+  }
+}

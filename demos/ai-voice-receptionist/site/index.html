@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en-GB" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumen Skin Clinic (demo)</title>
+<meta name="description" content="Demo site for a fictional aesthetics clinic, used to show an AI voice receptionist and instant call-backs.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<script>
+  // Before first paint: mark JS and motion so entrances start hidden (no flash), and restore the theme.
+  (function () {
+    var d = document.documentElement;
+    d.className = 'js' + (window.matchMedia('(prefers-reduced-motion: no-preference)').matches ? ' motion' : '');
+    try { var t = localStorage.getItem('demo-theme'); if (t) d.setAttribute('data-theme', t); } catch (e) {}
+  })();
+</script>
+<style>
+  /* Brand tokens (BRAND_SHEET.md): Navy, Cream, Coral, with Lagoon for done. Light by default, dark on the switch. */
+  :root {
+    --bg: #f4ede0; --surface: #ffffff; --surface-2: #eae3d6;
+    --line: #dcd3c3; --line-soft: #e7dfd0;
+    --text: #14213d; --text-2: #3b4660; --muted: #566076;
+    --accent: #ff6b5b; --accent-hover: #f55a49; --accent-soft: #ffe8e4; --accent-text: #b23526; --on-accent: #14213d; --ring: #e04a39;
+    --good: #0f5c5e; --good-soft: #dceeec; --on-good: #f4ede0; --good-bright: #96e6e0;
+    --navy: #14213d; --navy-deep: #0d1730; --navy-mid: #1c2b4c; --cream: #f4ede0; --pale-text: #c9cfdc; --pale-coral: #ffc9c1;
+    /* The phone illustration keeps its own light look in both themes */
+    --chat-bg: #efe7d9; --chat-in: #ffffff; --chat-out: #d4ece9; --chat-meta: #566076;
+    --radius: 20px; --radius-md: 14px; --radius-sm: 10px;
+    --shadow-1: 0 1px 2px rgba(20,33,61,.05), 0 8px 24px rgba(20,33,61,.06);
+    --shadow-pop: 0 8px 30px rgba(20,33,61,.12);
+    --ease: 180ms cubic-bezier(.2,.8,.2,1);
+    --font: "Instrument Sans", system-ui, sans-serif;
+    --font-head: "Bricolage Grotesque", var(--font);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14213d; --surface: #1c2b4c; --surface-2: #27375b;
+    --line: #34456b; --line-soft: #283858;
+    --text: #f4ede0; --text-2: #e6e3dc; --muted: #c9cfdc;
+    --accent-hover: #ff8073; --accent-soft: rgba(255,107,91,.16); --accent-text: #ffc9c1; --ring: #ff6b5b;
+    --good: #96e6e0; --good-soft: rgba(92,197,191,.16); --on-good: #0d1730;
+    --shadow-1: none; --shadow-pop: 0 8px 30px rgba(6,11,24,.45);
+    color-scheme: dark;
+  }
+  .navy {
+    --surface: #1c2b4c; --surface-2: #27375b; --line: #34456b; --line-soft: #283858;
+    --text: #f4ede0; --text-2: #e6e3dc; --muted: #c9cfdc;
+    --accent-text: #ffc9c1; --ring: #ff6b5b;
+    background: var(--navy); color: var(--text-2);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 24px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--text-2); font: 400 17px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--font-head); color: var(--text); letter-spacing: -.025em; line-height: 1.08; margin: 0 0 .5em; text-wrap: balance; }
+  h1 { font-size: clamp(2.3rem, 5.4vw, 3.9rem); font-weight: 700; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 650; }
+  h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
+  p { margin: 0 0 1em; }
+  a { color: var(--accent-text); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .label { font-size: 12px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .muted { color: var(--muted); font-size: 14px; }
+
+  /* Entrances start hidden only when JS and motion are both on; GSAP reveals them. */
+  .js.motion [data-reveal], .js.motion [data-reveal-group] > * { visibility: hidden; }
+
+  /* Demo ribbon */
+  .ribbon { background: var(--navy-deep); color: var(--cream); font-size: 13px; }
+  .ribbon .wrap { display: flex; gap: 12px; align-items: center; justify-content: space-between; min-height: 38px; flex-wrap: wrap; padding-block: 6px; }
+  .ribbon b { color: var(--pale-coral); font-weight: 600; }
+  .ribbon-tools { display: flex; gap: 8px; }
+  .chip-btn { font: 600 12px/1 var(--font); color: var(--cream); background: transparent; border: 1px solid rgba(244,237,224,.28); border-radius: 999px; padding: 7px 12px; cursor: pointer; transition: background var(--ease), border-color var(--ease); }
+  .chip-btn:hover { background: rgba(244,237,224,.1); border-color: rgba(244,237,224,.5); }
+
+  /* Header */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font: 700 1.2rem/1 var(--font-head); letter-spacing: -.02em; }
+  .mark { width: 34px; height: 34px; border-radius: 11px; background: var(--accent); display: grid; place-items: center; }
+  .mark svg { width: 20px; height: 20px; }
+  .nav { display: flex; gap: 22px; align-items: center; }
+  .nav a { color: var(--text-2); text-decoration: none; font-weight: 500; font-size: 15px; }
+  .nav a:hover { color: var(--text); text-decoration: underline; }
+  .navy .top .brand, .navy .nav a { color: var(--cream); }
+
+  /* Buttons: one Coral button per view, the rest quiet. Text on Coral is Navy. */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 26px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: 650 1rem/1.2 var(--font); text-decoration: none; cursor: pointer; transition: transform var(--ease), background var(--ease), border-color var(--ease); }
+  .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn:active { transform: scale(.97); }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1.5px solid var(--line); padding: 13.5px 24px; }
+  .btn.ghost:hover { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: var(--muted); }
+  .btn.small { padding: 10px 16px; font-size: 14px; }
+  .btn[disabled] { opacity: .7; cursor: progress; transform: none; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; padding-bottom: 72px; }
+  .hero::before { content: ""; position: absolute; width: 760px; height: 760px; right: -220px; top: -160px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255,107,91,.22), rgba(255,107,91,0)); pointer-events: none; }
+  .hero-grid { position: relative; display: grid; grid-template-columns: 1.08fr .92fr; gap: 48px; align-items: center; padding-top: 28px; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero .sub { font-size: 1.18rem; max-width: 34em; margin-bottom: 28px; color: var(--text-2); }
+  .trust { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 26px 0 0; font-size: 14px; color: var(--muted); }
+  .trust li { display: flex; align-items: center; gap: 8px; }
+  .trust li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--good-soft); box-shadow: 0 0 0 3px rgba(150,230,224,.25); }
+
+  /* The illustration: a call to the AI assistant, with live captions */
+  .scene { margin: 0; display: grid; justify-items: center; gap: 14px; position: relative; }
+  .phone { width: min(272px, 74vw); aspect-ratio: 9 / 18.5; border-radius: 44px; padding: 12px; background: var(--navy-deep);
+    box-shadow: 0 0 0 1.5px rgba(244,237,224,.14), 0 30px 60px rgba(4,8,20,.45); position: relative; will-change: transform; }
+  .notch { position: absolute; top: 20px; left: 50%; width: 84px; height: 24px; margin-left: -42px; border-radius: 999px; background: var(--navy-deep); z-index: 3; }
+  .screen { position: relative; height: 100%; border-radius: 33px; overflow: hidden; background: var(--cream); color: var(--navy); }
+  .statusbar { position: absolute; inset: 0 0 auto; height: 52px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 26px 6px; font: 600 12px/1 var(--font); z-index: 2; color: var(--navy); }
+  .callscreen { background: linear-gradient(180deg, var(--navy-mid), var(--navy-deep)); color: var(--cream); display: flex; flex-direction: column; padding: 58px 16px 18px; }
+  .callscreen .statusbar { color: var(--cream); }
+  .call-top { text-align: center; display: grid; justify-items: center; gap: 4px; }
+  .call-top .avatar-sm { width: 58px; height: 58px; border-radius: 50%; background: var(--accent); color: var(--navy); display: grid; place-items: center; font: 700 20px/1 var(--font-head); margin-bottom: 6px; position: relative; }
+  .call-top .avatar-sm::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--accent); opacity: .35; }
+  .who { font: 650 1.1rem/1.2 var(--font-head); margin: 0; }
+  .meta { margin: 0; font-size: 12px; color: var(--pale-text); display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good-bright); }
+  .wave { height: 54px; display: flex; align-items: center; justify-content: center; gap: 3px; margin: 14px 0 10px; }
+  .wave i { display: block; width: 4px; height: 100%; border-radius: 4px; background: var(--accent); transform: scaleY(var(--h, .4)); transform-origin: 50% 50%; transition: background .3s; }
+  .wave[data-speaker="caller"] i { background: var(--good-bright); }
+  .captions { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; overflow: hidden; font-size: 12.5px; line-height: 1.4;
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%); mask-image: linear-gradient(180deg, transparent, #000 22%); }
+  .cap { margin: 0; padding: 8px 10px; border-radius: 12px; background: rgba(244,237,224,.07); }
+  .cap b { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+  .cap.agent b { color: var(--pale-coral); }
+  .cap.caller { background: rgba(150,230,224,.1); }
+  .cap.caller b { color: var(--good-bright); }
+  .call-actions { display: flex; justify-content: center; gap: 22px; margin-top: 14px; }
+  .call-actions span { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: rgba(244,237,224,.1); }
+  .call-actions span.end { background: var(--accent); }
+  .call-actions svg { width: 20px; height: 20px; }
+  .calling-rings { position: relative; width: 56px; height: 56px; margin-bottom: 16px; }
+  .calling-rings .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--good); opacity: 0; }
+  .calling-rings .core { position: absolute; inset: 0; border-radius: 18px; background: var(--good-soft); color: var(--good); display: grid; place-items: center; }
+  .calling-rings svg { width: 28px; height: 28px; }
+  .toast { display: flex; align-items: center; gap: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--line-soft); border-radius: 999px; padding: 10px 16px 10px 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-pop); }
+  .toast .tick { width: 26px; height: 26px; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; }
+  .toast .tick svg { width: 15px; height: 15px; }
+  .scene figcaption { font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+  .linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+  /* Sections */
+  section { padding: 84px 0; }
+  .section-head { max-width: 40em; margin-bottom: 36px; }
+  .steps { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); counter-reset: step; }
+  .card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-1); transition: transform var(--ease), box-shadow var(--ease); }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+  .card p:last-child { margin-bottom: 0; }
+  .step-n { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font: 700 1.1rem/1 var(--font-head); background: var(--accent-soft); color: var(--accent-text); margin-bottom: 16px; }
+  .step-n.done { background: var(--good-soft); color: var(--good); }
+
+  .contact-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 20px; align-items: start; }
+  .field { display: grid; gap: 7px; margin-bottom: 18px; }
+  .field > label, .legend { font-weight: 600; color: var(--text); font-size: 15px; }
+  .hint { font-size: 13px; color: var(--muted); }
+  input[type="text"], input[type="tel"] { font: 400 16px/1.4 var(--font); color: var(--text); background: var(--bg); border: 1.5px solid var(--line); border-radius: var(--radius-sm); padding: 13px 14px; width: 100%; transition: border-color var(--ease), box-shadow var(--ease); }
+  input[type="text"]:focus, input[type="tel"]:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 4px var(--accent-soft); }
+  input[aria-invalid="true"] { border-color: var(--ring); }
+  fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .chips label { position: relative; }
+  .chips input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .chips span { display: inline-block; padding: 9px 15px; border-radius: 999px; border: 1.5px solid var(--line); font-size: 14px; font-weight: 550; color: var(--text-2); transition: background var(--ease), border-color var(--ease), color var(--ease); }
+  .chips input:checked + span { background: var(--navy); border-color: var(--navy); color: var(--cream); }
+  :root[data-theme="dark"] .chips input:checked + span { background: var(--cream); border-color: var(--cream); color: var(--navy); }
+  .chips input:focus-visible + span { outline: 3px solid var(--ring); outline-offset: 2px; }
+  .consent { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; margin: 6px 0 22px; }
+  .consent input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+  .error { color: var(--accent-text); font-size: 13px; font-weight: 600; min-height: 0; margin: 0; }
+  .form-foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .done-panel { text-align: left; }
+  .done-icon { width: 56px; height: 56px; border-radius: 18px; background: var(--good-soft); color: var(--good); display: grid; place-items: center; margin-bottom: 16px; }
+  .done-icon svg { width: 30px; height: 30px; }
+  .info dl { margin: 0; display: grid; gap: 14px; }
+  .info dt { font-size: 12px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .info dd { margin: 2px 0 0; color: var(--text); }
+  .info a { font-weight: 600; }
+
+  footer { padding: 36px 0 60px; border-top: 1px solid var(--line-soft); font-size: 14px; color: var(--muted); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+  /* Test panel: for you, not for visitors. Open with the ribbon button, ?test or the T key. */
+  .testpanel { position: fixed; right: 16px; bottom: 16px; z-index: 20; width: min(340px, calc(100vw - 32px)); background: var(--surface); color: var(--text-2); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: 16px; font-size: 13px; }
+  .testpanel h3 { font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .testpanel dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0 0 10px; }
+  .testpanel dt { color: var(--muted); }
+  .testpanel dd { margin: 0; color: var(--text); word-break: break-all; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 650; }
+  .pill.ok { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--accent-soft); color: var(--accent-text); }
+  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 140px; overflow: auto; }
+  .log li { background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+
+  @media (max-width: 900px) {
+    .hero-grid, .contact-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .nav a:not(.btn) { display: none; }
+  }
+  @media (max-width: 440px) {
+    .wrap { padding: 0 16px; }
+    .hero-grid { padding-top: 22px; gap: 40px; }
+    section { padding: 60px 0; }
+    .hero .actions .btn { width: 100%; }
+    .btn.small { padding: 9px 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ribbon">
+  <div class="wrap">
+    <span><b>Demo website.</b> <span data-config="clinicName">Lumen Skin Clinic</span> is a fictional clinic.</span>
+    <span class="ribbon-tools">
+      <button class="chip-btn" type="button" id="themeBtn" aria-pressed="false">Dark mode</button>
+      <button class="chip-btn" type="button" id="testBtn" aria-expanded="false" aria-controls="testPanel">Test panel</button>
+    </span>
+  </div>
+</div>
+
+<div class="navy hero">
+  <header class="wrap top">
+    <a class="brand" href="#top" id="top">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#14213d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5"/></svg></span>
+      <span data-config="clinicName">Lumen Skin Clinic</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#how">How booking works</a>
+      <a href="#callback">Call me back</a>
+      <a class="btn small ghost" href="tel:+441134960456" data-config-tel>Call <span data-config="phoneDisplay">0113 496 0456</span></a>
+    </nav>
+  </header>
+
+  <main class="wrap hero-grid">
+    <div>
+      <p class="label" data-reveal>Independent aesthetics clinic · Leeds</p>
+      <h1 data-reveal>Every call answered, <em>day or night.</em></h1>
+      <p class="sub" data-reveal>Ring whenever suits you. If the team are with a client, our AI assistant picks up, takes your request and books a time for them to call you back. Or leave your number and it will ring you now.</p>
+      <div class="actions" data-reveal>
+        <a class="btn" href="tel:+441134960456" data-config-tel>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+          Call <span data-config="phoneDisplay">0113 496 0456</span>
+        </a>
+        <a class="btn ghost" href="#callback">Have us call you</a>
+      </div>
+      <ul class="trust" data-reveal-group>
+        <li>Consultations first, always</li>
+        <li>Evening and Saturday slots</li>
+        <li>You'll always know it's an AI assistant</li>
+      </ul>
+    </div>
+
+    <figure class="scene" id="scene" aria-labelledby="sceneCaption">
+      <div class="phone" aria-hidden="true">
+        <div class="notch"></div>
+        <div class="screen callscreen">
+          <div class="statusbar"><span>18:42</span><span>5G</span></div>
+          <div class="call-top">
+            <span class="avatar-sm">LS</span>
+            <p class="who" data-config="clinicName">Lumen Skin Clinic</p>
+            <p class="meta"><span class="live-dot"></span>AI assistant · <span data-s="timer">00:41</span></p>
+          </div>
+          <div class="wave" data-s="wave" data-speaker="agent">
+            <i style="--h:.25"></i><i style="--h:.45"></i><i style="--h:.7"></i><i style="--h:.4"></i><i style="--h:.9"></i><i style="--h:.55"></i><i style="--h:.3"></i>
+            <i style="--h:.65"></i><i style="--h:1"></i><i style="--h:.5"></i><i style="--h:.35"></i><i style="--h:.75"></i><i style="--h:.45"></i><i style="--h:.85"></i>
+            <i style="--h:.6"></i><i style="--h:.3"></i><i style="--h:.7"></i><i style="--h:.4"></i><i style="--h:.55"></i><i style="--h:.25"></i><i style="--h:.4"></i>
+          </div>
+          <div class="captions">
+            <p class="cap agent" data-s="cap" data-speaker="agent"><b>Assistant</b>Hi, you're through to <span data-config="clinicName">Lumen Skin Clinic</span>. I'm the clinic's AI assistant, and this call is recorded. How can I help?</p>
+            <p class="cap caller" data-s="cap" data-speaker="caller"><b>You</b>Hi, I'd like to book a consultation.</p>
+            <p class="cap agent" data-s="cap" data-speaker="agent"><b>Assistant</b>Lovely. Can I take your first name, and have you been to us before?</p>
+            <p class="cap caller" data-s="cap" data-speaker="caller"><b>You</b>It's Sam, first time. Thursday after four suits me.</p>
+            <p class="cap agent" data-s="cap" data-speaker="agent"><b>Assistant</b>Thanks Sam. I've sent that to the team, and they'll call you Thursday after four to confirm.</p>
+          </div>
+          <div class="call-actions">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg></span>
+            <span class="end"><svg viewBox="0 0 24 24" fill="none" stroke="#14213d" stroke-width="2.2" stroke-linecap="round"><path d="M3 15c5-5 13-5 18 0l-2.5 2.5-3.5-2v-2.5a12 12 0 0 0-6 0v2.5l-3.5 2z"/></svg></span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 5L6 9H2v6h4l5 4zM15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg></span>
+          </div>
+        </div>
+      </div>
+      <div class="toast" data-s="toast">
+        <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg></span>
+        Call-back request sent to the team
+      </div>
+      <figcaption id="sceneCaption">Illustration: a call to the clinic's AI assistant. <button class="linkbtn" type="button" id="replayBtn" hidden>Replay</button></figcaption>
+    </figure>
+  </main>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="label">How booking works</p>
+      <h2>Someone always picks up. The team always calls you back.</h2>
+      <p>Our practitioners are with clients most of the day. So that your call never goes to voicemail, the clinic's AI assistant answers when they can't, and passes your request straight to them.</p>
+    </div>
+    <div class="steps" data-reveal-group>
+      <article class="card">
+        <div class="step-n">1</div>
+        <h3>You call, or ask us to</h3>
+        <p>Ring at any hour, or leave your number below and the assistant rings you.</p>
+      </article>
+      <article class="card">
+        <div class="step-n">2</div>
+        <h3>The assistant takes your request</h3>
+        <p>Your first name, whether you've been before, what it's about and a good time to call. It never gives treatment advice.</p>
+      </article>
+      <article class="card">
+        <div class="step-n done">3</div>
+        <h3>The team calls you back</h3>
+        <p>A practitioner rings at the time you chose to book you in and answer your questions.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="callback" style="padding-top: 0">
+  <div class="wrap contact-grid">
+    <div class="card" data-reveal>
+      <div id="formView">
+        <p class="label">Call me back</p>
+        <h2>Have us call you</h2>
+        <p>Leave your number and the clinic's AI assistant will ring you straight away to take your request. Please don't share medical details.</p>
+        <form id="leadForm" novalidate>
+          <div class="field">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" name="first_name" autocomplete="given-name" maxlength="30" required>
+          </div>
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="07700 900123" required aria-describedby="phoneError">
+            <p class="error" id="phoneError" role="alert"></p>
+          </div>
+          <fieldset>
+            <legend class="legend">What's it about?</legend>
+            <div class="chips">
+              <label><input type="radio" name="reason" value="consultation" checked><span>A consultation</span></label>
+              <label><input type="radio" name="reason" value="followup"><span>A follow-up</span></label>
+              <label><input type="radio" name="reason" value="change"><span>Changing an appointment</span></label>
+              <label><input type="radio" name="reason" value="other"><span>Something else</span></label>
+            </div>
+          </fieldset>
+          <label class="consent">
+            <input type="checkbox" name="consent" value="yes" id="consent" aria-describedby="consentError">
+            <span>I'm happy for <span data-config="clinicName">Lumen Skin Clinic</span>'s AI assistant to call me about this request. The call is recorded.</span>
+          </label>
+          <p class="error" id="consentError" role="alert"></p>
+          <div class="form-foot">
+            <button class="btn" type="submit" id="sendBtn">Call me now</button>
+            <span class="muted">One call, about this request only.</span>
+          </div>
+        </form>
+      </div>
+      <div id="doneView" class="done-panel" hidden tabindex="-1">
+        <div class="calling-rings" aria-hidden="true">
+          <span class="ring"></span><span class="ring"></span>
+          <span class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span>
+        </div>
+        <h2 id="doneTitle">We're calling you now</h2>
+        <p id="doneText">Pick up: it's the clinic's AI assistant.</p>
+        <button class="btn ghost small" type="button" id="againBtn">Back to the form</button>
+      </div>
+    </div>
+
+    <aside class="card info" data-reveal aria-label="Clinic details">
+      <dl>
+        <div><dt>Phone</dt><dd><a href="tel:+441134960456" data-config-tel data-config="phoneDisplay">0113 496 0456</a></dd></div>
+        <div><dt>Opening hours</dt><dd>Monday to Friday, 9am to 7pm<br>Saturday, 10am to 4pm</dd></div>
+        <div><dt>Address</dt><dd>4 Example Row<br>Leeds LS2 0ZZ</dd></div>
+        <div><dt>Worried after a treatment?</dt><dd>Call NHS 111, or 999 in an emergency.</dd></div>
+      </dl>
+    </aside>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© <span data-config="clinicName">Lumen Skin Clinic</span>. A fictional clinic on a demo website.</span>
+    <span>Phone numbers here are from Ofcom's range for drama and do not connect, unless set up for the demo.</span>
+  </div>
+</footer>
+
+<aside class="testpanel" id="testPanel" hidden aria-label="Test panel">
+  <h3>Test panel <button class="linkbtn" type="button" id="closeTest">Close</button></h3>
+  <dl>
+    <dt>Webhook</dt><dd id="tpHook"></dd>
+    <dt>Calls go to</dt><dd id="tpPhone"></dd>
+  </dl>
+  <ul class="log" id="tpLog"><li>Nothing sent yet.</li></ul>
+  <p class="muted" style="margin:10px 0 0">The page can't read n8n's reply (no-cors). Check n8n's Executions to see what happened.</p>
+</aside>
+
+<script>
+  // ---- Change these for your demo (or for a client) -----------------------------------------
+  const CONFIG = {
+    clinicName: 'Lumen Skin Clinic',
+    phoneDisplay: '0113 496 0456',      // how the number is shown
+    phoneDial: '+441134960456',         // the Twilio number imported into ElevenLabs, in +44 form
+    webhookUrl: '',                     // e.g. https://<your-tunnel>.trycloudflare.com/webhook/voice-demo/call-me-back
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.1/dist/gsap.min.js"></script>
+<script>
+(function () {
+  const root = document.documentElement;
+
+  // ---- Fill in CONFIG ---------------------------------------------------------------------
+  document.querySelectorAll('[data-config]').forEach((el) => { const v = CONFIG[el.dataset.config]; if (v) el.textContent = v; });
+  document.querySelectorAll('[data-config-tel]').forEach((el) => { el.href = 'tel:' + CONFIG.phoneDial; });
+  document.title = CONFIG.clinicName + ' (demo)';
+
+  // ---- Theme switch (light by default) ----------------------------------------------------
+  const themeBtn = document.getElementById('themeBtn');
+  const showTheme = () => { const dark = root.getAttribute('data-theme') === 'dark'; themeBtn.textContent = dark ? 'Light mode' : 'Dark mode'; themeBtn.setAttribute('aria-pressed', String(dark)); };
+  themeBtn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('demo-theme', next); } catch (e) {}
+    showTheme();
+  });
+  showTheme();
+
+  // ---- Test panel ---------------------------------------------------------------------------
+  const panel = document.getElementById('testPanel');
+  const testBtn = document.getElementById('testBtn');
+  const setPanel = (open) => { panel.hidden = !open; testBtn.setAttribute('aria-expanded', String(open)); };
+  testBtn.addEventListener('click', () => setPanel(panel.hidden));
+  document.getElementById('closeTest').addEventListener('click', () => setPanel(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) setPanel(panel.hidden);
+  });
+  if (new URLSearchParams(location.search).has('test')) setPanel(true);
+  document.getElementById('tpHook').innerHTML = CONFIG.webhookUrl
+    ? '<span class="pill ok">Set</span> ' + CONFIG.webhookUrl.replace(/^https?:\/\//, '').slice(0, 60)
+    : '<span class="pill warn">Not set</span> the form only plays the demo';
+  document.getElementById('tpPhone').textContent = CONFIG.phoneDial;
+  const log = (text) => {
+    const list = document.getElementById('tpLog');
+    if (list.firstElementChild && list.firstElementChild.textContent === 'Nothing sent yet.') list.innerHTML = '';
+    const li = document.createElement('li');
+    li.textContent = new Date().toLocaleTimeString('en-GB') + ' · ' + text;
+    list.prepend(li);
+  };
+
+  // ---- Motion (GSAP core). Everything is inside matchMedia, so "reduce motion" gets the still, finished page. ----
+  let scene = null;
+  const replayBtn = document.getElementById('replayBtn');
+  const sceneEl = document.getElementById('scene');
+
+  function buildScene(q) {
+    const caps = q('[data-s="cap"]');
+    const wave = q('[data-s="wave"]')[0];
+    const timer = q('[data-s="timer"]')[0];
+    const bars = q('.wave i');
+    // The waveform: bars bounce to new random heights each repeat. Paused between lines and at the end.
+    const talk = gsap.to(bars, { scaleY: () => gsap.utils.random(0.15, 1), duration: 0.16, ease: 'sine.inOut', repeat: -1, repeatRefresh: true, stagger: { each: 0.015 }, paused: true });
+    const speak = (who) => () => { wave.setAttribute('data-speaker', who); talk.play(); };
+    const quiet = () => { talk.pause(); gsap.to(bars, { scaleY: 0.12, duration: 0.25, overwrite: 'auto' }); };
+
+    const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' },
+      onUpdate() { const s = Math.floor(tl.time() * 1.6); timer.textContent = '00:' + String(s).padStart(2, '0'); } });
+    tl.set(caps, { display: 'none', autoAlpha: 0, y: 12 })
+      .set(q('[data-s="toast"]'), { autoAlpha: 0, y: 14 })
+      .set(bars, { scaleY: 0.12 })
+      .fromTo(q('.avatar-sm'), { scale: 0.85 }, { scale: 1, duration: 0.6, ease: 'back.out(2)' }, 0.1);
+    // Each line: the speaker's waveform runs, the caption slides in, then a short pause.
+    const lines = [[0.4, 3.0], [3.8, 1.8], [6.0, 2.6], [9.0, 2.4], [11.8, 3.0]];
+    lines.forEach(([at, length], i) => {
+      tl.call(speak(caps[i].dataset.speaker), null, at)
+        .set(caps[i], { display: 'block' }, at)
+        .to(caps[i], { autoAlpha: 1, y: 0, duration: 0.4 }, at)
+        .call(quiet, null, at + length);
+    });
+    tl.to(q('[data-s="toast"]'), { autoAlpha: 1, y: 0, duration: 0.5 }, 15.2);
+    tl.eventCallback('onInterrupt', quiet);
+    return { tl, talk };
+  }
+
+  function revealOnScroll(el) {
+    const targets = el.matches('[data-reveal-group]') ? el.children : el;
+    const io = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      io.disconnect();
+      gsap.fromTo(targets, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.09, ease: 'power3.out' });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    io.observe(el);
+    return io;
+  }
+
+  const hasGsap = !!window.gsap;
+  if (hasGsap) gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+    const q = gsap.utils.selector(sceneEl);
+    // Hero entrance
+    const heroTargets = gsap.utils.toArray('.hero [data-reveal], .hero [data-reveal-group] > *');
+    gsap.fromTo(heroTargets, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.05 });
+    gsap.fromTo(sceneEl, { autoAlpha: 0, y: 36 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.25 });
+
+    scene = buildScene(q);
+    replayBtn.hidden = false;
+    gsap.delayedCall(1, () => scene.tl.play(0));
+
+    // A slow float, paused whenever the phone is off screen or the tab is hidden
+    const float = gsap.to(q('.phone'), { y: -8, duration: 3.2, ease: 'sine.inOut', repeat: -1, yoyo: true });
+    const sceneIO = new IntersectionObserver(([e]) => { if (e.isIntersecting) float.play(); else { float.pause(); scene && scene.talk.pause(); } });
+    sceneIO.observe(sceneEl);
+    const onVis = () => (document.hidden ? float.pause() : float.play());
+    document.addEventListener('visibilitychange', onVis);
+
+    const ios = gsap.utils.toArray('section [data-reveal], section [data-reveal-group]').map(revealOnScroll);
+
+    return () => {   // runs when "reduce motion" is switched on: back to the still page
+      scene = null; replayBtn.hidden = true;
+      sceneIO.disconnect(); ios.forEach((io) => io.disconnect());
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  });
+  replayBtn.addEventListener('click', () => scene && scene.tl.restart());
+
+  // ---- The form -------------------------------------------------------------------------------
+  const form = document.getElementById('leadForm');
+  const sendBtn = document.getElementById('sendBtn');
+  const formView = document.getElementById('formView');
+  const doneView = document.getElementById('doneView');
+  const motionOK = () => hasGsap && window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+
+  const toE164 = (raw) => {
+    let d = String(raw || '').replace(/[^\d+]/g, '');
+    if (d.startsWith('00')) d = '+' + d.slice(2);
+    else if (d.startsWith('0')) d = '+44' + d.slice(1);
+    else if (/^44\d/.test(d)) d = '+' + d;
+    return /^\+[1-9]\d{7,14}$/.test(d) ? d : null;
+  };
+  const showError = (input, errorEl, message) => {
+    errorEl.textContent = message;
+    input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    if (message && motionOK()) gsap.fromTo(input, { x: 0 }, { keyframes: { x: [0, -7, 7, -4, 4, 0] }, duration: 0.4, ease: 'none' });
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const phoneInput = form.elements.phone, consentInput = form.elements.consent;
+    const phone = toE164(phoneInput.value);
+    showError(phoneInput, document.getElementById('phoneError'), phone ? '' : 'Please enter a mobile number, like 07700 900123.');
+    showError(consentInput, document.getElementById('consentError'), consentInput.checked ? '' : 'Please tick the box so we can message you.');
+    if (!phone) return phoneInput.focus();
+    if (!consentInput.checked) return consentInput.focus();
+
+    const payload = new URLSearchParams({
+      source: 'web-form',
+      first_name: form.elements.first_name.value.trim().slice(0, 30),
+      phone,
+      reason: form.elements.reason.value,
+      consent: 'yes',
+    });
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending…';
+
+    let outcome = 'demo';
+    if (CONFIG.webhookUrl) {
+      try {
+        // A simple form post (no preflight). The reply can't be read from here; n8n's Executions show it.
+        await fetch(CONFIG.webhookUrl, { method: 'POST', mode: 'no-cors', body: payload });
+        outcome = 'sent';
+      } catch (err) { outcome = 'failed'; }
+    }
+    log((outcome === 'sent' ? 'Sent to webhook' : outcome === 'failed' ? 'Could not reach the webhook' : 'Demo only (no webhook set)') +
+        ' · …' + phone.slice(-3) + ' · ' + payload.get('reason'));
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Call me now';
+    if (outcome === 'failed') {
+      document.getElementById('doneTitle').textContent = "That didn't go through";
+      document.getElementById('doneText').textContent = 'Please try again, or give us a ring.';
+    } else {
+      document.getElementById('doneTitle').textContent = outcome === 'sent' ? "We're calling you now" : 'Demo only';
+      document.getElementById('doneText').textContent = outcome === 'sent'
+        ? 'Pick up: it\'s the clinic\'s AI assistant, calling from ' + CONFIG.phoneDisplay + '.'
+        : 'No webhook is set in CONFIG, so nothing was sent. Add one to get a real call.';
+    }
+    formView.hidden = true;
+    doneView.hidden = false;
+    doneView.focus();
+    if (motionOK()) {
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+        .fromTo(doneView.children, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.07 });
+      if (outcome !== 'failed') tl.fromTo('#doneView .ring', { scale: 1, autoAlpha: 0.7 }, { scale: 1.9, autoAlpha: 0, duration: 1.3, ease: 'power1.out', stagger: { each: 0.5, repeat: 4 } }, 0.2);
+    }
+  });
+
+  document.getElementById('againBtn').addEventListener('click', () => {
+    form.reset();
+    doneView.hidden = true;
+    formView.hidden = false;
+    form.elements.first_name.focus();
+  });
+})();
+</script>
+<script>
+  // If GSAP did not load (offline), show everything rather than leaving entrances hidden.
+  if (!window.gsap) document.documentElement.classList.remove('motion');
+</script>
+</body>
+</html>

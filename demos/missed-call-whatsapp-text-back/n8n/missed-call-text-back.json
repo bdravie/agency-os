@@ -1,0 +1,706 @@
+{
+  "id": "MissedCallTxtBk1",
+  "name": "Missed call text-back (WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Missed call text-back, with a WhatsApp assistant\n**Calls and the form (top lane):** a call rings the front desk (`forward_to`) and, if nobody answers, the caller hears a short message and gets a WhatsApp straight away. The website form sends the same kind of WhatsApp.\n\n**WhatsApp replies (bottom lane):** when they reply, Claude Haiku asks one question at a time until it has a call-back time, then the front desk gets a one-line summary.\n\nEdit **Settings** first. Credentials: Twilio (Basic auth: Account SID / Auth Token) and Anthropic (Header auth: `x-api-key`).",
+        "width": 560,
+        "height": 300
+      },
+      "id": "9f287373-2ca9-5ed6-96c1-9dcd33202315",
+      "name": "About this workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### What is kept\nn8n keeps a **hash** of each number (not the number) for 24 hours to stop repeat messages, the STOP list, and the last 12 WhatsApp messages of a conversation with emails and numbers masked, deleted after 24 hours. Photos and files are never sent to the AI. Real client: data processing agreement first.",
+        "width": 420,
+        "height": 300
+      },
+      "id": "f0ea0067-fb02-55e5-a13d-5a02fcf5b00f",
+      "name": "Privacy",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call/voice",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0c50e448-e652-5e10-97e0-bc0bcd078086",
+      "name": "Incoming call (Twilio)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "a23c31a6-5ad2-5bbb-a4bf-f4bf3f78ca4a"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call/dial-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c6b781f5-5662-57de-b721-7de4af102ab2",
+      "name": "Ringing finished (Twilio)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        180
+      ],
+      "webhookId": "e13f8b90-09ff-5269-a7d8-ce02c01bae60"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call/form",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "db4e9a16-0f21-54de-93a2-f3a71f2f36c7",
+      "name": "Website form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        360
+      ],
+      "webhookId": "eaf8a785-3ad6-5408-866d-0fbe9f49e562"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "missed-call/whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fc0ecf54-4163-5e41-ac9a-9185b207aeda",
+      "name": "WhatsApp message in (Twilio)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        640
+      ],
+      "webhookId": "4cde8dde-18e0-5322-93a3-23e9bc776860"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "861360c2-c222-54d0-953b-9cd315217b17",
+              "name": "practice_name",
+              "value": "Brightmoor Dental",
+              "type": "string"
+            },
+            {
+              "id": "6335ae11-f02d-5986-9361-b5481e87cbff",
+              "name": "practice_phone",
+              "value": "0113 496 0123",
+              "type": "string"
+            },
+            {
+              "id": "b2fc0b01-5017-5063-94c6-1e0f06797602",
+              "name": "hours",
+              "value": "Monday to Friday 8am to 6pm, Saturday 9am to 1pm",
+              "type": "string"
+            },
+            {
+              "id": "fac439a7-f6ba-5e83-b6fc-184011761928",
+              "name": "address",
+              "value": "12 Example Street, Leeds LS1 0AA",
+              "type": "string"
+            },
+            {
+              "id": "ddc4d982-32ff-52d4-8799-4d3b3b028b2f",
+              "name": "booking_link",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "8cba9ece-85e1-55c4-8a22-e543607e37c7",
+              "name": "forward_to",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "0bf052e6-483b-5c43-b694-5ea49ecf3507",
+              "name": "ring_seconds",
+              "value": "12",
+              "type": "string"
+            },
+            {
+              "id": "a62a9519-2005-5921-8062-473d87cca4e5",
+              "name": "voice",
+              "value": "Polly.Amy",
+              "type": "string"
+            },
+            {
+              "id": "e290fb41-29d0-572e-a880-73d7fb4d3e84",
+              "name": "public_base_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "1dfcd2ef-cf2a-54af-9448-9ea7d9cf51a1",
+              "name": "twilio_account_sid",
+              "value": "CHANGE ME (starts AC)",
+              "type": "string"
+            },
+            {
+              "id": "5dfbb431-42a1-549a-aae3-420bc46be017",
+              "name": "whatsapp_from",
+              "value": "+14155238886",
+              "type": "string"
+            },
+            {
+              "id": "c6f061a6-b0b8-5500-b3e2-41b9e025edcf",
+              "name": "frontdesk_whatsapp",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "389205c2-23c4-554b-bd0f-0c6fa214f185",
+              "name": "content_sid_missed",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "bab75d71-7cb7-5229-bbe2-a711e62e0887",
+              "name": "content_sid_form",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "feef7bb4-5d48-51db-82fc-5f882d29e4c4",
+              "name": "dedupe_minutes",
+              "value": "30",
+              "type": "string"
+            },
+            {
+              "id": "182a2ecc-7def-555a-bdad-e23134b1f72a",
+              "name": "missed_call_say",
+              "value": "Sorry, we can't get to the phone right now. We've just sent you a WhatsApp message so you can tell us a good time to call you back. Thank you.",
+              "type": "string"
+            },
+            {
+              "id": "9e6bca17-bf46-53ba-8c14-4cd456661877",
+              "name": "missed_call_say_no_text",
+              "value": "Sorry, we can't get to the phone right now. Please try again shortly. Thank you for calling {practice}.",
+              "type": "string"
+            },
+            {
+              "id": "d0f67bdd-6394-53ce-be13-247e3d1b2cd5",
+              "name": "missed_call_message",
+              "value": "Hi, it's {practice}. Sorry we missed your call, we're with a patient. Reply here with a good day and time and we'll call you back.\nOr book online: {booking_link}\n\nReply STOP and we won't message again.",
+              "type": "string"
+            },
+            {
+              "id": "3412355f-e9d9-5cdf-80e9-6d86a8f1dd13",
+              "name": "form_message",
+              "value": "Hi {first_name}, it's {practice}. Thanks for leaving your number about {reason}. What day and time suits you for a quick call back?\n\nReply STOP and we won't message again.",
+              "type": "string"
+            },
+            {
+              "id": "0231ca81-f4df-5d0a-b48e-10209bf8ce70",
+              "name": "stop_reply",
+              "value": "Understood. You won't hear from us again on WhatsApp.",
+              "type": "string"
+            },
+            {
+              "id": "d34f726c-485e-5022-a216-3b898a811629",
+              "name": "fallback_reply",
+              "value": "Thanks for your message. Someone from the front desk will reply shortly.",
+              "type": "string"
+            },
+            {
+              "id": "65052807-65a0-5309-86c9-a58641f10979",
+              "name": "model",
+              "value": "claude-haiku-5-5",
+              "type": "string"
+            },
+            {
+              "id": "204dd2a3-4a62-586f-aba7-b26ff766e041",
+              "name": "system_prompt",
+              "value": "You are the WhatsApp front-desk assistant for {practice}, a dental practice. You reply to people who have just missed a call to the practice or left their number on the website. Your one job is to get a call back arranged, then hand over to the front desk.\n\nWhat you know about the practice:\n- Opening hours: {hours}\n- Address: {address}\n- Online booking: {booking_link}\n- How this person reached us: {context}\n\nCollect, one question at a time and only what you still need:\n1. Whether they are a new or existing patient.\n2. What kind of appointment it is about (for example a check-up, a hygienist visit, changing an appointment). If they have already said why, even as a problem such as \"my tooth is sore\", that is the answer: never ask again, and never ask for more symptoms or medical details.\n3. A good day and time for the front desk to call them back, inside opening hours. \"Any day after 4\" is enough: do not ask them to narrow it down.\n\nRead the whole conversation before you reply and never ask for something they have already told you.\n\nFill each field the moment they have told you, even loosely, from anything in the conversation: \"patient\" (\"new\" or \"existing\"), \"about\" (a few words, such as \"check-up\" or \"sore tooth\") and \"call_back\" (in their words, such as \"any day after 4\"). Leave a field empty only while you still do not know it. When all three are filled, your reply thanks them and says the front desk will call then to confirm. Do not ask anything else.\n\nRules:\n- Write like a friendly British receptionist: short, plain, warm. Under 40 words per message. No emojis, no lists.\n- You arrange call backs. Never confirm, move or cancel an appointment yourself, and never quote prices or waiting times.\n- Never give clinical or medical advice, and never ask about symptoms, treatments or medicines. If they mention pain, swelling, bleeding or an accident, say: \"If it's urgent, please call the practice on {phone}, or NHS 111 out of hours.\" Then carry on arranging the call back.\n- If they ask something you do not know, say the front desk will cover it on the call.\n- If they ask to stop, say they will not hear from us again on WhatsApp.\n- Never ask for their date of birth, address, email or any other personal details. The front desk already has the number they are messaging from.\n\nReply only with the JSON object asked for: \"reply\" (the message to send), \"patient\", \"about\" and \"call_back\".",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ea58b955-0860-5111-9491-a710bb5d6d91",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c8a8496c-3272-5c55-8d91-773081b48b2a",
+              "leftValue": "={{ String($json.body?.From ?? '') }}",
+              "rightValue": "whatsapp:",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d6343bec-91fd-5a5f-ae8c-6964e6fbfc51",
+      "name": "WhatsApp message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// Calls and the website form. Works out what Twilio should do with the call (TwiML),\n// or what to tell the web page, and which WhatsApp messages to send.\n//   1. A call comes in: ring the front desk (forward_to) for ring_seconds, or treat it as missed if there is no forward_to.\n//   2. The ringing ends: if nobody answered (no-answer, busy, failed, canceled), it is a missed call.\n//   3. A missed call or a website form: one WhatsApp to the person, plus an optional heads-up to the front desk.\n// Checks before sending: not withheld, not opted out (STOP), not already messaged in the last dedupe_minutes.\nconst s = $input.first().json;            // Settings, plus the webhook's own fields (body, headers, webhookUrl)\nconst b = s.body || {};\nconst store = $getWorkflowStaticData('global');\nstore.sent ??= {}; store.optedOut ??= {}; store.context ??= {};\nconst now = Date.now();\nfor (const k of Object.keys(store.sent)) if (now - store.sent[k] > DAY) delete store.sent[k];\nfor (const k of Object.keys(store.context)) if (now - store.context[k].at > DAY) delete store.context[k];\n\nconst values = { practice: s.practice_name, phone: s.practice_phone, booking_link: s.booking_link || '' };\nconst say = (text) => `<Say voice=\"${xml(s.voice)}\" language=\"en-GB\">${xml(text)}</Say>`;\nconst reply = (response_type, response_body, messages = [], note = '') => [{ json: { response_type, response_body, messages, note } }];\n\nconst REASONS = {\n  checkup: 'booking a check-up',\n  hygienist: 'seeing the hygienist',\n  new: 'joining as a new patient',\n  change: 'changing an appointment',\n  other: 'your enquiry',\n};\n\n// ---- Website form -------------------------------------------------------------------------\nif (b.source === 'web-form') {\n  const to = e164(b.phone);\n  if (!to) return reply('application/json', JSON.stringify({ ok: false, error: 'phone' }), [], 'Form: number not recognised');\n  if (b.consent !== 'yes') return reply('application/json', JSON.stringify({ ok: false, error: 'consent' }), [], 'Form: no consent tick');\n  const key = hash(to);\n  if (store.optedOut[key]) return reply('application/json', JSON.stringify({ ok: true }), [], 'Form: number opted out, nothing sent');\n  if (store.sent[key] && now - store.sent[key] < Number(s.dedupe_minutes) * 60000)\n    return reply('application/json', JSON.stringify({ ok: true }), [], 'Form: messaged recently, not sent again');\n\n  const reason = REASONS[b.reason] || REASONS.other;\n  const first = (String(b.first_name || '').match(/[A-Za-z\u00c0-\u00ff'-]{1,30}/) || ['there'])[0];\n  store.sent[key] = now;\n  store.context[key] = { how: `left their number on the website about ${reason}`, at: now };\n  const messages = [{ form: whatsappForm(s.whatsapp_from, to, fill(s.form_message, { ...values, first_name: first, reason }), s.content_sid_form, { 1: first, 2: s.practice_name }) }];\n  if (s.frontdesk_whatsapp) messages.push({ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp, `Website enquiry at ${ukTime()} about ${reason}. WhatsApp sent to ${to}.`) });\n  return reply('application/json', JSON.stringify({ ok: true }), messages, 'Form: WhatsApp sent');\n}\n\n// ---- Calls --------------------------------------------------------------------------------\nconst caller = String(b.From || '').trim();\nconst status = String(b.DialCallStatus || '');\n\n// 1. A call has just come in and there is someone to ring first.\nif (!status && s.forward_to) {\n  const proto = (s.headers || {})['x-forwarded-proto'] || 'https';\n  const host = (s.headers || {})['x-forwarded-host'] || (s.headers || {}).host;\n  const prefix = String(s.webhookUrl || '').includes('/webhook-test/') ? 'webhook-test' : 'webhook';\n  const action = `${s.public_base_url || `${proto}://${host}`}/${prefix}/missed-call/dial-status`;\n  return reply('text/xml',\n    `<Response><Dial timeout=\"${Number(s.ring_seconds) || 12}\" action=\"${xml(action)}\" method=\"POST\"><Number>${xml(s.forward_to)}</Number></Dial></Response>`,\n    [], 'Call: ringing the front desk');\n}\n\n// 2. The front desk picked up: nothing to do once the call ends.\nif (status && !['no-answer', 'busy', 'failed', 'canceled'].includes(status))\n  return reply('text/xml', '<Response><Hangup/></Response>', [], `Call answered (${status})`);\n\n// 3. Missed. Text back if we can.\nconst to = WITHHELD.has(caller.toLowerCase()) ? null : e164(caller);\nconst key = to ? hash(to) : '';\nconst recent = key && store.sent[key] && now - store.sent[key] < Number(s.dedupe_minutes) * 60000;\nconst canText = to && !store.optedOut[key] && !recent;\n\nconst messages = [];\nlet note = 'Missed call: ';\nif (canText) {\n  store.sent[key] = now;\n  store.context[key] = { how: 'rang the practice and the call was missed', at: now };\n  messages.push({ form: whatsappForm(s.whatsapp_from, to, fill(s.missed_call_message, values), s.content_sid_missed, { 1: s.practice_name }) });\n  note += 'WhatsApp sent';\n} else note += !to ? 'number withheld, no WhatsApp' : store.optedOut[key] ? 'opted out, no WhatsApp' : 'messaged recently, not sent again';\n\nif (s.frontdesk_whatsapp)\n  messages.push({ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp,\n    `Missed call at ${ukTime()} from ${to || 'a withheld number'}.${canText ? ' WhatsApp text-back sent.' : ''}`) });\n\nconst spoken = canText || recent ? s.missed_call_say : s.missed_call_say_no_text;\nreturn reply('text/xml', `<Response>${say(fill(spoken, values))}<Hangup/></Response>`, messages, note);\n"
+      },
+      "id": "af33e6e1-9557-5710-8180-42d759c17e09",
+      "name": "Decide: ring, missed or form",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.response_body }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "={{ $json.response_type }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dd7e57d4-3339-58dc-a711-ab4be1e3d911",
+      "name": "Answer Twilio or the page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per WhatsApp to send. No messages means no items, so the Twilio step does not run.\nreturn ($input.first().json.messages || []).map((m) => ({ json: m }));\n"
+      },
+      "id": "3ecaadba-191b-53be-bab1-159c5330f142",
+      "name": "One item per message (calls)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// A WhatsApp message has come in. Handles STOP and START, photos and files, and otherwise\n// builds the request for Claude from the last few messages (kept for 24 hours, emails and numbers masked).\nconst s = $input.first().json;\nconst b = s.body || {};\nconst store = $getWorkflowStaticData('global');\nstore.chats ??= {}; store.optedOut ??= {}; store.context ??= {};\nconst now = Date.now();\nfor (const k of Object.keys(store.chats)) if (now - store.chats[k].updated > DAY) delete store.chats[k];\n\nconst from = e164(String(b.From || '').replace(/^whatsapp:/, ''));\nconst key = hash(from || 'unknown');\nconst text = String(b.Body || '').trim().slice(0, 1000);\nconst twiml = (message) => `<Response><Message>${xml(message)}</Message></Response>`;\nconst done = (message, note) => [{ json: { ask_ai: false, response_type: 'text/xml', response_body: twiml(message), messages: [], note } }];\n\nif (/^(stop|unsubscribe|stop all)\\W*$/i.test(text)) {\n  store.optedOut[key] = now;\n  delete store.chats[key]; delete store.context[key];\n  return done(s.stop_reply, 'Opted out');\n}\nif (/^start\\W*$/i.test(text)) {           // the person asked to hear from us again\n  delete store.optedOut[key];\n  return done(`Thanks, you're back on. How can we help?`, 'Opted back in');\n}\nif (store.optedOut[key]) return [{ json: { ask_ai: false, response_type: 'text/xml', response_body: '<Response/>', messages: [], note: 'Opted out: no reply' } }];\nif (!text) return done(`Thanks. I can't open photos or files here, but the front desk will see it.`, 'Media only');\n\n// Emails and phone numbers never go to the AI.\nconst masked = text\n  .replace(/[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+/g, '[email removed]')\n  .replace(/\\+?\\d[\\d\\s().-]{8,}\\d/g, '[number removed]');\n\nconst chat = store.chats[key] || { turns: [], updated: now, handed_over: false };\nchat.turns.push({ role: 'user', content: masked });\nchat.turns = chat.turns.slice(-12);\nwhile (chat.turns.length && chat.turns[0].role !== 'user') chat.turns.shift();\nchat.updated = now;\nstore.chats[key] = chat;\n\nconst values = {\n  practice: s.practice_name, phone: s.practice_phone, hours: s.hours, address: s.address,\n  booking_link: s.booking_link || 'none, the front desk books by phone',\n  context: store.context[key]?.how || 'messaged the practice on WhatsApp',\n};\nconst request = {\n  model: s.model,\n  max_tokens: 1024,\n  output_config: {\n    effort: 'low',\n    format: { type: 'json_schema', schema: {\n      type: 'object',\n      properties: {\n        reply: { type: 'string' },\n        patient: { type: 'string', enum: ['', 'new', 'existing'] },\n        about: { type: 'string' },\n        call_back: { type: 'string' },\n      },\n      required: ['reply', 'patient', 'about', 'call_back'], additionalProperties: false } },\n  },\n  system: fill(s.system_prompt, values),\n  messages: chat.turns,\n};\nreturn [{ json: { ask_ai: true, key, from, request } }];\n"
+      },
+      "id": "c275f3ab-e287-578d-9b3b-87b6f707f956",
+      "name": "Prepare the conversation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "579575c1-5c01-509e-96e8-522677a460e1",
+              "leftValue": "={{ $json.ask_ai }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3ad879a5-d53b-567f-a360-863be37413d1",
+      "name": "Ask the AI?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "7d3e5d7a-194b-5140-b8f5-17546058432b",
+      "name": "Ask Claude (Haiku)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        560
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// Claude has answered. Pulls out the reply and saves it to the conversation. Claude fills three fields as\n// the person mentions them; once all three are known (code decides, not the AI), the front desk gets a\n// one-line summary, once per conversation.\nconst s = $('Settings').first().json;\nconst prep = $('Prepare the conversation').first().json;\nconst res = $input.first().json;\nconst store = $getWorkflowStaticData('global');\nstore.chats ??= {};\n\nconst text = (res.content || []).filter((part) => part.type === 'text').map((part) => part.text).join('');\nlet out = null;\ntry { out = JSON.parse(text); } catch {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  if (m) { try { out = JSON.parse(m[0]); } catch { out = null; } }\n}\nlet message = String(out?.reply || '').trim().slice(0, 600);\nif (!message || res.stop_reason === 'refusal') message = s.fallback_reply;\n\nconst chat = store.chats[prep.key] || { turns: [], handed_over: false };\nchat.turns.push({ role: 'assistant', content: message });\nchat.updated = Date.now();\nstore.chats[prep.key] = chat;\n\n// Keep what is known across turns, so a field said earlier is never lost.\nconst field = (v) => String(v || '').replace(/\\s+/g, ' ').trim().slice(0, 80);\nchat.known ??= {};\nfor (const k of ['patient', 'about', 'call_back']) if (field(out?.[k])) chat.known[k] = field(out[k]);\nconst { patient, about, call_back: callBack } = chat.known;\n\nconst messages = [];\nlet note = 'AI replied';\nif (patient && about && callBack && !chat.handed_over) {\n  chat.handed_over = true;\n  note = 'AI replied and handed over';\n  if (s.frontdesk_whatsapp)\n    messages.push({ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp,\n      `Call back request from ${prep.from}: ${patient} patient, about ${about}. Call ${callBack}.`) });\n}\nreturn [{ json: { response_type: 'text/xml', response_body: `<Response><Message>${xml(message)}</Message></Response>`, messages, note } }];\n"
+      },
+      "id": "0ea52ccf-372b-5d21-8b01-4ac2121df59f",
+      "name": "Read Claude's reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// A UK or international number in E.164 (+447700900123), or null if it is not a usable number.\nconst e164 = (raw) => {\n  let d = String(raw || '').replace(/[^\\d+]/g, '');\n  if (d.startsWith('00')) d = '+' + d.slice(2);\n  else if (d.startsWith('0')) d = '+44' + d.slice(1);\n  else if (/^44\\d/.test(d)) d = '+' + d;\n  return /^\\+[1-9]\\d{7,14}$/.test(d) ? d : null;\n};\n\n// Twilio's stand-ins for a withheld number: never try to message these.\nconst WITHHELD = new Set(['+266696687', '+86282452253', '+8656696', '+2562533', 'anonymous', 'restricted', 'unknown']);\n\n// Numbers are kept in n8n's memory as a short hash, never as the number itself.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n\n// Safe text inside TwiML.\nconst xml = (t) => String(t).replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&apos;' }[c]));\n\n// Fill {placeholders}. A line holding {booking_link} is dropped when there is no booking link.\nconst fill = (template, values) => String(template)\n  .split('\\n')\n  .filter((line) => values.booking_link || !line.includes('{booking_link}'))\n  .join('\\n')\n  .replace(/\\{(\\w+)\\}/g, (match, key) => (values[key] ?? match));\n\n// One Twilio \"send a WhatsApp\" request body (form-encoded). A template (ContentSid) is needed outside the 24-hour window.\nconst whatsappForm = (from, to, body, contentSid, contentVariables) => {\n  const fields = { From: 'whatsapp:' + from, To: 'whatsapp:' + to };\n  if (contentSid) { fields.ContentSid = contentSid; fields.ContentVariables = JSON.stringify(contentVariables || {}); }\n  else fields.Body = body;\n  return Object.entries(fields).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');\n};\n\n// \"14:05\" in UK time.\nconst ukTime = () => new Date().toLocaleTimeString('en-GB', { timeZone: 'Europe/London', hour: '2-digit', minute: '2-digit' });\n\nconst DAY = 24 * 60 * 60 * 1000;\n\n// Claude could not be reached (no key, timeout, outage). The person still gets a polite answer\n// and the front desk is told, so nobody is left waiting.\nconst s = $('Settings').first().json;\nconst prep = $('Prepare the conversation').first().json;\nconst messages = [];\nif (s.frontdesk_whatsapp)\n  messages.push({ form: whatsappForm(s.whatsapp_from, s.frontdesk_whatsapp,\n    `WhatsApp from ${prep.from} needs a reply (the assistant could not answer).`) });\nreturn [{ json: { response_type: 'text/xml', response_body: `<Response><Message>${xml(s.fallback_reply)}</Message></Response>`, messages, note: 'AI unavailable: fallback reply' } }];\n"
+      },
+      "id": "f223d48b-06a7-5c57-bb55-ac8ad063330f",
+      "name": "Fallback reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.response_body }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "={{ $json.response_type }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "32afaf1a-2bdf-5f3c-961f-0109b9177e28",
+      "name": "Reply on WhatsApp",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1640,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per WhatsApp to send. No messages means no items, so the Twilio step does not run.\nreturn ($input.first().json.messages || []).map((m) => ({ json: m }));\n"
+      },
+      "id": "c7210b3d-de30-510c-b189-b69710826848",
+      "name": "One item per message (WhatsApp)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $('Settings').first().json.twilio_account_sid }}/Messages.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/x-www-form-urlencoded",
+        "body": "={{ $json.form }}",
+        "options": {}
+      },
+      "id": "0ecb3f55-9ce0-5306-b212-c84a5ace7283",
+      "name": "Send WhatsApp (Twilio)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Incoming call (Twilio)": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ringing finished (Twilio)": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website form": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp message in (Twilio)": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp message?": {
+      "main": [
+        [
+          {
+            "node": "Prepare the conversation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Decide: ring, missed or form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decide: ring, missed or form": {
+      "main": [
+        [
+          {
+            "node": "Answer Twilio or the page",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "One item per message (calls)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per message (calls)": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp (Twilio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare the conversation": {
+      "main": [
+        [
+          {
+            "node": "Ask the AI?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask the AI?": {
+      "main": [
+        [
+          {
+            "node": "Ask Claude (Haiku)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply on WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Claude (Haiku)": {
+      "main": [
+        [
+          {
+            "node": "Read Claude's reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Claude's reply": {
+      "main": [
+        [
+          {
+            "node": "Reply on WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "One item per message (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback reply": {
+      "main": [
+        [
+          {
+            "node": "Reply on WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "One item per message (WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per message (WhatsApp)": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp (Twilio)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "note": "Demo. Fictional practice. Test with your own phone only."
+  }
+}

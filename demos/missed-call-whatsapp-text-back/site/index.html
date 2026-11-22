@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en-GB" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brightmoor Dental (demo)</title>
+<meta name="description" content="Demo site for a fictional dental practice, used to show a missed-call WhatsApp text-back.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<script>
+  // Before first paint: mark JS and motion so entrances start hidden (no flash), and restore the theme.
+  (function () {
+    var d = document.documentElement;
+    d.className = 'js' + (window.matchMedia('(prefers-reduced-motion: no-preference)').matches ? ' motion' : '');
+    try { var t = localStorage.getItem('demo-theme'); if (t) d.setAttribute('data-theme', t); } catch (e) {}
+  })();
+</script>
+<style>
+  /* Brand tokens (BRAND_SHEET.md): Navy, Cream, Coral, with Lagoon for done. Light by default, dark on the switch. */
+  :root {
+    --bg: #f4ede0; --surface: #ffffff; --surface-2: #eae3d6;
+    --line: #dcd3c3; --line-soft: #e7dfd0;
+    --text: #14213d; --text-2: #3b4660; --muted: #566076;
+    --accent: #ff6b5b; --accent-hover: #f55a49; --accent-soft: #ffe8e4; --accent-text: #b23526; --on-accent: #14213d; --ring: #e04a39;
+    --good: #0f5c5e; --good-soft: #dceeec; --on-good: #f4ede0;
+    --navy: #14213d; --navy-deep: #0d1730; --navy-mid: #1c2b4c; --cream: #f4ede0; --pale-text: #c9cfdc; --pale-coral: #ffc9c1;
+    /* The phone illustration keeps its own light look in both themes */
+    --chat-bg: #efe7d9; --chat-head: #0f5c5e; --chat-in: #ffffff; --chat-out: #d4ece9; --chat-meta: #566076;
+    --radius: 20px; --radius-md: 14px; --radius-sm: 10px;
+    --shadow-1: 0 1px 2px rgba(20,33,61,.05), 0 8px 24px rgba(20,33,61,.06);
+    --shadow-pop: 0 8px 30px rgba(20,33,61,.12);
+    --ease: 180ms cubic-bezier(.2,.8,.2,1);
+    --font: "Instrument Sans", system-ui, sans-serif;
+    --font-head: "Bricolage Grotesque", var(--font);
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #14213d; --surface: #1c2b4c; --surface-2: #27375b;
+    --line: #34456b; --line-soft: #283858;
+    --text: #f4ede0; --text-2: #e6e3dc; --muted: #c9cfdc;
+    --accent-hover: #ff8073; --accent-soft: rgba(255,107,91,.16); --accent-text: #ffc9c1; --ring: #ff6b5b;
+    --good: #96e6e0; --good-soft: rgba(92,197,191,.16); --on-good: #0d1730;
+    --shadow-1: none; --shadow-pop: 0 8px 30px rgba(6,11,24,.45);
+    color-scheme: dark;
+  }
+  .navy {
+    --surface: #1c2b4c; --surface-2: #27375b; --line: #34456b; --line-soft: #283858;
+    --text: #f4ede0; --text-2: #e6e3dc; --muted: #c9cfdc;
+    --accent-text: #ffc9c1; --ring: #ff6b5b;
+    background: var(--navy); color: var(--text-2);
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: 24px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--bg); color: var(--text-2); font: 400 17px/1.6 var(--font); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--font-head); color: var(--text); letter-spacing: -.025em; line-height: 1.08; margin: 0 0 .5em; text-wrap: balance; }
+  h1 { font-size: clamp(2.3rem, 5.4vw, 3.9rem); font-weight: 700; }
+  h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 650; }
+  h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
+  p { margin: 0 0 1em; }
+  a { color: var(--accent-text); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; border-radius: 6px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .label { font-size: 12px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .muted { color: var(--muted); font-size: 14px; }
+
+  /* Entrances start hidden only when JS and motion are both on; GSAP reveals them. */
+  .js.motion [data-reveal], .js.motion [data-reveal-group] > * { visibility: hidden; }
+
+  /* Demo ribbon */
+  .ribbon { background: var(--navy-deep); color: var(--cream); font-size: 13px; }
+  .ribbon .wrap { display: flex; gap: 12px; align-items: center; justify-content: space-between; min-height: 38px; flex-wrap: wrap; padding-block: 6px; }
+  .ribbon b { color: var(--pale-coral); font-weight: 600; }
+  .ribbon-tools { display: flex; gap: 8px; }
+  .chip-btn { font: 600 12px/1 var(--font); color: var(--cream); background: transparent; border: 1px solid rgba(244,237,224,.28); border-radius: 999px; padding: 7px 12px; cursor: pointer; transition: background var(--ease), border-color var(--ease); }
+  .chip-btn:hover { background: rgba(244,237,224,.1); border-color: rgba(244,237,224,.5); }
+
+  /* Header */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font: 700 1.2rem/1 var(--font-head); letter-spacing: -.02em; }
+  .mark { width: 34px; height: 34px; border-radius: 11px; background: var(--accent); display: grid; place-items: center; }
+  .mark svg { width: 20px; height: 20px; }
+  .nav { display: flex; gap: 22px; align-items: center; }
+  .nav a { color: var(--text-2); text-decoration: none; font-weight: 500; font-size: 15px; }
+  .nav a:hover { color: var(--text); text-decoration: underline; }
+  .navy .top .brand, .navy .nav a { color: var(--cream); }
+
+  /* Buttons: one Coral button per view, the rest quiet. Text on Coral is Navy. */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 26px; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: 650 1rem/1.2 var(--font); text-decoration: none; cursor: pointer; transition: transform var(--ease), background var(--ease), border-color var(--ease); }
+  .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn:active { transform: scale(.97); }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1.5px solid var(--line); padding: 13.5px 24px; }
+  .btn.ghost:hover { background: color-mix(in srgb, var(--text) 8%, transparent); border-color: var(--muted); }
+  .btn.small { padding: 10px 16px; font-size: 14px; }
+  .btn[disabled] { opacity: .7; cursor: progress; transform: none; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; padding-bottom: 72px; }
+  .hero::before { content: ""; position: absolute; width: 760px; height: 760px; right: -220px; top: -160px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255,107,91,.22), rgba(255,107,91,0)); pointer-events: none; }
+  .hero-grid { position: relative; display: grid; grid-template-columns: 1.08fr .92fr; gap: 48px; align-items: center; padding-top: 28px; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero .sub { font-size: 1.18rem; max-width: 34em; margin-bottom: 28px; color: var(--text-2); }
+  .trust { list-style: none; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 0; margin: 26px 0 0; font-size: 14px; color: var(--muted); }
+  .trust li { display: flex; align-items: center; gap: 8px; }
+  .trust li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--good-soft); box-shadow: 0 0 0 3px rgba(150,230,224,.25); }
+
+  /* The illustration: a phone that rings, misses, then gets the WhatsApp */
+  .scene { margin: 0; display: grid; justify-items: center; gap: 14px; position: relative; }
+  .phone { width: min(272px, 74vw); aspect-ratio: 9 / 18.5; border-radius: 44px; padding: 12px; background: var(--navy-deep);
+    box-shadow: 0 0 0 1.5px rgba(244,237,224,.14), 0 30px 60px rgba(4,8,20,.45); position: relative; will-change: transform; }
+  .notch { position: absolute; top: 20px; left: 50%; width: 84px; height: 24px; margin-left: -42px; border-radius: 999px; background: var(--navy-deep); z-index: 3; }
+  .screen { position: relative; height: 100%; border-radius: 33px; overflow: hidden; background: var(--cream); color: var(--navy); }
+  .statusbar { position: absolute; inset: 0 0 auto; height: 52px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 26px 6px; font: 600 12px/1 var(--font); z-index: 2; color: var(--navy); }
+  .callview, .chat { position: absolute; inset: 0; }
+  .callview { visibility: hidden; opacity: 0; background: linear-gradient(180deg, var(--navy-mid), var(--navy-deep)); color: var(--cream); display: grid; align-content: center; justify-items: center; gap: 6px; text-align: center; padding: 40px 20px; }
+  .ringwrap { position: relative; width: 96px; height: 96px; margin-bottom: 18px; }
+  .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
+  .avatar { position: absolute; inset: 0; border-radius: 50%; background: var(--accent); color: var(--navy); display: grid; place-items: center; font: 700 28px/1 var(--font-head); }
+  .who { font: 650 1.25rem/1.2 var(--font-head); margin: 0; }
+  .state { margin: 0; font-size: 14px; color: var(--pale-text); min-height: 1.4em; }
+  .state-stack { display: grid; }
+  .state-stack > * { grid-area: 1 / 1; }
+  .state.missed { color: var(--pale-coral); opacity: 0; }
+  .chat { display: flex; flex-direction: column; background: var(--chat-bg); }
+  .chat-head { display: flex; align-items: center; gap: 10px; padding: 58px 16px 12px; background: var(--chat-head); color: var(--cream); }
+  .chat-head .mini { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--navy); display: grid; place-items: center; font: 700 13px/1 var(--font-head); flex: none; }
+  .chat-head b { display: block; font-size: 14px; line-height: 1.2; }
+  .chat-head small { font-size: 11px; opacity: .8; }
+  .chat-body { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 14px 12px; font-size: 13px; line-height: 1.42; overflow: hidden; }
+  .bubble { margin: 0; max-width: 86%; padding: 8px 11px; border-radius: 14px; box-shadow: 0 1px 1px rgba(20,33,61,.08); }
+  .bubble.in { background: var(--chat-in); border-top-left-radius: 4px; align-self: flex-start; transform-origin: left bottom; }
+  .bubble.out { background: var(--chat-out); border-top-right-radius: 4px; align-self: flex-end; transform-origin: right bottom; }
+  .bubble time { display: block; text-align: right; font-size: 10px; color: var(--chat-meta); margin-top: 2px; }
+  .chat-input { display: flex; align-items: center; gap: 8px; padding: 8px 10px 16px; }
+  .chat-input span { flex: 1; background: var(--chat-in); border-radius: 999px; padding: 8px 12px; color: var(--chat-meta); font-size: 12px; }
+  .chat-input i { width: 32px; height: 32px; border-radius: 50%; background: var(--chat-head); flex: none; display: grid; place-items: center; }
+  .chat-input svg { width: 15px; height: 15px; }
+  .typing { display: none; align-self: flex-start; gap: 4px; background: var(--chat-in); padding: 10px 12px; border-radius: 14px; border-top-left-radius: 4px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--chat-meta); display: block; }
+  .toast { display: flex; align-items: center; gap: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--line-soft); border-radius: 999px; padding: 10px 16px 10px 10px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow-pop); }
+  .toast .tick { width: 26px; height: 26px; border-radius: 50%; background: var(--good-soft); color: var(--good); display: grid; place-items: center; }
+  .toast .tick svg { width: 15px; height: 15px; }
+  .scene figcaption { font-size: 13px; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+  .linkbtn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+  /* Sections */
+  section { padding: 84px 0; }
+  .section-head { max-width: 40em; margin-bottom: 36px; }
+  .steps { display: grid; gap: 16px; grid-template-columns: repeat(3, 1fr); counter-reset: step; }
+  .card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow-1); transition: transform var(--ease), box-shadow var(--ease); }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-pop); }
+  .card p:last-child { margin-bottom: 0; }
+  .step-n { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font: 700 1.1rem/1 var(--font-head); background: var(--accent-soft); color: var(--accent-text); margin-bottom: 16px; }
+  .step-n.done { background: var(--good-soft); color: var(--good); }
+
+  .contact-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 20px; align-items: start; }
+  .field { display: grid; gap: 7px; margin-bottom: 18px; }
+  .field > label, .legend { font-weight: 600; color: var(--text); font-size: 15px; }
+  .hint { font-size: 13px; color: var(--muted); }
+  input[type="text"], input[type="tel"] { font: 400 16px/1.4 var(--font); color: var(--text); background: var(--bg); border: 1.5px solid var(--line); border-radius: var(--radius-sm); padding: 13px 14px; width: 100%; transition: border-color var(--ease), box-shadow var(--ease); }
+  input[type="text"]:focus, input[type="tel"]:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 4px var(--accent-soft); }
+  input[aria-invalid="true"] { border-color: var(--ring); }
+  fieldset { border: 0; padding: 0; margin: 0 0 18px; min-width: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .chips label { position: relative; }
+  .chips input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .chips span { display: inline-block; padding: 9px 15px; border-radius: 999px; border: 1.5px solid var(--line); font-size: 14px; font-weight: 550; color: var(--text-2); transition: background var(--ease), border-color var(--ease), color var(--ease); }
+  .chips input:checked + span { background: var(--navy); border-color: var(--navy); color: var(--cream); }
+  :root[data-theme="dark"] .chips input:checked + span { background: var(--cream); border-color: var(--cream); color: var(--navy); }
+  .chips input:focus-visible + span { outline: 3px solid var(--ring); outline-offset: 2px; }
+  .consent { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; margin: 6px 0 22px; }
+  .consent input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+  .error { color: var(--accent-text); font-size: 13px; font-weight: 600; min-height: 0; margin: 0; }
+  .form-foot { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .done-panel { text-align: left; }
+  .done-icon { width: 56px; height: 56px; border-radius: 18px; background: var(--good-soft); color: var(--good); display: grid; place-items: center; margin-bottom: 16px; }
+  .done-icon svg { width: 30px; height: 30px; }
+  .info dl { margin: 0; display: grid; gap: 14px; }
+  .info dt { font-size: 12px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .info dd { margin: 2px 0 0; color: var(--text); }
+  .info a { font-weight: 600; }
+
+  footer { padding: 36px 0 60px; border-top: 1px solid var(--line-soft); font-size: 14px; color: var(--muted); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+  /* Test panel: for you, not for visitors. Open with the ribbon button, ?test or the T key. */
+  .testpanel { position: fixed; right: 16px; bottom: 16px; z-index: 20; width: min(340px, calc(100vw - 32px)); background: var(--surface); color: var(--text-2); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-pop); padding: 16px; font-size: 13px; }
+  .testpanel h3 { font-size: 15px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .testpanel dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; margin: 0 0 10px; }
+  .testpanel dt { color: var(--muted); }
+  .testpanel dd { margin: 0; color: var(--text); word-break: break-all; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 650; }
+  .pill.ok { background: var(--good-soft); color: var(--good); }
+  .pill.warn { background: var(--accent-soft); color: var(--accent-text); }
+  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 140px; overflow: auto; }
+  .log li { background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+
+  @media (max-width: 900px) {
+    .hero-grid, .contact-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .nav a:not(.btn) { display: none; }
+  }
+  @media (max-width: 440px) {
+    .wrap { padding: 0 16px; }
+    .hero-grid { padding-top: 22px; gap: 40px; }
+    section { padding: 60px 0; }
+    .hero .actions .btn { width: 100%; }
+    .btn.small { padding: 9px 13px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ribbon">
+  <div class="wrap">
+    <span><b>Demo website.</b> <span data-config="practiceName">Brightmoor Dental</span> is a fictional practice.</span>
+    <span class="ribbon-tools">
+      <button class="chip-btn" type="button" id="themeBtn" aria-pressed="false">Dark mode</button>
+      <button class="chip-btn" type="button" id="testBtn" aria-expanded="false" aria-controls="testPanel">Test panel</button>
+    </span>
+  </div>
+</div>
+
+<div class="navy hero">
+  <header class="wrap top">
+    <a class="brand" href="#top" id="top">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#14213d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3c-2.2 0-4 1.9-4 4.4 0 2.3.9 3.6 1.6 5.6.8 2.4 1 8 3.1 8 1.7 0 1.6-5.2 4.3-5.2s2.6 5.2 4.3 5.2c2.1 0 2.3-5.6 3.1-8 .7-2 1.6-3.3 1.6-5.6C21 4.9 19.2 3 17 3c-2 0-3 1.2-5 1.2S9 3 7 3z"/></svg></span>
+      <span data-config="practiceName">Brightmoor Dental</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#how">How we reply</a>
+      <a href="#contact">Contact</a>
+      <a class="btn small ghost" href="tel:+441134960123" data-config-tel>Call <span data-config="phoneDisplay">0113 496 0123</span></a>
+    </nav>
+  </header>
+
+  <main class="wrap hero-grid">
+    <div>
+      <p class="label" data-reveal>Family and private dentistry · Leeds</p>
+      <h1 data-reveal>Friendly dentistry, <em>booked around you.</em></h1>
+      <p class="sub" data-reveal>Give us a ring or leave your number. If we're with a patient when you call, we'll message you on WhatsApp straight away, so you're never left wondering if anyone heard.</p>
+      <div class="actions" data-reveal>
+        <a class="btn" href="tel:+441134960123" data-config-tel>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+          Call <span data-config="phoneDisplay">0113 496 0123</span>
+        </a>
+        <a class="btn ghost" href="#contact">Leave your number</a>
+      </div>
+      <ul class="trust" data-reveal-group>
+        <li>New patients welcome</li>
+        <li>Evening appointments</li>
+        <li>NHS and private</li>
+      </ul>
+    </div>
+
+    <figure class="scene" id="scene" aria-labelledby="sceneCaption">
+      <div class="phone" aria-hidden="true">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="statusbar"><span>14:05</span><span>5G</span></div>
+          <div class="callview" data-s="call">
+            <div class="ringwrap"><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="avatar">BD</span></div>
+            <p class="who" data-config="practiceName">Brightmoor Dental</p>
+            <div class="state-stack">
+              <p class="state" data-s="calling">Calling…</p>
+              <p class="state missed" data-s="missed">No answer · call ended</p>
+            </div>
+          </div>
+          <div class="chat" data-s="chat">
+            <div class="chat-head"><span class="mini">BD</span><div><b data-config="practiceName">Brightmoor Dental</b><small>Business account</small></div></div>
+            <div class="chat-body">
+              <span class="typing" data-s="typing"><i></i><i></i><i></i></span>
+              <p class="bubble in" data-s="bubble">Hi, it's <span data-config="practiceName">Brightmoor Dental</span>. Sorry we missed your call, we're with a patient. Reply here with a good day and time and we'll call you back.<time>14:05</time></p>
+              <p class="bubble out" data-s="bubble">Existing patient, any day after 4 please<time>14:06</time></p>
+              <p class="bubble in" data-s="bubble">Thanks, that's all I need. The front desk will call you any day after 4 to confirm.<time>14:06</time></p>
+            </div>
+            <div class="chat-input"><span>Message</span><i><svg viewBox="0 0 24 24" fill="none" stroke="#f4ede0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="toast" data-s="toast">
+        <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg></span>
+        Front desk has the call back
+      </div>
+      <figcaption id="sceneCaption">Illustration: what happens if we miss your call. <button class="linkbtn" type="button" id="replayBtn" hidden>Replay</button></figcaption>
+    </figure>
+  </main>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="label">How we reply</p>
+      <h2>Ring us. If we can't pick up, we'll message you back.</h2>
+      <p>We're a small team, so sometimes we're with a patient when you call. Instead of a voicemail you have to wait on, you get a WhatsApp from us within moments.</p>
+    </div>
+    <div class="steps" data-reveal-group>
+      <article class="card">
+        <div class="step-n">1</div>
+        <h3>You call us</h3>
+        <p>The front desk phone rings first, as it always has.</p>
+      </article>
+      <article class="card">
+        <div class="step-n">2</div>
+        <h3>We're with a patient</h3>
+        <p>If nobody can answer, the call ends with a short message so you know what happens next.</p>
+      </article>
+      <article class="card">
+        <div class="step-n done">3</div>
+        <h3>We message you back</h3>
+        <p>A WhatsApp from the practice asks for a good time to call. Reply whenever suits you. Reply STOP and we won't message again.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="contact" style="padding-top: 0">
+  <div class="wrap contact-grid">
+    <div class="card" data-reveal>
+      <div id="formView">
+        <p class="label">Contact</p>
+        <h2>Leave your number</h2>
+        <p>We'll message you on WhatsApp to find a good time to call. Please don't include medical details here.</p>
+        <form id="leadForm" novalidate>
+          <div class="field">
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" name="first_name" autocomplete="given-name" maxlength="30" required>
+          </div>
+          <div class="field">
+            <label for="phone">Mobile number</label>
+            <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="07700 900123" required aria-describedby="phoneHint phoneError">
+            <span class="hint" id="phoneHint">The number you use for WhatsApp.</span>
+            <p class="error" id="phoneError" role="alert"></p>
+          </div>
+          <fieldset>
+            <legend class="legend">What's it about?</legend>
+            <div class="chips">
+              <label><input type="radio" name="reason" value="checkup" checked><span>A check-up</span></label>
+              <label><input type="radio" name="reason" value="hygienist"><span>The hygienist</span></label>
+              <label><input type="radio" name="reason" value="new"><span>Joining as a new patient</span></label>
+              <label><input type="radio" name="reason" value="change"><span>Changing an appointment</span></label>
+              <label><input type="radio" name="reason" value="other"><span>Something else</span></label>
+            </div>
+          </fieldset>
+          <label class="consent">
+            <input type="checkbox" name="consent" value="yes" id="consent" aria-describedby="consentError">
+            <span>I'm happy for <span data-config="practiceName">Brightmoor Dental</span> to message me on WhatsApp about this enquiry. I can reply STOP at any time.</span>
+          </label>
+          <p class="error" id="consentError" role="alert"></p>
+          <div class="form-foot">
+            <button class="btn" type="submit" id="sendBtn">Message me on WhatsApp</button>
+            <span class="muted">We only use your number to reply to this.</span>
+          </div>
+        </form>
+      </div>
+      <div id="doneView" class="done-panel" hidden tabindex="-1">
+        <div class="done-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path id="donePath" d="M5 12.5l4.2 4.2L19 7" pathLength="1"/></svg></div>
+        <h2 id="doneTitle">Check WhatsApp</h2>
+        <p id="doneText">We've just messaged you. Reply with a good day and time and we'll call you back.</p>
+        <button class="btn ghost small" type="button" id="againBtn">Send another</button>
+      </div>
+    </div>
+
+    <aside class="card info" data-reveal aria-label="Practice details">
+      <dl>
+        <div><dt>Phone</dt><dd><a href="tel:+441134960123" data-config-tel data-config="phoneDisplay">0113 496 0123</a></dd></div>
+        <div><dt>Opening hours</dt><dd>Monday to Friday, 8am to 6pm<br>Saturday, 9am to 1pm</dd></div>
+        <div><dt>Address</dt><dd>12 Example Street<br>Leeds LS1 0AA</dd></div>
+        <div><dt>Urgent?</dt><dd>Call the practice, or NHS 111 out of hours.</dd></div>
+      </dl>
+    </aside>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© <span data-config="practiceName">Brightmoor Dental</span>. A fictional practice on a demo website.</span>
+    <span>Phone numbers here are from Ofcom's range for drama and do not connect, unless set up for the demo.</span>
+  </div>
+</footer>
+
+<aside class="testpanel" id="testPanel" hidden aria-label="Test panel">
+  <h3>Test panel <button class="linkbtn" type="button" id="closeTest">Close</button></h3>
+  <dl>
+    <dt>Webhook</dt><dd id="tpHook"></dd>
+    <dt>Calls go to</dt><dd id="tpPhone"></dd>
+  </dl>
+  <ul class="log" id="tpLog"><li>Nothing sent yet.</li></ul>
+  <p class="muted" style="margin:10px 0 0">The page can't read n8n's reply (no-cors). Check n8n's Executions to see what happened.</p>
+</aside>
+
+<script>
+  // ---- Change these for your demo (or for a client) -----------------------------------------
+  const CONFIG = {
+    practiceName: 'Brightmoor Dental',
+    phoneDisplay: '0113 496 0123',      // how the number is shown
+    phoneDial: '+441134960123',         // your Twilio number, in +44 form
+    webhookUrl: '',                     // e.g. https://<your-tunnel>.trycloudflare.com/webhook/missed-call/form
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.1/dist/gsap.min.js"></script>
+<script>
+(function () {
+  const root = document.documentElement;
+
+  // ---- Fill in CONFIG ---------------------------------------------------------------------
+  document.querySelectorAll('[data-config]').forEach((el) => { const v = CONFIG[el.dataset.config]; if (v) el.textContent = v; });
+  document.querySelectorAll('[data-config-tel]').forEach((el) => { el.href = 'tel:' + CONFIG.phoneDial; });
+  document.title = CONFIG.practiceName + ' (demo)';
+
+  // ---- Theme switch (light by default) ----------------------------------------------------
+  const themeBtn = document.getElementById('themeBtn');
+  const showTheme = () => { const dark = root.getAttribute('data-theme') === 'dark'; themeBtn.textContent = dark ? 'Light mode' : 'Dark mode'; themeBtn.setAttribute('aria-pressed', String(dark)); };
+  themeBtn.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('demo-theme', next); } catch (e) {}
+    showTheme();
+  });
+  showTheme();
+
+  // ---- Test panel ---------------------------------------------------------------------------
+  const panel = document.getElementById('testPanel');
+  const testBtn = document.getElementById('testBtn');
+  const setPanel = (open) => { panel.hidden = !open; testBtn.setAttribute('aria-expanded', String(open)); };
+  testBtn.addEventListener('click', () => setPanel(panel.hidden));
+  document.getElementById('closeTest').addEventListener('click', () => setPanel(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 't' && !e.metaKey && !e.ctrlKey && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) setPanel(panel.hidden);
+  });
+  if (new URLSearchParams(location.search).has('test')) setPanel(true);
+  document.getElementById('tpHook').innerHTML = CONFIG.webhookUrl
+    ? '<span class="pill ok">Set</span> ' + CONFIG.webhookUrl.replace(/^https?:\/\//, '').slice(0, 60)
+    : '<span class="pill warn">Not set</span> the form only plays the demo';
+  document.getElementById('tpPhone').textContent = CONFIG.phoneDial;
+  const log = (text) => {
+    const list = document.getElementById('tpLog');
+    if (list.firstElementChild && list.firstElementChild.textContent === 'Nothing sent yet.') list.innerHTML = '';
+    const li = document.createElement('li');
+    li.textContent = new Date().toLocaleTimeString('en-GB') + ' · ' + text;
+    list.prepend(li);
+  };
+
+  // ---- Motion (GSAP core). Everything is inside matchMedia, so "reduce motion" gets the still, finished page. ----
+  let scene = null;
+  const replayBtn = document.getElementById('replayBtn');
+  const sceneEl = document.getElementById('scene');
+
+  function buildScene(q) {
+    const bubbles = q('[data-s="bubble"]');
+    const tl = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } });
+    tl.set(q('[data-s="call"]'), { autoAlpha: 1 })
+      .set(q('[data-s="chat"]'), { yPercent: 100 })
+      .set(q('[data-s="calling"]'), { autoAlpha: 1 })
+      .set(q('[data-s="missed"]'), { autoAlpha: 0 })
+      .set(q('.ringwrap'), { scale: 1 })
+      .set(q('[data-s="typing"]'), { display: 'none', autoAlpha: 0 })
+      .set(bubbles, { autoAlpha: 0, scale: 0.86, y: 8 })
+      .set(q('[data-s="toast"]'), { autoAlpha: 0, y: 14 })
+      // 1. Ringing: pulses and a little buzz
+      .fromTo(q('.ring'), { scale: 1, autoAlpha: 0.7 }, { scale: 1.9, autoAlpha: 0, duration: 1.3, ease: 'power1.out', stagger: { each: 0.42, repeat: 1 } }, 0.2)
+      .fromTo(q('.phone'), { rotation: 0 }, { rotation: 1.4, duration: 0.07, repeat: 11, yoyo: true, ease: 'none', immediateRender: false }, 0.35)
+      .set(q('.phone'), { rotation: 0 })
+      // 2. Nobody can answer
+      .to(q('[data-s="calling"]'), { autoAlpha: 0, duration: 0.2 }, 3.1)
+      .to(q('[data-s="missed"]'), { autoAlpha: 1, duration: 0.3 }, 3.2)
+      .to(q('.ringwrap'), { scale: 0.9, duration: 0.4 }, 3.2)
+      // 3. The WhatsApp arrives, they reply, the front desk has it
+      .addLabel('chat', 4.2)
+      .to(q('[data-s="chat"]'), { yPercent: 0, duration: 0.75, ease: 'power3.inOut' }, 'chat')
+      .set(q('[data-s="call"]'), { autoAlpha: 0 }, 'chat+=0.8')
+      .set(q('[data-s="typing"]'), { display: 'inline-flex' }, 'chat+=0.7')
+      .to(q('[data-s="typing"]'), { autoAlpha: 1, duration: 0.25 }, 'chat+=0.7')
+      .fromTo(q('[data-s="typing"] i'), { y: 0 }, { y: -4, duration: 0.28, stagger: 0.12, repeat: 3, yoyo: true, ease: 'sine.inOut' }, 'chat+=0.75')
+      .set(q('[data-s="typing"]'), { display: 'none' }, 'chat+=1.95')
+      .to(bubbles[0], { autoAlpha: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.7)' }, 'chat+=1.95')
+      .to(bubbles[1], { autoAlpha: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.7)' }, 'chat+=3.7')
+      .to(bubbles[2], { autoAlpha: 1, scale: 1, y: 0, duration: 0.45, ease: 'back.out(1.7)' }, 'chat+=5.1')
+      .to(q('[data-s="toast"]'), { autoAlpha: 1, y: 0, duration: 0.5 }, 'chat+=6');
+    return tl;
+  }
+
+  function revealOnScroll(el) {
+    const targets = el.matches('[data-reveal-group]') ? el.children : el;
+    const io = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      io.disconnect();
+      gsap.fromTo(targets, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.09, ease: 'power3.out' });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    io.observe(el);
+    return io;
+  }
+
+  const hasGsap = !!window.gsap;
+  if (hasGsap) gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+    const q = gsap.utils.selector(sceneEl);
+    // Hero entrance
+    const heroTargets = gsap.utils.toArray('.hero [data-reveal], .hero [data-reveal-group] > *');
+    gsap.fromTo(heroTargets, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.05 });
+    gsap.fromTo(sceneEl, { autoAlpha: 0, y: 36 }, { autoAlpha: 1, y: 0, duration: 0.9, ease: 'power3.out', delay: 0.25 });
+
+    scene = buildScene(q);
+    replayBtn.hidden = false;
+    gsap.delayedCall(1, () => scene.play(0));
+
+    // A slow float, paused whenever the phone is off screen or the tab is hidden
+    const float = gsap.to(q('.phone'), { y: -8, duration: 3.2, ease: 'sine.inOut', repeat: -1, yoyo: true });
+    const sceneIO = new IntersectionObserver(([e]) => (e.isIntersecting ? float.play() : float.pause()));
+    sceneIO.observe(sceneEl);
+    const onVis = () => (document.hidden ? float.pause() : float.play());
+    document.addEventListener('visibilitychange', onVis);
+
+    const ios = gsap.utils.toArray('section [data-reveal], section [data-reveal-group]').map(revealOnScroll);
+
+    return () => {   // runs when "reduce motion" is switched on: back to the still page
+      scene = null; replayBtn.hidden = true;
+      sceneIO.disconnect(); ios.forEach((io) => io.disconnect());
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  });
+  replayBtn.addEventListener('click', () => scene && scene.restart());
+
+  // ---- The form -------------------------------------------------------------------------------
+  const form = document.getElementById('leadForm');
+  const sendBtn = document.getElementById('sendBtn');
+  const formView = document.getElementById('formView');
+  const doneView = document.getElementById('doneView');
+  const motionOK = () => hasGsap && window.matchMedia('(prefers-reduced-motion: no-preference)').matches;
+
+  const toE164 = (raw) => {
+    let d = String(raw || '').replace(/[^\d+]/g, '');
+    if (d.startsWith('00')) d = '+' + d.slice(2);
+    else if (d.startsWith('0')) d = '+44' + d.slice(1);
+    else if (/^44\d/.test(d)) d = '+' + d;
+    return /^\+[1-9]\d{7,14}$/.test(d) ? d : null;
+  };
+  const showError = (input, errorEl, message) => {
+    errorEl.textContent = message;
+    input.setAttribute('aria-invalid', message ? 'true' : 'false');
+    if (message && motionOK()) gsap.fromTo(input, { x: 0 }, { keyframes: { x: [0, -7, 7, -4, 4, 0] }, duration: 0.4, ease: 'none' });
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const phoneInput = form.elements.phone, consentInput = form.elements.consent;
+    const phone = toE164(phoneInput.value);
+    showError(phoneInput, document.getElementById('phoneError'), phone ? '' : 'Please enter a mobile number, like 07700 900123.');
+    showError(consentInput, document.getElementById('consentError'), consentInput.checked ? '' : 'Please tick the box so we can message you.');
+    if (!phone) return phoneInput.focus();
+    if (!consentInput.checked) return consentInput.focus();
+
+    const payload = new URLSearchParams({
+      source: 'web-form',
+      first_name: form.elements.first_name.value.trim().slice(0, 30),
+      phone,
+      reason: form.elements.reason.value,
+      consent: 'yes',
+    });
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending…';
+
+    let outcome = 'demo';
+    if (CONFIG.webhookUrl) {
+      try {
+        // A simple form post (no preflight). The reply can't be read from here; n8n's Executions show it.
+        await fetch(CONFIG.webhookUrl, { method: 'POST', mode: 'no-cors', body: payload });
+        outcome = 'sent';
+      } catch (err) { outcome = 'failed'; }
+    }
+    log((outcome === 'sent' ? 'Sent to webhook' : outcome === 'failed' ? 'Could not reach the webhook' : 'Demo only (no webhook set)') +
+        ' · …' + phone.slice(-3) + ' · ' + payload.get('reason'));
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Message me on WhatsApp';
+    if (outcome === 'failed') {
+      document.getElementById('doneTitle').textContent = "That didn't go through";
+      document.getElementById('doneText').textContent = 'Please try again, or give us a ring.';
+    } else {
+      document.getElementById('doneTitle').textContent = outcome === 'sent' ? 'Check WhatsApp' : 'Demo only';
+      document.getElementById('doneText').textContent = outcome === 'sent'
+        ? "We've just messaged you. Reply with a good day and time and we'll call you back."
+        : 'No webhook is set in CONFIG, so nothing was sent. Add one to send a real WhatsApp.';
+    }
+    formView.hidden = true;
+    doneView.hidden = false;
+    doneView.focus();
+    if (motionOK()) {
+      gsap.timeline({ defaults: { ease: 'power3.out' } })
+        .fromTo(doneView.children, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.07 })
+        .fromTo('#donePath', { strokeDasharray: 1, strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.5, ease: 'power2.inOut' }, 0.15);
+    }
+  });
+
+  document.getElementById('againBtn').addEventListener('click', () => {
+    form.reset();
+    doneView.hidden = true;
+    formView.hidden = false;
+    form.elements.first_name.focus();
+  });
+})();
+</script>
+<script>
+  // If GSAP did not load (offline), show everything rather than leaving entrances hidden.
+  if (!window.gsap) document.documentElement.classList.remove('motion');
+</script>
+</body>
+</html>
