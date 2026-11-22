@@ -33,6 +33,11 @@ Guards in code: withheld numbers are never messaged, one text-back per number pe
 > **The UK number catch.** A new UK Twilio number needs an approved regulatory bundle (ID and address), which Twilio says takes up to 2 to 3 business days. If you don't already have one, use a number you already own for tonight, or buy a US number (no bundle needed for voice; calling it from a UK mobile costs an international call).
 
 1. **WhatsApp sandbox.** Twilio Console > Messaging > Try it out > Send a WhatsApp message. From your phone, send `join <your-code>` to +1 415 523 8886. The sandbox session lasts 3 days, then you join again. The sandbox only delivers a free-form message within 24 hours of your last message to it, so **send it any message just before you record.**
+
+   **Or your own number as the sender** (looks real on camera, no sandbox code), set up from the Terminal with `scripts/twilio_setup.py` (needs `TWILIO_ACCOUNT_SID` and `TWILIO_AUTH_TOKEN` in `.env`; it never buys a number or sends a message):
+   - Register the number in the Console (*Set up a new WhatsApp sender*, Meta's sign-up), then `uv run python demos/missed-call-whatsapp-text-back/scripts/twilio_setup.py templates` creates the two Utility templates and asks Meta to approve them. `... twilio_setup.py status` shows the numbers, senders and approval state.
+   - Build your own copy: `uv run python demos/missed-call-whatsapp-text-back/scripts/build-workflow.py --local --whatsapp-from +44…` writes `n8n/local/` (git-ignored) with your Account SID and every approved template's SID filled in. Import that file instead of the one in step 4, and run it again once the templates are approved.
+   - Until they are approved, a real sender has the same 24-hour rule as the sandbox: **message your sender from the phone you'll call with, just before you record.** Outside that window Twilio refuses free text (error 63016 in n8n > Executions).
 2. **A public address.** In one Terminal tab: `cloudflared tunnel --url http://localhost:5678`. Copy the `https://….trycloudflare.com` address it prints (it changes each run).
 3. **n8n.** In a second tab, from the project folder: `WEBHOOK_URL=https://….trycloudflare.com/ npx n8n`, then open http://localhost:5678.
 4. **Import:** `npx n8n import:workflow --input=demos/missed-call-whatsapp-text-back/n8n/missed-call-text-back.json` (or use *Import from file* in n8n).
@@ -41,7 +46,7 @@ Guards in code: withheld numbers are never messaged, one text-back per number pe
    - *Header Auth*: name `x-api-key`, value = your Anthropic key. Pick it on **Ask Claude (Haiku)**.
 6. **Settings node:** set `twilio_account_sid`. Optional: `forward_to` (a phone to ring first), `frontdesk_whatsapp` (a second phone that has joined the sandbox, to show the front desk's view), `booking_link`.
 7. **Publish** the workflow (top right). Its webhooks only answer on the `/webhook/` addresses once published.
-8. **Twilio wiring:**
+8. **Twilio wiring.** With your own sender, one command does all of this and step 9's page address too, and you run it again whenever the tunnel restarts: `uv run python demos/missed-call-whatsapp-text-back/scripts/twilio_setup.py wire --url https://….trycloudflare.com --number +1… --sender +44…` (n8n can keep running). With the sandbox, by hand:
    - Phone Numbers > your number > Voice > *A call comes in*: Webhook, `https://….trycloudflare.com/webhook/missed-call/voice`, HTTP POST.
    - Messaging > Try it out > WhatsApp sandbox settings > *When a message comes in*: `https://….trycloudflare.com/webhook/missed-call/whatsapp`, POST.
 9. **The page:** in `site/index.html`, set `CONFIG.phoneDisplay` and `CONFIG.phoneDial` to your Twilio number and `CONFIG.webhookUrl` to `https://….trycloudflare.com/webhook/missed-call/form`. Double-click the file to open it. Press **T** (or *Test panel*) to see what the form sent.

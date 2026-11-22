@@ -2,6 +2,7 @@
 Run: uv run python demos/missed-call-whatsapp-text-back/scripts/build-workflow.py
 Edit the Settings below (or in n8n after import), re-run, then re-import (see the README)."""
 
+import argparse
 import json
 import uuid
 from pathlib import Path
@@ -41,6 +42,40 @@ SETTINGS = {
     "model": "claude-haiku-5-5",
     "system_prompt": (DEMO / "prompts" / "whatsapp-receptionist.md").read_text().strip(),
 }
+
+
+# --local writes a copy with your own Twilio details filled in, to n8n/local/ (git-ignored), so you only import it.
+# uv run python demos/missed-call-whatsapp-text-back/scripts/build-workflow.py --local --whatsapp-from +44...
+_args = argparse.ArgumentParser(description="Build the n8n workflow file.")
+_args.add_argument(
+    "--local",
+    action="store_true",
+    help="fill in TWILIO_ACCOUNT_SID from .env and write to n8n/local/",
+)
+_args.add_argument("--whatsapp-from", help="the WhatsApp sender number, e.g. +447700900123")
+ARGS = _args.parse_args()
+if ARGS.local:
+    from agency import config
+
+    SETTINGS["twilio_account_sid"] = config.require("TWILIO_ACCOUNT_SID")
+    if ARGS.whatsapp_from:
+        SETTINGS["whatsapp_from"] = ARGS.whatsapp_from
+    OUT = DEMO / "n8n" / "local" / "missed-call-text-back.local.json"
+    # A real sender (not the sandbox) needs an approved template to message someone first.
+    if SETTINGS["whatsapp_from"] != "+14155238886":
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).parent))
+        import twilio_setup
+
+        ready, waiting = twilio_setup.template_sids()
+        SETTINGS.update(ready)
+        for name in waiting:
+            print(
+                f"Template {name} is not approved yet, so it sends free text instead. That only arrives within "
+                f"24 hours of the person's last message to {SETTINGS['whatsapp_from']}: message it from your "
+                "phone before you record, and run this again once it is approved."
+            )
 
 
 def uid(name: str) -> str:
@@ -282,7 +317,7 @@ assert all(s in names and d in names for s, d, *_ in links), (
     "a link names a node that does not exist"
 )
 
-OUT.parent.mkdir(exist_ok=True)
+OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text(
     json.dumps(
         {

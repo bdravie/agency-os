@@ -51,3 +51,5 @@ config/niches.yaml.tmp
 # Generated knowledge graph and personal editor settings
 graphify-out/
 .vscode/
+# n8n workflow copies with real account details filled in (build-workflow.py --local)
+demos/*/n8n/local/

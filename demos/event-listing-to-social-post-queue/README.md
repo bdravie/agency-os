@@ -29,7 +29,7 @@
 
 ## Setup
 
-Needs: Node (already here), `uv sync`, and `ANTHROPIC_API_KEY` in `.env` (or use `--no-llm`). No other account.
+Needs: Node 24 or newer (n8n 2.47.5 needs it; the dev container's Node 22 cannot install n8n, so run this on the Mac), `uv sync`, and `ANTHROPIC_API_KEY` in `.env` (or use `--no-llm`). No other account.
 
 ```
 # 1. Start the demo board and helper (leave it running)
