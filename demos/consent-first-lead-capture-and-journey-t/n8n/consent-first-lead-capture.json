@@ -1,0 +1,719 @@
+{
+  "id": "ConsentLeadCapt1",
+  "name": "Consent-first lead capture and journey tracker (demo)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Consent-first lead capture and journey tracker (demo)\nEvery request reads the whole sheet once, works out the change in **Apply the change**, and writes it back in one call.\n\n- **Website forms**: newsletter sign-ups start *pending*; enquiries are logged with the reply basis.\n- **Confirm / Unsubscribe**: the link shows a button, the button makes the change.\n- **Team view**: LinkedIn CSV import, click report, unsubscribe on request, *Draft follow-ups* (Claude Haiku, to a review tab).\n\nEdit **Settings** first. Credentials: Google Sheets OAuth2 (on both sheet nodes) and Header Auth `x-api-key` (on Claude).",
+        "width": 620,
+        "height": 320
+      },
+      "id": "8924a650-ae6b-5713-a191-c154d128d7ea",
+      "name": "About this workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -460
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### What is kept\nContacts: name, organisation, role, address, consent and activity counts. Consent log: what each form said and when. Suppression: addresses that asked to stop, so no import adds them back. Nothing is emailed: the confirm link is shown on the demo page instead. Emails and phone numbers are masked before anything reaches the AI. Demo data only (example.com addresses).",
+        "width": 440,
+        "height": 320
+      },
+      "id": "043e4f95-16a1-5450-be3b-a7d1a5ea8704",
+      "name": "Privacy",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        580,
+        -460
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture/signup",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "aab39317-2566-5e84-94fa-2353a0256dcb",
+      "name": "Website forms",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "ddde9f7f-6c42-5a14-83cc-005b8dfef202"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lead-capture/confirm",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "eeabd602-4101-5e60-ac12-c76ede53f86e",
+      "name": "Confirm link",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ],
+      "webhookId": "68efaeab-5dc5-59cf-b1ce-6f2572b02006"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture/confirmed",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "67b5981d-ebdb-5dc5-8cc8-23d8dbb9c3d1",
+      "name": "Confirm button",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        320
+      ],
+      "webhookId": "42a75001-484a-5101-907e-4459fab39f8d"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lead-capture/unsubscribe",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "d7d360ad-6b4b-5dd3-881c-5b6877664abc",
+      "name": "Unsubscribe link",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        480
+      ],
+      "webhookId": "da39f4ec-3573-5f8a-825a-2da806ecf9bd"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture/unsubscribed",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "20e5c027-9542-5e7b-8f2e-11e2cd5550bb",
+      "name": "Unsubscribe button",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        640
+      ],
+      "webhookId": "b713bffe-294e-527d-83a2-15f2e43b7562"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture/team",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "6d0c391b-45a5-5250-babb-973ac73f694b",
+      "name": "Team view",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        800
+      ],
+      "webhookId": "5eb2774e-1580-5965-8603-b3fba2ba0917"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4dd1be05-fcd8-5083-8a47-474f6ce8e28e",
+              "name": "sheet_id",
+              "value": "CHANGE ME",
+              "type": "string"
+            },
+            {
+              "id": "d9d46aa6-61d5-5775-acf6-1d2606326a8a",
+              "name": "team_key",
+              "value": "demo-team-key",
+              "type": "string"
+            },
+            {
+              "id": "9760799f-3584-5277-a558-40281fb4ca3a",
+              "name": "public_base_url",
+              "value": "http://localhost:5678/webhook/lead-capture",
+              "type": "string"
+            },
+            {
+              "id": "a366ea24-0494-5f34-8cea-1fdbe664efb4",
+              "name": "show_confirm_link_on_page",
+              "value": "yes",
+              "type": "string"
+            },
+            {
+              "id": "c843f814-6bb1-5e60-be2d-7b29c885b7a8",
+              "name": "confirm_days",
+              "value": "7",
+              "type": "string"
+            },
+            {
+              "id": "4dccdc0e-d1cb-5437-849f-ec5aab4e5243",
+              "name": "business_name",
+              "value": "Fernhollow Partners",
+              "type": "string"
+            },
+            {
+              "id": "9aa12ed0-f433-55ef-ad95-bafc27c3e485",
+              "name": "business_line",
+              "value": "a small consultancy that helps charities and social enterprises find sponsors and partners who share their aims.",
+              "type": "string"
+            },
+            {
+              "id": "bb1523cc-9e3f-52b5-a981-569e00b6128d",
+              "name": "sender_name",
+              "value": "Jo Ashdown",
+              "type": "string"
+            },
+            {
+              "id": "af563935-502f-542e-ae24-37c21709ab66",
+              "name": "opt_out_line",
+              "value": "Reply 'no' and I won't email again.",
+              "type": "string"
+            },
+            {
+              "id": "a756a0a4-7164-5ea1-9d31-14c3c5df00a1",
+              "name": "newsletter_form_version",
+              "value": "Website newsletter form v1 (Nov 2026)",
+              "type": "string"
+            },
+            {
+              "id": "06cb0d42-82c2-5684-a36c-ee32d8177980",
+              "name": "newsletter_wording",
+              "value": "Yes, send me the Fernhollow Partners newsletter (about once a month). I can unsubscribe at any time from any issue.",
+              "type": "string"
+            },
+            {
+              "id": "8e55effc-40ab-5f50-9390-961c09ac1b71",
+              "name": "enquiry_form_version",
+              "value": "Website enquiry form v1 (Nov 2026)",
+              "type": "string"
+            },
+            {
+              "id": "909554a4-aa45-5274-9e67-43d5e75d6940",
+              "name": "enquiry_wording",
+              "value": "We'll use your details to reply to your enquiry, as set out in our privacy notice.",
+              "type": "string"
+            },
+            {
+              "id": "83dc23e8-0ba0-508f-af04-c32dfe1f4d6c",
+              "name": "linkedin_wording",
+              "value": "LinkedIn form tick box: I'd like to receive the Fernhollow Partners newsletter.",
+              "type": "string"
+            },
+            {
+              "id": "6e779853-10a3-5562-a2d3-f5e0f92a16c2",
+              "name": "linkedin_privacy_wording",
+              "value": "LinkedIn form privacy notice: Fernhollow Partners will use these details to follow up on your request.",
+              "type": "string"
+            },
+            {
+              "id": "227b53e2-7548-5f14-b0d8-bb3dd119c5bc",
+              "name": "clicks_for_identified",
+              "value": "2",
+              "type": "string"
+            },
+            {
+              "id": "983fbfda-9781-528a-a267-386afe6ac2bd",
+              "name": "clicks_for_opportunity",
+              "value": "5",
+              "type": "string"
+            },
+            {
+              "id": "5735dfda-c76e-5bf4-90ec-9556b678fa17",
+              "name": "model",
+              "value": "claude-haiku-5-5",
+              "type": "string"
+            },
+            {
+              "id": "3b50ec33-a817-5ab8-8648-ff4861a27249",
+              "name": "max_drafts_per_run",
+              "value": "10",
+              "type": "string"
+            },
+            {
+              "id": "58059ee2-757f-54e9-a76b-369b8c9bcd6e",
+              "name": "max_words",
+              "value": "90",
+              "type": "string"
+            },
+            {
+              "id": "9d94b616-7f83-550d-a11a-60288f8d76a4",
+              "name": "system_prompt",
+              "value": "You draft short, personal follow-up notes for {sender_name} at {business_name}, {business_line}\n\nA person on the team reads every note before deciding whether to send it. You never send anything.\n\nYou are given facts about one contact: their first name, organisation, role, how they found us, why they are worth a personal note now, and their enquiry if they sent one.\n\nWrite the body of a note from {sender_name} that:\n- Picks up the one most specific thing in the facts (their enquiry if there is one) and responds to it in plain words.\n- Offers one small, easy next step: a short call, or a question they can answer by reply.\n- Sounds like one person writing to another: warm, direct, British English, no sales language.\n- Is 40 to 80 words, in one or two short paragraphs.\n\nNever:\n- Start with a greeting or end with a sign-off, name or opt-out line. Those are added afterwards, so don't use their first name either.\n- Open with \"Thanks for getting in touch\" or any other stock opener. Start with the substance of what they asked.\n- Include links, email addresses or phone numbers.\n- State any figure, price, percentage, result or promise, or claim past work for other organisations. That includes how often you do this or how many people you have helped (\"every week\", \"many charities\").\n- Mention newsletter clicks, tracking, how many times they opened anything, or that they were \"scored\". Say how they found us only if it reads naturally (for example \"thanks for getting in touch through our website\").\n- Invent facts that are not in what you were given. If a fact says \"(not given)\", leave it out.\n\nThe subject line is under 60 characters, specific to them, and not clickbait.\n\nReply with JSON only: {\"subject\": \"...\", \"body\": \"...\"}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "4a556c55-2b5f-51a4-94e6-4f693745ea44",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $json.sheet_id }}/values:batchGet?ranges=%27Contacts%27&ranges=%27Consent%20log%27&ranges=%27Suppression%27&ranges=%27Follow-up%20drafts%27",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "c749067b-de0a-5c10-b456-623ee7c740ac",
+      "name": "Read the sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// ---- The four tabs of the Google Sheet, and their columns (row 1 of each tab) ----\nconst TABS = {\n  contacts: { name: 'Contacts', cols: ['match_key', 'email', 'first_name', 'last_name', 'organisation', 'job_title', 'sources', 'stage', 'stage_reason', 'stage_changed', 'newsletter', 'consent_wording', 'consent_source', 'consent_date', 'lawful_basis', 'confirmed_date', 'clicks', 'enquiries', 'last_enquiry', 'first_seen', 'last_updated', 'confirm_token', 'unsubscribe_token'] },\n  consent: { name: 'Consent log', cols: ['logged_at', 'match_key', 'event', 'source', 'form_version', 'wording', 'lawful_basis', 'evidence'] },\n  suppression: { name: 'Suppression', cols: ['added_at', 'match_key', 'email', 'reason', 'how'] },\n  drafts: { name: 'Follow-up drafts', cols: ['drafted_at', 'match_key', 'first_name', 'organisation', 'why_now', 'subject', 'draft', 'status', 'model'] },\n};\nconst STAGES = ['Discovered', 'Engaged', 'Identified', 'Opportunity'];\n\n// ---- Email addresses ----\n// The address to keep: trimmed, lower case, with \"mailto:\", \"Name <...>\" and stray dots removed. Null if it isn't an address.\nconst cleanEmail = (raw) => {\n  let e = String(raw ?? '').trim();\n  const angled = e.match(/<([^>]+)>/);\n  if (angled) e = angled[1];\n  e = e.replace(/^mailto:/i, '').replace(/\\s+/g, '').replace(/\\.+$/, '').toLowerCase();\n  return /^[a-z0-9._%+-]+@[a-z0-9-]+(\\.[a-z0-9-]+)+$/.test(e) ? e : null;\n};\n// The key used to spot the same person twice: the clean address without a \"+tag\" (sam+news@ is sam@).\nconst matchKey = (email) => email.replace(/\\+[^@]*@/, '@');\n\n// ---- Text ----\nconst tidy = (v, max = 120) => String(v ?? '').replace(/[\\u0000-\\u001f<>]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, max);\nconst nameCase = (v) => tidy(v, 60).toLowerCase().replace(/(^|[\\s'-])(\\p{L})/gu, (m, a, b) => a + b.toUpperCase());\n// Emails and phone numbers are masked before free text goes to the AI or into a draft.\nconst mask = (t) => String(t ?? '')\n  .replace(/[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+/g, '[email removed]')\n  .replace(/\\+?\\d[\\d\\s().-]{8,}\\d/g, '[number removed]');\n// A cell can never start a formula, even if someone types \"=HYPERLINK(...)\" into a form (we also write RAW).\nconst cell = (v) => { const s = String(v ?? ''); return /^[=+\\-@]/.test(s) ? \"'\" + s : s; };\nconst esc = (t) => String(t ?? '').replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\n// ---- Dates (UK time, written so a sheet sorts them) ----\nconst nowStamp = (d = new Date()) => {\n  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })\n    .formatToParts(d).map((x) => [x.type, x.value]));\n  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;\n};\n\n// A random token for confirm and unsubscribe links (Web Crypto when n8n offers it).\nconst token = () => {\n  const bytes = new Uint8Array(12);\n  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);\n  else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);\n  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');\n};\n\n// ---- CSV (a LinkedIn lead export, or a newsletter click report) ----\nconst parseCsv = (text) => {\n  const rows = []; let row = []; let field = ''; let quoted = false;\n  const s = String(text ?? '').replace(/^\ufeff/, '');\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    if (quoted) {\n      if (c === '\"' && s[i + 1] === '\"') { field += '\"'; i++; }\n      else if (c === '\"') quoted = false;\n      else field += c;\n    } else if (c === '\"') quoted = true;\n    else if (c === ',') { row.push(field); field = ''; }\n    else if (c === '\\n' || c === '\\r') {\n      if (c === '\\r' && s[i + 1] === '\\n') i++;\n      row.push(field); field = '';\n      if (row.some((x) => x.trim() !== '')) rows.push(row);\n      row = [];\n    } else field += c;\n  }\n  row.push(field);\n  if (row.some((x) => x.trim() !== '')) rows.push(row);\n  if (!rows.length) return [];\n  const head = rows[0].map((h) => h.trim().toLowerCase());\n  return rows.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? '').trim()])));\n};\n// The first column whose header is one of these names (exports differ, so several spellings are accepted).\nconst pick = (row, ...names) => { for (const n of names) if (row[n] !== undefined && row[n] !== '') return row[n]; return ''; };\n\n// ---- The sheet: Google's batchGet reply in, plain tables out, and back ----\nconst readTabs = (reply) => {\n  const out = {};\n  const ranges = reply?.valueRanges || [];\n  for (const [key, tab] of Object.entries(TABS)) {\n    const vr = ranges.find((r) => String(r.range || '').replace(/'/g, '').startsWith(tab.name + '!'));\n    const values = vr?.values || [];\n    const head = values.length ? values[0].map((h) => String(h).trim()) : tab.cols;\n    const rows = values.slice(1)\n      .filter((r) => r.some((v) => String(v).trim() !== ''))\n      .map((r) => Object.fromEntries(tab.cols.map((c) => { const i = head.indexOf(c); return [c, i < 0 ? '' : String(r[i] ?? '').replace(/^'(?=[=+\\-@])/, '')]; })));\n    out[key] = { rows, height: values.length };\n  }\n  return out;\n};\n// One batchUpdate body that writes every changed tab in full: header, rows, then blank rows over anything left below.\nconst writeBody = (tabs, changed) => ({\n  valueInputOption: 'RAW',\n  data: changed.map((key) => {\n    const { name, cols } = TABS[key];\n    const values = [cols, ...tabs[key].rows.map((r) => cols.map((c) => cell(r[c])))];\n    while (values.length < tabs[key].height) values.push(cols.map(() => ''));\n    return { range: `'${name}'!A1`, values };\n  }),\n});\n\n// ---- Journey stage: plain rules, in order, the first that matches wins ----\nconst num = (v) => Number.parseInt(v, 10) || 0;\nconst stageOf = (c, s) => {\n  const clicks = num(c.clicks), enquiries = num(c.enquiries);\n  const known = c.first_name && c.organisation;\n  const confirmed = c.newsletter === 'confirmed';\n  const many = num(s.clicks_for_opportunity), some = num(s.clicks_for_identified);\n  if (enquiries > 0) return ['Opportunity', 'Sent an enquiry'];\n  if (known && confirmed && clicks >= many) return ['Opportunity', `Confirmed subscriber, ${clicks} clicks`];\n  if (known && (clicks >= some || (confirmed && c.job_title))) return ['Identified', clicks >= some ? `Name and organisation known, ${clicks} clicks` : 'Confirmed subscriber with name, organisation and role'];\n  if (confirmed) return ['Engaged', 'Confirmed the newsletter'];\n  if (clicks > 0) return ['Engaged', `${clicks} click${clicks === 1 ? '' : 's'}`];\n  return ['Discovered', c.newsletter === 'pending' ? 'Sign-up not confirmed yet' : 'In the list, no activity yet'];\n};\n// Set the stage and stamp it only when it moves.\nconst restage = (c, s, at) => {\n  const [stage, why] = stageOf(c, s);\n  if (stage !== c.stage) c.stage_changed = at;\n  c.stage = stage; c.stage_reason = why;\n  return c;\n};\n\n// A short, stable ID for a contact that doesn't show their address.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n// What the team view shows: no email addresses, just enough to see the journey.\nconst summary = (tabs) => {\n  const blocked = new Set(tabs.suppression.rows.map((r) => r.match_key));\n  return {\n    stages: STAGES,\n    contacts: tabs.contacts.rows.map((c) => ({\n      id: hash(c.match_key),\n      name: [c.first_name, c.last_name].filter(Boolean).join(' ') || '(no name)',\n      organisation: c.organisation, sources: c.sources, stage: c.stage, why: c.stage_reason,\n      newsletter: c.newsletter, changed: c.stage_changed, suppressed: blocked.has(c.match_key),\n    })),\n    counts: Object.fromEntries(STAGES.map((st) => [st, tabs.contacts.rows.filter((c) => c.stage === st).length])),\n    suppressed: tabs.suppression.rows.length,\n    drafts: tabs.drafts.rows.filter((d) => d.status === 'To review').length,\n  };\n};\n\n// A small HTML page for the confirm and unsubscribe links (n8n answers the browser directly).\nconst page = (s, title, body) => `<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><title>${esc(title)} | ${esc(s.business_name)} (demo)</title>\n<style>:root{--bg:#eef0ec;--ink:#2b2238;--ink-2:#4a4256;--card:#fff;--line:#d6d3cf;--gold:#e8a317;--sea:#2f7a72;color-scheme:light}\n@media (prefers-color-scheme:dark){:root{--bg:#1c1626;--ink:#eeeaf2;--ink-2:#cfc8d8;--card:#262033;--line:#3b3348;--sea:#7fd0c5;color-scheme:dark}}\nbody{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink-2);font:400 17px/1.65 Georgia,\"Times New Roman\",serif;padding:16px;box-sizing:border-box}\nmain{max-width:460px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px}\nh1{font:700 1.6rem/1.2 system-ui,sans-serif;color:var(--ink);margin:0 0 .5em;letter-spacing:-.02em}\nbutton{font:600 1rem system-ui,sans-serif;background:var(--gold);color:#2b2238;border:0;border-radius:999px;padding:14px 24px;cursor:pointer;min-height:44px}\nbutton:focus-visible{outline:3px solid var(--sea);outline-offset:3px}small{display:block;margin-top:20px;font:13px/1.5 system-ui,sans-serif;color:var(--ink-2)}</style></head>\n<body><main>${body}<small>${esc(s.business_name)} is a fictional business. This page is part of a demo: no email was sent.</small></main></body></html>`;\n\n// Runs after \"Read the sheet\". Works out what this request changes in the four tabs and how to answer it.\n// Requests: signup (website forms), confirm / confirmed (the link in the sign-up email), unsubscribe / unsubscribed,\n// and team (LinkedIn import, click report, unsubscribe on request, draft follow-ups, view). Nothing is ever sent.\nconst s = $('Settings').first().json;\nconst tabs = readTabs($input.first().json);\nconst at = nowStamp();\nconst body = s.body || {};\nconst query = s.query || {};\n// Which webhook fired: the last part of its address, or (if n8n leaves webhookUrl out) whichever webhook node ran.\nconst HOOKS = { 'Website forms': 'signup', 'Confirm link': 'confirm', 'Confirm button': 'confirmed', 'Unsubscribe link': 'unsubscribe', 'Unsubscribe button': 'unsubscribed', 'Team view': 'team' };\nconst ranHook = () => Object.entries(HOOKS).find(([n]) => { try { return $(n).isExecuted; } catch (e) { return false; } })?.[1];\nconst fromUrl = String(s.webhookUrl || '').split('?')[0].split('/').filter(Boolean).pop();\nconst action = Object.values(HOOKS).includes(fromUrl) ? fromUrl : (ranHook() || '');\nconst changed = new Set();\nconst base = String(s.public_base_url).replace(/\\/+$/, '');\n\nconst json = (data) => ({ response_type: 'application/json', response_body: JSON.stringify(data) });\nconst html = (title, inner) => ({ response_type: 'text/html; charset=utf-8', response_body: page(s, title, inner) });\nconst done = (reply, extra = {}) => [{ json: { action, tabs, save: changed.size > 0, write: writeBody(tabs, [...changed]), ai: [], ...reply, ...extra } }];\n\nconst suppressed = (key) => tabs.suppression.rows.some((r) => r.match_key === key);\nconst findBy = (field, value) => value ? tabs.contacts.rows.find((c) => c[field] === value) : undefined;\nconst log = (key, event, source, form_version, wording, lawful_basis, evidence) => {\n  tabs.consent.rows.push({ logged_at: at, match_key: key, event, source, form_version, wording, lawful_basis, evidence });\n  changed.add('consent');\n};\n// Why the business may contact this person, worked out from what they have done.\nconst basisOf = (c) => {\n  const parts = [];\n  if (['pending', 'confirmed'].includes(c.newsletter)) parts.push(c.newsletter === 'confirmed' ? 'Consent (newsletter, confirmed)' : 'Consent (newsletter, waiting for confirmation)');\n  if (num(c.enquiries) > 0) parts.push('Legitimate interests (replying to their enquiry)');\n  if (c.sources.includes('LinkedIn')) parts.push('Legitimate interests (following up their LinkedIn form)');\n  if (c.newsletter === 'unsubscribed') parts.unshift('Unsubscribed: do not contact');\n  return parts.join('; ') || 'None recorded';\n};\n\n// Add one person, or merge them into the row that already has their address. Returns what happened.\nconst upsert = (input) => {\n  const email = cleanEmail(input.email);\n  if (!email) return { result: 'skipped', why: 'not a usable email address' };\n  const key = matchKey(email);\n  if (suppressed(key)) return { result: 'skipped', key, why: 'on the suppression list, so not added back' };\n  let c = findBy('match_key', key);\n  const isNew = !c;\n  if (isNew) {\n    c = Object.fromEntries(TABS.contacts.cols.map((col) => [col, '']));\n    Object.assign(c, { match_key: key, email, first_seen: at, clicks: '0', enquiries: '0', newsletter: 'none', unsubscribe_token: token() });\n    tabs.contacts.rows.push(c);\n  }\n  // Fill gaps only: a later source never overwrites what someone told us first.\n  for (const [col, val] of [['first_name', nameCase(input.first_name)], ['last_name', nameCase(input.last_name)], ['organisation', tidy(input.organisation, 80)], ['job_title', tidy(input.job_title, 80)]]) {\n    if (!c[col] && val) c[col] = val;\n  }\n  const sources = c.sources ? c.sources.split(', ') : [];\n  if (!sources.includes(input.source)) sources.push(input.source);\n  c.sources = sources.join(', ');\n  if (input.enquiry) { c.enquiries = String(num(c.enquiries) + 1); c.last_enquiry = mask(tidy(input.enquiry, 500)); }\n  let link = '';\n  // A newsletter tick starts (or keeps) one pending confirmation. A second tick from another source is logged, but the\n  // link already sent stays the one that confirms, so nobody is left holding a dead link.\n  if (input.newsletter && c.newsletter !== 'confirmed') {\n    if (c.newsletter !== 'pending' || !c.confirm_token || expired(c)) {\n      c.newsletter = 'pending';\n      c.consent_wording = input.wording; c.consent_source = input.source; c.consent_date = at;\n      c.confirm_token = token();\n    }\n    link = `${base}/confirm?t=${c.confirm_token}`;\n  }\n  c.lawful_basis = basisOf(c);\n  c.last_updated = at;\n  restage(c, s, at);\n  changed.add('contacts');\n  log(key, input.event, input.source, input.form_version, input.wording, c.lawful_basis, input.evidence);\n  return { result: isNew ? 'added' : 'merged', key, contact: c, link, as_typed: tidy(input.email, 120) };\n};\n\nconst unsubscribe = (c, how, reason) => {\n  if (!suppressed(c.match_key)) {\n    tabs.suppression.rows.push({ added_at: at, match_key: c.match_key, email: c.email, reason, how });\n    changed.add('suppression');\n  }\n  c.newsletter = 'unsubscribed'; c.confirm_token = ''; c.last_updated = at;\n  c.lawful_basis = basisOf(c);\n  restage(c, s, at);\n  changed.add('contacts');\n  for (const d of tabs.drafts.rows) if (d.match_key === c.match_key && d.status === 'To review') { d.status = 'Withdrawn: unsubscribed'; changed.add('drafts'); }\n  log(c.match_key, 'Unsubscribed', how, '', reason, 'Opt-out recorded; kept on the suppression list', how === 'Unsubscribe link' ? 'Unsubscribe link used' : 'Recorded by the team');\n};\n\nconst expired = (c) => {\n  const sent = Date.parse(String(c.consent_date).replace(' ', 'T'));\n  return Number.isFinite(sent) && Date.now() - sent > num(s.confirm_days) * 24 * 3600 * 1000;\n};\n\n// ---------- Public: the website's two forms ----------\nif (action === 'signup') {\n  if (body.website) return done(json({ ok: true, message: 'Thanks.' }));          // the hidden field only bots fill in\n  const form = body.form === 'enquiry' ? 'enquiry' : 'newsletter';\n  const wantsNewsletter = form === 'newsletter' ? body.consent === 'yes' : body.newsletter === 'yes';\n  if (!cleanEmail(body.email)) return done(json({ ok: false, field: 'email', message: 'Enter an email address, like name@example.com.' }));\n  if (form === 'newsletter' && !wantsNewsletter) return done(json({ ok: false, field: 'consent', message: 'Tick the box to say you want the newsletter.' }));\n  if (form === 'enquiry' && tidy(body.message, 500).length < 10) return done(json({ ok: false, field: 'message', message: 'Tell us a little about what you have in mind.' }));\n  const wording = form === 'newsletter' ? s.newsletter_wording : [s.enquiry_wording, wantsNewsletter ? s.newsletter_wording : ''].filter(Boolean).join(' ');\n  const r = upsert({\n    email: body.email, first_name: body.first_name, last_name: body.last_name, organisation: body.organisation,\n    source: form === 'newsletter' ? 'Website newsletter' : 'Website enquiry',\n    newsletter: wantsNewsletter, enquiry: form === 'enquiry' ? body.message : '',\n    event: form === 'newsletter' ? 'Newsletter sign-up (waiting for confirmation)' : (wantsNewsletter ? 'Enquiry, with newsletter sign-up' : 'Enquiry'),\n    form_version: form === 'newsletter' ? s.newsletter_form_version : s.enquiry_form_version, wording,\n    evidence: 'Website form submitted',\n  });\n  const message = form === 'newsletter' ? 'Check your inbox and click the link to confirm. Until you do, you won\\'t get the letter.' : 'Thanks, we have your message and will reply personally.';\n  const demo = s.show_confirm_link_on_page === 'yes' && r.link ? { demo_confirm_link: r.link } : {};\n  return done(json({ ok: true, message, ...demo }));   // the same answer whether or not the address was known or suppressed\n}\n\n// ---------- Public: the confirm link (GET shows a button, POST confirms, so a mail scanner opening the link changes nothing) ----------\nif (action === 'confirm' || action === 'confirmed') {\n  const t = tidy(action === 'confirm' ? query.t : body.t, 40);\n  const c = findBy('confirm_token', t);\n  if (!c || c.newsletter !== 'pending') return done(html('Link already used', `<h1>This link has already been used</h1><p>If you meant to sign up, you are either confirmed already or the link has expired. You can sign up again on our website.</p>`));\n  if (expired(c)) return done(html('Link expired', `<h1>This link has expired</h1><p>Confirmation links last ${esc(s.confirm_days)} days. Sign up again on our website and we'll send a fresh one.</p>`));\n  if (action === 'confirm') {\n    return done(html('Confirm your subscription', `<h1>Confirm your subscription</h1><p>Press the button to start receiving the ${esc(s.business_name)} newsletter. You can unsubscribe at any time from any issue.</p><form method=\"post\" action=\"${esc(base)}/confirmed\"><input type=\"hidden\" name=\"t\" value=\"${esc(t)}\"><button type=\"submit\">Yes, subscribe me</button></form>`));\n  }\n  c.newsletter = 'confirmed'; c.confirmed_date = at; c.confirm_token = ''; c.last_updated = at;\n  c.lawful_basis = basisOf(c);\n  const before = c.stage;\n  restage(c, s, at);\n  changed.add('contacts');\n  log(c.match_key, 'Newsletter confirmed', c.consent_source, '', c.consent_wording, c.lawful_basis, 'Confirm link used, then the confirm button pressed');\n  const unsub = `${base}/unsubscribe?t=${c.unsubscribe_token}`;\n  return done(html('Subscribed', `<h1>You're subscribed</h1><p>Thank you. Every issue has an unsubscribe link, and this one works too: <a href=\"${esc(unsub)}\">unsubscribe</a>.</p>`), { stage_change: { from: before, to: c.stage } });\n}\n\n// ---------- Public: the unsubscribe link ----------\nif (action === 'unsubscribe' || action === 'unsubscribed') {\n  const t = tidy(action === 'unsubscribe' ? query.t : body.t, 40);\n  const c = findBy('unsubscribe_token', t);\n  if (!c) return done(html('Link not recognised', `<h1>We couldn't find that link</h1><p>Reply to any email from us with \"unsubscribe\" and we'll take you off the list by hand.</p>`));\n  if (action === 'unsubscribe') {\n    if (suppressed(c.match_key)) return done(html('Already unsubscribed', `<h1>You're already unsubscribed</h1><p>We won't email you again.</p>`));\n    return done(html('Unsubscribe', `<h1>Unsubscribe?</h1><p>Press the button and we won't email you again, newsletter or otherwise.</p><form method=\"post\" action=\"${esc(base)}/unsubscribed\"><input type=\"hidden\" name=\"t\" value=\"${esc(t)}\"><button type=\"submit\">Unsubscribe me</button></form>`));\n  }\n  unsubscribe(c, 'Unsubscribe link', 'Asked to stop all emails');\n  return done(html('Unsubscribed', `<h1>You're unsubscribed</h1><p>We've added your address to our do-not-contact list, so you won't hear from us again.</p>`));\n}\n\n// ---------- Team view (in a real build this sits behind a login) ----------\nif (action === 'team') {\n  if (!s.team_key || body.key !== s.team_key) return done(json({ ok: false, error: 'Wrong team key. It is in the Settings node.' }));\n  const what = body.action;\n\n  if (what === 'linkedin') {\n    const rows = parseCsv(body.csv);\n    const report = [];\n    for (const row of rows) {\n      const consentCol = Object.keys(row).find((h) => /consent|newsletter|marketing/.test(h));\n      const ticked = consentCol ? /^(yes|true|checked|1|y)$/i.test(row[consentCol]) : false;\n      const r = upsert({\n        email: pick(row, 'email address', 'email', 'work email', 'e-mail'),\n        first_name: pick(row, 'first name', 'first_name', 'firstname'), last_name: pick(row, 'last name', 'last_name', 'lastname'),\n        organisation: pick(row, 'company name', 'company', 'organisation', 'organization'), job_title: pick(row, 'job title', 'title', 'job_title'),\n        source: 'LinkedIn lead form', newsletter: ticked,\n        event: ticked ? 'LinkedIn lead form, with newsletter tick (waiting for confirmation)' : 'LinkedIn lead form',\n        form_version: tidy(pick(row, 'form name', 'form'), 80) || 'LinkedIn lead form',\n        wording: ticked ? s.linkedin_wording : s.linkedin_privacy_wording,\n        evidence: `LinkedIn export, lead ${tidy(pick(row, 'lead id', 'id'), 40) || 'id not in file'}, submitted ${tidy(pick(row, 'submitted on', 'submitted at', 'date', 'created'), 40) || 'date not in file'}`,\n      });\n      report.push({ as_typed: r.as_typed || tidy(pick(row, 'email address', 'email'), 120), result: r.result, why: r.why || (r.result === 'merged' ? 'same person already in the list' : ''), stage: r.contact?.stage || '' });\n    }\n    return done(json({ ok: true, report, ...summary(tabs) }));\n  }\n\n  if (what === 'clicks') {\n    const report = [];\n    for (const row of parseCsv(body.csv)) {\n      const email = cleanEmail(pick(row, 'email', 'email address'));\n      const c = email && findBy('match_key', matchKey(email));\n      if (!c) { report.push({ result: 'skipped', why: email ? 'not in the list' : 'no usable address' }); continue; }\n      const before = c.stage;\n      c.clicks = String(Math.max(num(c.clicks), num(pick(row, 'clicks', 'total clicks', 'unique clicks'))));  // a report holds totals, so it never lowers a count\n      c.last_updated = at;\n      restage(c, s, at);\n      report.push({ result: 'updated', from: before, to: c.stage });\n    }\n    changed.add('contacts');\n    return done(json({ ok: true, report, ...summary(tabs) }));\n  }\n\n  if (what === 'unsubscribe') {\n    const email = cleanEmail(body.email);\n    if (!email) return done(json({ ok: false, error: 'Enter the address to unsubscribe.' }));\n    const key = matchKey(email);\n    const c = findBy('match_key', key);\n    if (c) unsubscribe(c, 'Request to the team', tidy(body.reason, 160) || 'Asked to be removed');\n    else if (!suppressed(key)) {   // not in the list: still suppress, so a later import can't add them\n      tabs.suppression.rows.push({ added_at: at, match_key: key, email, reason: tidy(body.reason, 160) || 'Asked to be removed', how: 'Request to the team' });\n      changed.add('suppression');\n    }\n    return done(json({ ok: true, message: 'On the suppression list.', ...summary(tabs) }));\n  }\n\n  if (what === 'drafts') {\n    const blocking = new Set(['To review', 'Sent', 'Withdrawn: unsubscribed']);\n    const ai = [], skipped = [];\n    for (const c of tabs.contacts.rows.filter((x) => x.stage === 'Opportunity')) {\n      const who = [c.first_name, c.organisation && `(${c.organisation})`].filter(Boolean).join(' ') || c.match_key;\n      if (suppressed(c.match_key)) { skipped.push({ who, why: 'on the suppression list' }); continue; }\n      if (tabs.drafts.rows.some((d) => d.match_key === c.match_key && blocking.has(d.status))) { skipped.push({ who, why: 'already has a draft' }); continue; }\n      // A personal note needs a reason to write: they asked us something, or asked for a follow-up on LinkedIn.\n      // Newsletter consent covers the newsletter, not one-to-one sales emails.\n      if (!(num(c.enquiries) > 0 || c.sources.includes('LinkedIn'))) { skipped.push({ who, why: 'newsletter consent only, so invite them through the newsletter instead' }); continue; }\n      if (ai.length >= num(s.max_drafts_per_run)) { skipped.push({ who, why: 'over this run\\'s limit, run again' }); continue; }\n      const facts = { first_name: c.first_name || '(not given)', organisation: c.organisation || '(not given)', job_title: c.job_title || '(not given)', how_they_found_us: c.sources, why_now: c.stage_reason, their_enquiry: mask(c.last_enquiry) || '(no message)', newsletter: c.newsletter };\n      ai.push({\n        key: c.match_key, first_name: c.first_name, organisation: c.organisation, why_now: c.stage_reason,\n        request: {\n          model: s.model, max_tokens: 1024,\n          output_config: { effort: 'low', format: { type: 'json_schema', schema: { type: 'object', properties: { subject: { type: 'string' }, body: { type: 'string' } }, required: ['subject', 'body'], additionalProperties: false } } },\n          system: String(s.system_prompt).replace(/\\{(\\w+)\\}/g, (m, k) => s[k] ?? m),\n          messages: [{ role: 'user', content: 'Write the follow-up note for this contact. Facts:\\n' + JSON.stringify(facts, null, 2) }],\n        },\n      });\n    }\n    return [{ json: { action, tabs, save: false, write: writeBody(tabs, []), ai, skipped, response_type: 'application/json', response_body: JSON.stringify({ ok: true, drafted: 0, skipped, ...summary(tabs) }) } }];\n  }\n\n  return done(json({ ok: true, ...summary(tabs) }));   // view\n}\n\nreturn done(json({ ok: false, error: `Unknown request \"${action}\".` }));\n"
+      },
+      "id": "735f484a-74c2-51fd-b191-8816a5ad9492",
+      "name": "Apply the change",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "42a8b669-3e2d-5c4a-a3ca-79434c626c7b",
+              "leftValue": "={{ $json.ai.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4f301249-e925-5aad-82fb-16e99565489c",
+      "name": "Drafts to write?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        920,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One item per contact to draft for, so the Claude node runs once for each.\nreturn $input.first().json.ai.map((a) => ({ json: a }));\n"
+      },
+      "id": "46288770-86fe-5c64-9861-647e31683370",
+      "name": "One item per draft",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "1bd02d81-1be9-59b5-90f0-7ba9b2a77ff2",
+      "name": "Ask Claude (Haiku)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        240
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared helpers, added to the top of every Code node by scripts/build-workflow.py.\n// n8n Code nodes cannot import from each other, so each node gets its own copy.\n\n// ---- The four tabs of the Google Sheet, and their columns (row 1 of each tab) ----\nconst TABS = {\n  contacts: { name: 'Contacts', cols: ['match_key', 'email', 'first_name', 'last_name', 'organisation', 'job_title', 'sources', 'stage', 'stage_reason', 'stage_changed', 'newsletter', 'consent_wording', 'consent_source', 'consent_date', 'lawful_basis', 'confirmed_date', 'clicks', 'enquiries', 'last_enquiry', 'first_seen', 'last_updated', 'confirm_token', 'unsubscribe_token'] },\n  consent: { name: 'Consent log', cols: ['logged_at', 'match_key', 'event', 'source', 'form_version', 'wording', 'lawful_basis', 'evidence'] },\n  suppression: { name: 'Suppression', cols: ['added_at', 'match_key', 'email', 'reason', 'how'] },\n  drafts: { name: 'Follow-up drafts', cols: ['drafted_at', 'match_key', 'first_name', 'organisation', 'why_now', 'subject', 'draft', 'status', 'model'] },\n};\nconst STAGES = ['Discovered', 'Engaged', 'Identified', 'Opportunity'];\n\n// ---- Email addresses ----\n// The address to keep: trimmed, lower case, with \"mailto:\", \"Name <...>\" and stray dots removed. Null if it isn't an address.\nconst cleanEmail = (raw) => {\n  let e = String(raw ?? '').trim();\n  const angled = e.match(/<([^>]+)>/);\n  if (angled) e = angled[1];\n  e = e.replace(/^mailto:/i, '').replace(/\\s+/g, '').replace(/\\.+$/, '').toLowerCase();\n  return /^[a-z0-9._%+-]+@[a-z0-9-]+(\\.[a-z0-9-]+)+$/.test(e) ? e : null;\n};\n// The key used to spot the same person twice: the clean address without a \"+tag\" (sam+news@ is sam@).\nconst matchKey = (email) => email.replace(/\\+[^@]*@/, '@');\n\n// ---- Text ----\nconst tidy = (v, max = 120) => String(v ?? '').replace(/[\\u0000-\\u001f<>]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, max);\nconst nameCase = (v) => tidy(v, 60).toLowerCase().replace(/(^|[\\s'-])(\\p{L})/gu, (m, a, b) => a + b.toUpperCase());\n// Emails and phone numbers are masked before free text goes to the AI or into a draft.\nconst mask = (t) => String(t ?? '')\n  .replace(/[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+/g, '[email removed]')\n  .replace(/\\+?\\d[\\d\\s().-]{8,}\\d/g, '[number removed]');\n// A cell can never start a formula, even if someone types \"=HYPERLINK(...)\" into a form (we also write RAW).\nconst cell = (v) => { const s = String(v ?? ''); return /^[=+\\-@]/.test(s) ? \"'\" + s : s; };\nconst esc = (t) => String(t ?? '').replace(/[<>&\"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '\"': '&quot;', \"'\": '&#39;' }[c]));\n\n// ---- Dates (UK time, written so a sheet sorts them) ----\nconst nowStamp = (d = new Date()) => {\n  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })\n    .formatToParts(d).map((x) => [x.type, x.value]));\n  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;\n};\n\n// A random token for confirm and unsubscribe links (Web Crypto when n8n offers it).\nconst token = () => {\n  const bytes = new Uint8Array(12);\n  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);\n  else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);\n  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');\n};\n\n// ---- CSV (a LinkedIn lead export, or a newsletter click report) ----\nconst parseCsv = (text) => {\n  const rows = []; let row = []; let field = ''; let quoted = false;\n  const s = String(text ?? '').replace(/^\ufeff/, '');\n  for (let i = 0; i < s.length; i++) {\n    const c = s[i];\n    if (quoted) {\n      if (c === '\"' && s[i + 1] === '\"') { field += '\"'; i++; }\n      else if (c === '\"') quoted = false;\n      else field += c;\n    } else if (c === '\"') quoted = true;\n    else if (c === ',') { row.push(field); field = ''; }\n    else if (c === '\\n' || c === '\\r') {\n      if (c === '\\r' && s[i + 1] === '\\n') i++;\n      row.push(field); field = '';\n      if (row.some((x) => x.trim() !== '')) rows.push(row);\n      row = [];\n    } else field += c;\n  }\n  row.push(field);\n  if (row.some((x) => x.trim() !== '')) rows.push(row);\n  if (!rows.length) return [];\n  const head = rows[0].map((h) => h.trim().toLowerCase());\n  return rows.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? '').trim()])));\n};\n// The first column whose header is one of these names (exports differ, so several spellings are accepted).\nconst pick = (row, ...names) => { for (const n of names) if (row[n] !== undefined && row[n] !== '') return row[n]; return ''; };\n\n// ---- The sheet: Google's batchGet reply in, plain tables out, and back ----\nconst readTabs = (reply) => {\n  const out = {};\n  const ranges = reply?.valueRanges || [];\n  for (const [key, tab] of Object.entries(TABS)) {\n    const vr = ranges.find((r) => String(r.range || '').replace(/'/g, '').startsWith(tab.name + '!'));\n    const values = vr?.values || [];\n    const head = values.length ? values[0].map((h) => String(h).trim()) : tab.cols;\n    const rows = values.slice(1)\n      .filter((r) => r.some((v) => String(v).trim() !== ''))\n      .map((r) => Object.fromEntries(tab.cols.map((c) => { const i = head.indexOf(c); return [c, i < 0 ? '' : String(r[i] ?? '').replace(/^'(?=[=+\\-@])/, '')]; })));\n    out[key] = { rows, height: values.length };\n  }\n  return out;\n};\n// One batchUpdate body that writes every changed tab in full: header, rows, then blank rows over anything left below.\nconst writeBody = (tabs, changed) => ({\n  valueInputOption: 'RAW',\n  data: changed.map((key) => {\n    const { name, cols } = TABS[key];\n    const values = [cols, ...tabs[key].rows.map((r) => cols.map((c) => cell(r[c])))];\n    while (values.length < tabs[key].height) values.push(cols.map(() => ''));\n    return { range: `'${name}'!A1`, values };\n  }),\n});\n\n// ---- Journey stage: plain rules, in order, the first that matches wins ----\nconst num = (v) => Number.parseInt(v, 10) || 0;\nconst stageOf = (c, s) => {\n  const clicks = num(c.clicks), enquiries = num(c.enquiries);\n  const known = c.first_name && c.organisation;\n  const confirmed = c.newsletter === 'confirmed';\n  const many = num(s.clicks_for_opportunity), some = num(s.clicks_for_identified);\n  if (enquiries > 0) return ['Opportunity', 'Sent an enquiry'];\n  if (known && confirmed && clicks >= many) return ['Opportunity', `Confirmed subscriber, ${clicks} clicks`];\n  if (known && (clicks >= some || (confirmed && c.job_title))) return ['Identified', clicks >= some ? `Name and organisation known, ${clicks} clicks` : 'Confirmed subscriber with name, organisation and role'];\n  if (confirmed) return ['Engaged', 'Confirmed the newsletter'];\n  if (clicks > 0) return ['Engaged', `${clicks} click${clicks === 1 ? '' : 's'}`];\n  return ['Discovered', c.newsletter === 'pending' ? 'Sign-up not confirmed yet' : 'In the list, no activity yet'];\n};\n// Set the stage and stamp it only when it moves.\nconst restage = (c, s, at) => {\n  const [stage, why] = stageOf(c, s);\n  if (stage !== c.stage) c.stage_changed = at;\n  c.stage = stage; c.stage_reason = why;\n  return c;\n};\n\n// A short, stable ID for a contact that doesn't show their address.\nconst hash = (text) => {\n  let h = 0x811c9dc5;\n  for (const ch of String(text)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; }\n  return h.toString(16);\n};\n// What the team view shows: no email addresses, just enough to see the journey.\nconst summary = (tabs) => {\n  const blocked = new Set(tabs.suppression.rows.map((r) => r.match_key));\n  return {\n    stages: STAGES,\n    contacts: tabs.contacts.rows.map((c) => ({\n      id: hash(c.match_key),\n      name: [c.first_name, c.last_name].filter(Boolean).join(' ') || '(no name)',\n      organisation: c.organisation, sources: c.sources, stage: c.stage, why: c.stage_reason,\n      newsletter: c.newsletter, changed: c.stage_changed, suppressed: blocked.has(c.match_key),\n    })),\n    counts: Object.fromEntries(STAGES.map((st) => [st, tabs.contacts.rows.filter((c) => c.stage === st).length])),\n    suppressed: tabs.suppression.rows.length,\n    drafts: tabs.drafts.rows.filter((d) => d.status === 'To review').length,\n  };\n};\n\n// A small HTML page for the confirm and unsubscribe links (n8n answers the browser directly).\nconst page = (s, title, body) => `<!doctype html><html lang=\"en-GB\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><meta name=\"robots\" content=\"noindex\"><title>${esc(title)} | ${esc(s.business_name)} (demo)</title>\n<style>:root{--bg:#eef0ec;--ink:#2b2238;--ink-2:#4a4256;--card:#fff;--line:#d6d3cf;--gold:#e8a317;--sea:#2f7a72;color-scheme:light}\n@media (prefers-color-scheme:dark){:root{--bg:#1c1626;--ink:#eeeaf2;--ink-2:#cfc8d8;--card:#262033;--line:#3b3348;--sea:#7fd0c5;color-scheme:dark}}\nbody{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--ink-2);font:400 17px/1.65 Georgia,\"Times New Roman\",serif;padding:16px;box-sizing:border-box}\nmain{max-width:460px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:32px}\nh1{font:700 1.6rem/1.2 system-ui,sans-serif;color:var(--ink);margin:0 0 .5em;letter-spacing:-.02em}\nbutton{font:600 1rem system-ui,sans-serif;background:var(--gold);color:#2b2238;border:0;border-radius:999px;padding:14px 24px;cursor:pointer;min-height:44px}\nbutton:focus-visible{outline:3px solid var(--sea);outline-offset:3px}small{display:block;margin-top:20px;font:13px/1.5 system-ui,sans-serif;color:var(--ink-2)}</style></head>\n<body><main>${body}<small>${esc(s.business_name)} is a fictional business. This page is part of a demo: no email was sent.</small></main></body></html>`;\n\n// Pairs each Claude reply with its contact, checks the wording in code, and adds the drafts to the review tab.\n// The greeting, sign-off and opt-out line are added here, never left to the AI. Nothing is sent.\nconst s = $('Settings').first().json;\nconst state = $('Apply the change').first().json;\nconst tabs = state.tabs;\nconst asked = $('One item per draft').all().map((i) => i.json);\nconst replies = $input.all().map((i) => i.json);\nconst at = nowStamp();\nlet drafted = 0;\nconst failed = [];\n\n// What a draft may not contain. A person reviews every draft anyway; these catch the obvious slips.\nconst problemsOf = (subject, text) => {\n  const p = [];\n  if (!subject || subject.length > 60) p.push('subject missing or over 60 characters');\n  const words = text.split(/\\s+/).filter(Boolean).length;\n  if (words < 15 || words > num(s.max_words)) p.push(`${words} words (keep it to ${s.max_words})`);\n  if (/https?:\\/\\/|www\\./i.test(text)) p.push('has a link');\n  if (/[\\w.+-]+@[\\w-]+\\.[\\w.]+|\\+?\\d[\\d\\s().-]{8,}\\d/.test(text)) p.push('has contact details');\n  if (/[\u00a3$\u20ac]\\s?\\d|\\d\\s?%|\\b\\d+x\\b/i.test(subject + ' ' + text)) p.push('states a figure');\n  if (/\\b(guarantee|guaranteed|promise)\\b/i.test(text)) p.push('makes a promise');\n  if (/\\bevery (day|week|month)\\b|\\b(many|hundreds of|dozens of) (clients|organisations|charities|trusts)\\b|\\bwe(?:'ve| have) helped\\b/i.test(text)) p.push('claims a track record');\n  return p;\n};\n\nasked.forEach((a, i) => {\n  const r = replies[i] || {};\n  const row = { drafted_at: at, match_key: a.key, first_name: a.first_name, organisation: a.organisation, why_now: a.why_now, subject: '', draft: '', status: '', model: s.model };\n  let out = null;\n  try {\n    const text = (r.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');\n    if (r.stop_reason === 'end_turn') out = JSON.parse(text);\n  } catch (e) { out = null; }\n  if (!out) {\n    row.status = 'Draft failed: run again';\n    failed.push(a.first_name || a.key);\n  } else {\n    const subject = tidy(out.subject, 80);\n    const note = mask(String(out.body || '').replace(/\\r/g, '').trim());\n    const problems = problemsOf(subject, note);\n    row.subject = subject;\n    row.draft = `Hi ${a.first_name || 'there'},\\n\\n${note}\\n\\n${s.sender_name}\\n${s.business_name}\\n\\n${s.opt_out_line}`;\n    row.status = problems.length ? 'Check: ' + problems.join('; ') : 'To review';\n    if (!problems.length) drafted++;\n  }\n  // A failed or flagged draft from an earlier run is replaced, not duplicated.\n  const old = tabs.drafts.rows.findIndex((d) => d.match_key === a.key && (d.status.startsWith('Draft failed') || d.status.startsWith('Check:')));\n  if (old >= 0) tabs.drafts.rows[old] = row; else tabs.drafts.rows.push(row);\n});\n\nconst reply = { ok: true, drafted, failed, skipped: state.skipped, ...summary(tabs) };\nreturn [{ json: { ...state, save: true, write: writeBody(tabs, ['drafts']), response_type: 'application/json', response_body: JSON.stringify(reply) } }];\n"
+      },
+      "id": "a04942c6-ca26-5893-b958-fed701eab247",
+      "name": "Add the drafts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// The two paths (with and without drafts) meet here, so the save and the answer are built once.\nreturn [$input.first()];\n"
+      },
+      "id": "cf19c782-5126-5824-ad75-be5dddcb357a",
+      "name": "Ready to save",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3595db44-13b6-5344-95aa-158ab6536b8e",
+              "leftValue": "={{ $json.save }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9bd6f51f-36f1-560a-ab6b-237992f35414",
+      "name": "Anything to save?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2020,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $('Settings').first().json.sheet_id }}/values:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.write) }}"
+      },
+      "id": "8785f6f4-5dd2-527f-81d9-e2842441e58c",
+      "name": "Save to the sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $('Ready to save').first().json.response_body }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "={{ $('Ready to save').first().json.response_type }}"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "bc47398d-726f-5373-85b7-8329c8d59455",
+      "name": "Answer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2460,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Website forms": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm link": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm button": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsubscribe link": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsubscribe button": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Team view": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Read the sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the sheet": {
+      "main": [
+        [
+          {
+            "node": "Apply the change",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply the change": {
+      "main": [
+        [
+          {
+            "node": "Drafts to write?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drafts to write?": {
+      "main": [
+        [
+          {
+            "node": "One item per draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ready to save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per draft": {
+      "main": [
+        [
+          {
+            "node": "Ask Claude (Haiku)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Claude (Haiku)": {
+      "main": [
+        [
+          {
+            "node": "Add the drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add the drafts": {
+      "main": [
+        [
+          {
+            "node": "Ready to save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ready to save": {
+      "main": [
+        [
+          {
+            "node": "Anything to save?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to save?": {
+      "main": [
+        [
+          {
+            "node": "Save to the sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to the sheet": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "note": "Demo. Fictional business and invented contacts only. Sends nothing."
+  }
+}

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Team view: contact journey (demo)</title>
+<meta name="description" content="Demo team view: every contact from the website, newsletter and LinkedIn in one list, by journey stage.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<script>
+  (function () { try { var t = localStorage.getItem('fh-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="demo-strip">
+  <div class="wrap">
+    <span>Demo team view for a fictional business. Invented contacts only. Nothing here sends anything.</span>
+    <span class="strip-tools">
+      <a class="chip-btn" id="siteLink" href="index.html">Open the website</a>
+      <button class="chip-btn" id="themeBtn" type="button" aria-label="Switch between light and dark">Dark</button>
+    </span>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="team-head">
+    <div>
+      <h1>Who's ready for a personal note</h1>
+      <p class="muted">Everyone from the website, the newsletter and LinkedIn in one list, placed by what they've done so far.</p>
+    </div>
+    <div class="actions">
+      <span class="status" id="status" role="status"><i></i><span>Connecting…</span></span>
+      <a class="btn quiet small" id="sheetLink" href="#" target="_blank" rel="noopener" hidden>Open the Google Sheet</a>
+      <button class="btn quiet small" id="refreshBtn" type="button">Refresh</button>
+    </div>
+  </div>
+
+  <div class="tools">
+    <form class="tool" id="liForm">
+      <h3>LinkedIn lead export</h3>
+      <p>The CSV you download from LinkedIn's lead form. Duplicates merge into the existing contact.</p>
+      <label class="muted" for="liFile">Choose the file</label>
+      <input type="file" id="liFile" accept=".csv,text/csv">
+      <div class="btns">
+        <button class="btn quiet small" type="submit">Import</button>
+        <button class="btn quiet small" type="button" data-sample="sample-data/loom/linkedin-new-lead.csv" hidden>Use the Loom row</button>
+      </div>
+    </form>
+    <form class="tool" id="clickForm">
+      <h3>Newsletter click report</h3>
+      <p>Clicks per address, as a newsletter tool exports them. Counts only ever go up.</p>
+      <label class="muted" for="clickFile">Choose the file</label>
+      <input type="file" id="clickFile" accept=".csv,text/csv">
+      <div class="btns">
+        <button class="btn quiet small" type="submit">Import</button>
+      </div>
+    </form>
+    <form class="tool" id="unsubForm">
+      <h3>Unsubscribe request</h3>
+      <p>Someone replied asking to be removed. They go on the suppression list for good.</p>
+      <label class="muted" for="unsubEmail">Their email</label>
+      <input type="email" id="unsubEmail" name="email" autocomplete="off" placeholder="name@example.com">
+      <label class="muted" for="unsubReason">Reason</label>
+      <input type="text" id="unsubReason" name="reason" value="Replied to an email asking to be removed">
+      <div class="btns"><button class="btn quiet small" type="submit">Add to suppression list</button></div>
+    </form>
+    <div class="tool">
+      <h3>Follow-up drafts</h3>
+      <p>A short note for each Opportunity contact, written into the Follow-up drafts tab for you to read. Nothing is sent.</p>
+      <div class="btns"><button class="btn small" id="draftBtn" type="button">Draft follow-ups</button></div>
+    </div>
+  </div>
+
+  <div class="board" id="board" aria-live="polite"></div>
+
+  <div class="log">
+    <h2 style="font-size:1.2rem">What just happened</h2>
+    <ol id="log"><li class="muted">Nothing yet. Import a file or submit a form on the website.</li></ol>
+  </div>
+
+  <details class="settings">
+    <summary>Connection settings</summary>
+    <div class="field"><label for="hookInput">Workflow address</label><input type="text" id="hookInput"><span class="muted">n8n: http://localhost:5678/webhook/lead-capture. Local stand-in: http://127.0.0.1:5679/webhook/lead-capture.</span></div>
+    <div class="field"><label for="keyInput">Team key</label><input type="password" id="keyInput"><span class="muted">The <b>team_key</b> in the workflow's Settings node.</span></div>
+    <div class="field"><label for="sheetInput">Google Sheet ID <span class="optional">(optional, for the button above)</span></label><input type="text" id="sheetInput"></div>
+    <button class="btn quiet small" id="saveSettings" type="button">Save and reconnect</button>
+  </details>
+</main>
+<footer><div class="wrap"><span>In a real build this view sits behind a login, and the sheet stays shared with the team only.</span></div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.1/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.1/dist/Flip.min.js"></script>
+<script>
+  const store = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+  const params = new URLSearchParams(location.search);
+  for (const [p, k] of [['hook', 'fh-hook'], ['key', 'fh-key'], ['sheet', 'fh-sheet']]) if (params.get(p)) store.set(k, params.get(p));
+  const cfg = () => ({ hook: (store.get('fh-hook') || 'http://localhost:5678/webhook/lead-capture').replace(/\/+$/, ''), key: store.get('fh-key') || 'demo-team-key', sheet: store.get('fh-sheet') || '' });
+  document.getElementById('siteLink').href = 'index.html' + location.search;
+
+  const RULES = {
+    Discovered: 'In the list, nothing confirmed or clicked yet.',
+    Engaged: 'Confirmed the newsletter, or clicked something.',
+    Identified: 'Name and organisation known, and reading regularly.',
+    Opportunity: 'Sent an enquiry, or a confirmed subscriber who reads everything.',
+  };
+  const esc = (t) => String(t ?? '').replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
+  const motionOK = () => !!window.gsap && !!window.Flip && matchMedia('(prefers-reduced-motion: no-preference)').matches;
+  if (window.gsap && window.Flip) gsap.registerPlugin(Flip);
+
+  // Theme
+  const themeBtn = document.getElementById('themeBtn');
+  const isDark = () => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  const label = () => { themeBtn.textContent = isDark() ? 'Light' : 'Dark'; };
+  themeBtn.addEventListener('click', () => { const t = isDark() ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('fh-theme', t); label(); });
+  label();
+
+  // Talking to the workflow: one form-encoded POST to the team webhook (no preflight needed).
+  const status = document.getElementById('status');
+  const setStatus = (ok, text) => { status.className = 'status ' + (ok ? 'ok' : 'bad'); status.querySelector('span').textContent = text; };
+  const team = async (action, fields = {}) => {
+    const { hook, key } = cfg();
+    const res = await fetch(hook + '/team', { method: 'POST', body: new URLSearchParams({ key, action, ...fields }) });
+    const reply = await res.json();
+    if (!reply.ok) throw new Error(reply.error || 'The workflow refused the request.');
+    setStatus(true, 'Connected');
+    return reply;
+  };
+
+  // The board. Each person keeps the same element between refreshes, so Flip can move them to a new stage.
+  const board = document.getElementById('board');
+  let lastStage = {};
+  const personHtml = (c) => {
+    const sources = c.sources.split(', ').map((s) => `<span class="badge">${esc(s.replace('Website ', 'Web '))}</span>`).join('');
+    const news = c.suppressed ? '<span class="badge stop">Do not contact</span>'
+      : c.newsletter === 'confirmed' ? '<span class="badge confirmed">Newsletter confirmed</span>'
+      : c.newsletter === 'pending' ? '<span class="badge pending">Waiting for confirmation</span>' : '';
+    return `<b>${esc(c.name)}</b><span class="org-name">${esc(c.organisation || 'Organisation not given')}</span><span class="meta">${sources}${news}</span><span class="why">${esc(c.why)}</span>`;
+  };
+  const render = (data) => {
+    const state = motionOK() && board.children.length ? Flip.getState('.person') : null;
+    if (!board.children.length) {
+      board.innerHTML = data.stages.map((s) => `<section class="stage ${s.toLowerCase()}" data-stage="${s}" aria-label="${s}">
+        <header><h2>${s}</h2><span class="count" data-count>0</span></header><p class="rule">${RULES[s]}</p><div class="cards"></div><p class="empty">Nobody here yet.</p></section>`).join('');
+    }
+    const seen = new Set();
+    const moved = [];
+    for (const c of data.contacts) {
+      seen.add(c.id);
+      let el = board.querySelector(`[data-flip-id="${c.id}"]`);
+      if (!el) { el = document.createElement('article'); el.className = 'person'; el.dataset.flipId = c.id; }
+      el.innerHTML = personHtml(c);
+      el.classList.toggle('suppressed', c.suppressed);
+      el.setAttribute('aria-label', `${c.name}, ${c.stage}`);
+      if (lastStage[c.id] && lastStage[c.id] !== c.stage) moved.push(el);
+      lastStage[c.id] = c.stage;
+      board.querySelector(`[data-stage="${c.stage}"] .cards`).appendChild(el);
+    }
+    board.querySelectorAll('.person').forEach((el) => { if (!seen.has(el.dataset.flipId)) el.remove(); });
+    board.querySelectorAll('.stage').forEach((st) => {
+      const n = st.querySelectorAll('.person').length;
+      st.querySelector('[data-count]').textContent = n;
+      st.querySelector('.empty').hidden = n > 0;
+    });
+    moved.forEach((el) => { el.classList.add('moved'); setTimeout(() => el.classList.remove('moved'), 4000); });
+    if (state) Flip.from(state, { duration: 0.7, ease: 'power2.inOut', absolute: true, nested: true, onEnter: (els) => gsap.fromTo(els, { autoAlpha: 0, scale: 0.92 }, { autoAlpha: 1, scale: 1, duration: 0.4 }) });
+  };
+
+  const log = (html) => {
+    const list = document.getElementById('log');
+    if (list.querySelector('.muted')) list.innerHTML = '';
+    const li = document.createElement('li');
+    li.innerHTML = html;
+    list.prepend(li);
+    if (motionOK()) gsap.from(li, { autoAlpha: 0, y: -8, duration: 0.35, ease: 'power3.out' });
+  };
+  const fail = (e) => { setStatus(false, e.message.includes('fetch') || e.name === 'TypeError' ? "Can't reach the workflow" : e.message); log(`<b>Didn't work:</b> ${esc(e.message)}`); };
+
+  let busy = false;
+  const refresh = async () => { if (busy) return; try { render(await team('view')); } catch (e) { setStatus(false, "Can't reach the workflow"); } };
+  const run = async (button, fn) => { busy = true; const t = button.textContent; button.disabled = true; button.textContent = 'Working…'; try { await fn(); } catch (e) { fail(e); } finally { button.disabled = false; button.textContent = t; busy = false; } };
+
+  const importCsv = async (action, csv, name) => {
+    const r = await team(action, { csv });
+    render(r);
+    if (action === 'linkedin') {
+      const n = (k) => r.report.filter((x) => x.result === k).length;
+      const merged = r.report.filter((x) => x.result === 'merged').map((x) => esc(x.as_typed.trim())).join(', ');
+      log(`<b>${esc(name)}:</b> ${n('added')} added, ${n('merged')} merged into an existing contact${merged ? ` (${merged})` : ''}, ${n('skipped')} skipped.` + r.report.filter((x) => x.result === 'skipped').map((x) => ` ${esc(x.as_typed)}: ${esc(x.why)}.`).join(''));
+    } else {
+      log(`<b>${esc(name)}:</b> ${r.report.filter((x) => x.result === 'updated').length} contacts updated, ${r.report.filter((x) => x.result === 'updated' && x.from !== x.to).length} moved stage.`);
+    }
+  };
+  const readFile = (input) => new Promise((ok, no) => { const f = input.files[0]; if (!f) return no(new Error('Choose a CSV file first.')); const r = new FileReader(); r.onload = () => ok({ csv: r.result, name: f.name }); r.onerror = () => no(new Error("Couldn't read that file.")); r.readAsText(f); });
+
+  document.getElementById('liForm').addEventListener('submit', (e) => { e.preventDefault(); run(e.submitter || e.target.querySelector('button'), async () => { const f = await readFile(document.getElementById('liFile')); await importCsv('linkedin', f.csv, f.name); }); });
+  document.getElementById('clickForm').addEventListener('submit', (e) => { e.preventDefault(); run(e.submitter || e.target.querySelector('button'), async () => { const f = await readFile(document.getElementById('clickFile')); await importCsv('clicks', f.csv, f.name); }); });
+  document.querySelectorAll('[data-sample]').forEach((b) => b.addEventListener('click', () => run(b, async () => { const res = await fetch(b.dataset.sample); await importCsv('linkedin', await res.text(), b.dataset.sample.split('/').pop()); })));
+  document.getElementById('unsubForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('unsubEmail');
+    run(e.submitter, async () => {
+      if (!/^\S+@\S+\.\S+$/.test(email.value.trim())) { email.setAttribute('aria-invalid', 'true'); email.focus(); throw new Error('Enter the address to unsubscribe.'); }
+      email.removeAttribute('aria-invalid');
+      const r = await team('unsubscribe', { email: email.value, reason: document.getElementById('unsubReason').value });
+      render(r);
+      log(`<b>Unsubscribed:</b> ${esc(email.value.trim())} is on the suppression list. Drafts and imports will skip them.`);
+      email.value = '';
+    });
+  });
+  const draftBtn = document.getElementById('draftBtn');
+  draftBtn.addEventListener('click', () => run(draftBtn, async () => {
+    const r = await team('drafts');
+    render(r);
+    const skipped = r.skipped.map((s) => `<br>Skipped ${esc(s.who)}: ${esc(s.why)}.`).join('');
+    log(`<b>Follow-up drafts:</b> ${r.drafted} written to the Follow-up drafts tab for review${r.failed?.length ? `, ${r.failed.length} failed (run again)` : ''}.${skipped}`);
+  }));
+  document.getElementById('refreshBtn').addEventListener('click', refresh);
+
+  // Settings
+  const hookInput = document.getElementById('hookInput'), keyInput = document.getElementById('keyInput'), sheetInput = document.getElementById('sheetInput');
+  const showCfg = () => {
+    const c = cfg(); hookInput.value = c.hook; keyInput.value = c.key; sheetInput.value = c.sheet;
+    const link = document.getElementById('sheetLink');
+    link.hidden = !c.sheet; link.href = c.sheet ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(c.sheet)}/edit` : '#';
+  };
+  document.getElementById('saveSettings').addEventListener('click', () => { store.set('fh-hook', hookInput.value.trim()); store.set('fh-key', keyInput.value); store.set('fh-sheet', sheetInput.value.trim()); showCfg(); board.innerHTML = ''; lastStage = {}; refresh(); });
+  showCfg();
+
+  // The sample buttons only work when the page is served with the sample files (scripts/local.mjs serve).
+  fetch('sample-data/loom/linkedin-new-lead.csv', { method: 'HEAD' }).then((r) => { if (r.ok) document.querySelectorAll('[data-sample]').forEach((b) => { b.hidden = false; }); }).catch(() => {});
+
+  // Keep the board current while the tab is open, so a confirmation in another tab moves the card here.
+  refresh();
+  setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 6000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
+</script>
+</body>
+</html>

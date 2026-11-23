@@ -1,0 +1,7 @@
+{
+  "_about": "Two made-up unsubscribe requests. The first uses the link in a newsletter issue; the second is a reply asking to be removed, recorded by the team (this one is done live in the Loom).",
+  "requests": [
+    { "email": "lena.fischer@example.net", "how": "link", "note": "Clicked unsubscribe in an issue" },
+    { "email": "sofia.marin@example.net", "how": "team", "reason": "Replied to an email asking to be removed", "loom": true }
+  ]
+}

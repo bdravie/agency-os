@@ -1,0 +1,19 @@
+{
+  "_about": "Made-up website form submissions for the demo. Every person and organisation is invented; addresses use the reserved example.com/.org/.net domains. confirm: true means they click the link in the (unsent) confirmation email.",
+  "submissions": [
+    { "form": "newsletter", "first_name": "Amara", "last_name": "Okonkwo", "email": "amara.okonkwo@example.org", "organisation": "Riverside Food Collective", "consent": "yes", "confirm": true },
+    { "form": "newsletter", "first_name": "Tom", "last_name": "Haversham", "email": "tom.h@example.com", "organisation": "Brackenridge Youth Trust", "consent": "yes", "confirm": true },
+    { "form": "newsletter", "first_name": "lena", "last_name": "fischer", "email": "lena.fischer@example.net", "organisation": "", "consent": "yes", "confirm": true },
+    { "form": "newsletter", "first_name": "Dev", "last_name": "Okafor", "email": "dev.okafor@example.net", "organisation": "Northgate Arts Hub", "consent": "yes" },
+    { "form": "newsletter", "first_name": "Hannah", "last_name": "Wójcik", "email": "hannah.wojcik@example.com", "organisation": "Kestrel Community Energy", "consent": "yes", "confirm": true },
+    { "form": "newsletter", "first_name": "Marcus", "last_name": "Bell", "email": "marcus.bell@example.org", "organisation": "Hillfoot Men's Shed", "consent": "yes" },
+    { "form": "newsletter", "first_name": "Rachel", "last_name": "Ng", "email": "rachel.ng@example.com", "organisation": "Moorland Music Trust", "consent": "yes", "confirm": true },
+    { "form": "newsletter", "first_name": "Ibrahim", "last_name": "Sesay", "email": "ibrahim.sesay@example.net", "organisation": "", "consent": "yes" },
+    { "form": "enquiry", "first_name": "Priya", "last_name": "Raman", "email": "priya.raman@example.org", "organisation": "Lantern Literacy", "message": "We run reading clubs in three schools and our main grant ends next summer. We'd like advice on finding a business partner to keep them going." },
+    { "form": "enquiry", "first_name": "Callum", "last_name": "Reid", "email": "callum.reid@example.com", "organisation": "Saltmarsh Wildlife Trust", "newsletter": "yes", "confirm": true, "message": "Do you run your partnership workshops for small trusts in the spring? Two of our trustees would like to come." },
+    { "form": "enquiry", "first_name": "Sofia", "last_name": "Marin", "email": "sofia.marin@example.net", "organisation": "Open Doors Refugee Network", "message": "Our board has asked for a partnerships plan before March. Could we have a short chat about how you work?" },
+    { "form": "enquiry", "first_name": "Gareth", "last_name": "Pryce", "email": "gareth.pryce@example.com", "organisation": "Valley Trails CIC", "message": "Volunteers look after our footpaths and we'd love an outdoor brand as a sponsor. Is that something you help with?" },
+    { "form": "enquiry", "first_name": "Eilidh", "last_name": "Munro", "email": "eilidh.munro@example.org", "organisation": "Glenmorrow Arts Festival", "newsletter": "yes", "message": "We need a sponsorship pack for next year's festival and don't know where to start." },
+    { "form": "enquiry", "first_name": "Dev", "last_name": "Okafor", "email": "  Dev.Okafor@EXAMPLE.net ", "organisation": "Northgate Arts Hub", "message": "We're planning a winter open studios programme and want a local business to sponsor it. Who should we approach first?", "_note": "Deliberate duplicate 1: same person as the newsletter sign-up above, typed in capitals with spaces." }
+  ]
+}
