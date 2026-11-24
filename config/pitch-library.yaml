@@ -8,7 +8,7 @@ profile:
   # Finishes the sentence "Hi, I love [work] and ___." in the cover letter, so it stays short.
   short_positioning: "have 11 years in software"
   strong_tools: [Make.com, n8n, Google Drive, Google Workspace, Google Sheets, Google APIs, Google Maps, Google Admin Console, MCP, Adobe XD, Figma, Webflow, Claude]
-  familiar_tools: [Dropbox, Google Cloud Vision, React, Codex, Retell, GoHighLevel]
+  familiar_tools: [Dropbox, Google Cloud Vision, React, Codex, Retell, GoHighLevel, Twilio, ElevenLabs]
   preferred_defaults: "Google Drive over Dropbox. Make.com or n8n for the workflow, depending on what the client already uses."
   portfolio_links: []    # everything is local for now, so the script offers to show work on a call. Any public links can be added in the CRM.
   facts:
