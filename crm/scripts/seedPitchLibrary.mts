@@ -9,7 +9,7 @@ import { parsePortfolio } from "../lib/loomPitchMath.ts";
 const dry = process.argv.includes("--dry-run");
 const read = (p: string) => readFileSync(new URL(`../../${p}`, import.meta.url), "utf8");
 const y = parse(read("config/pitch-library.yaml"));
-const labels: Record<string, { kind: string; tags: string[] }> = y.portfolio;
+const labels: Record<string, { kind: string; tags: string[]; last_worked_on?: string }> = y.portfolio;
 
 const fromPortfolio = parsePortfolio(read("portfolio/portfolio.md")).map((p) => {
   const key = Object.keys(labels).find((k) => p.name.startsWith(k));
@@ -20,7 +20,7 @@ const proof: any[] = [...y.proof, ...fromPortfolio];
 
 if (dry) {
   console.log(`${proof.length} proof items, ${y.answers.length} answers and 1 profile ready. Nothing written.`);
-  for (const p of proof) console.log(`  ${p.name} [${p.kind}]`);
+  for (const p of proof) console.log(`  ${p.name} [${p.kind}]${p.last_worked_on ? ` last worked on ${p.last_worked_on}` : ""}`);
   process.exit(0);
 }
 
@@ -28,9 +28,9 @@ const out = await tx(async (c) => {
   let items = 0, answers = 0;
   for (const p of proof) {
     const { rowCount } = await c.query(
-      `INSERT INTO proof_items (name, kind, one_line, problem_solved, tools, results, link, tags, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (name) DO NOTHING`,
-      [p.name, p.kind, p.one_line ?? null, p.problem_solved ?? null, p.tools ?? [], p.results ?? null, p.link ?? null, p.tags ?? [], p.notes ?? null]);
+      `INSERT INTO proof_items (name, kind, one_line, problem_solved, tools, results, link, tags, notes, last_worked_on)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (name) DO NOTHING`,
+      [p.name, p.kind, p.one_line ?? null, p.problem_solved ?? null, p.tools ?? [], p.results ?? null, p.link ?? null, p.tags ?? [], p.notes ?? null, p.last_worked_on ?? null]);
     items += rowCount ?? 0;
   }
   for (const a of y.answers) {

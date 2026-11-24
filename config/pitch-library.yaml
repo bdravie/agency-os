@@ -50,6 +50,13 @@ portfolio:
   "Lash academy": { kind: demo, tags: [beauty, landing-page, demo] }
   "Local SEO report": { kind: demo, tags: [dental, reporting, seo, demo] }
   "Demo capture kit": { kind: internal_tool, tags: [tooling, internal] }
+  # Demos in demos/ (added 24 Nov 2026). last_worked_on is optional: it is what lets a Loom script say "recently" (within 90 days).
+  "Support chat": { kind: demo, tags: [chatbot, customer-support, human-handover, google-sheets, demo], last_worked_on: "2026-11-19" }
+  "Event listing": { kind: demo, tags: [social-media, n8n, approval-queue, content, demo], last_worked_on: "2026-11-12" }
+  "Invoice inbox": { kind: demo, tags: [invoices, make, gmail, google-sheets, document-extraction, construction, demo], last_worked_on: "2026-11-21" }
+  "Missed-call WhatsApp": { kind: demo, tags: [clinics, dental, missed-calls, whatsapp, twilio, n8n, speed-to-lead, demo], last_worked_on: "2026-11-22" }
+  "AI voice receptionist": { kind: demo, tags: [clinics, aesthetics, voice, phone, elevenlabs, twilio, n8n, speed-to-lead, demo], last_worked_on: "2026-11-22" }
+  "Consent-first": { kind: demo, tags: [lead-capture, consent, crm, google-sheets, n8n, newsletter, linkedin, data-protection, demo], last_worked_on: "2026-11-23" }
 
 answers:
   - category: certifications

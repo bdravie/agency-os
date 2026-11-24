@@ -57,6 +57,48 @@ The proposal drafter and the pitch pack only use the projects listed below with 
 - Tools: Node.js, Playwright (Chromium), ffmpeg.
 - Result: used to produce the screenshots and videos for the Upwork demos above.
 
+## Support chat with human handover (demo)
+- Status: working demo for a fictional online homeware shop (Thistledown Home) with 12 made-up help articles. Not run for a client.
+- What it does: a chat on a shop's help page that answers customer questions only from the business's own help articles and shows which article it used. When the articles don't cover a question it says it isn't sure and offers a person, rather than guessing. Common problems are scripted step-by-step flows with no AI. A handover (asked for, two failed answers, unhappy wording or an unfixed flow) saves the conversation, with emails and phone numbers removed, and a short summary as a ticket, and can add it as a row in a Google Sheet. A staff page lists every question the chat could not answer so the team can write the missing article, and the chat uses it from the next question. Code checks every answer before the customer sees it: the source must be an article that was sent and every figure must appear in it.
+- Tools: Next.js 16, TypeScript, Tailwind CSS, Claude Haiku, Google Sheets (through Apps Script).
+- Result: demo only. On 15 made-up test questions the chat behaved as expected on all 15 (19 Nov 2026).
+- Data note: customer chats can hold personal data, so a real build needs a data processing agreement first.
+
+## Event listing to social post queue (demo)
+- Status: working demo on made-up motorcycle events, run in n8n on my own machine (checked 12 Nov 2026). The events directory, the approval sheet and the Facebook Page are local stand-ins: it has not yet been tried against a real Brilliant Directories site or a real Meta app, and nothing is posted anywhere real.
+- What it does: every newly published event listing becomes a ready-to-approve Facebook post and Instagram caption, with a square image card and a link back to the listing. A person approves each post, and only an approved row is published. Event IDs are logged so nothing posts twice, and a step that fails for one event is written to a failures list while the other events carry on. Claude writes the wording from the listing fields only; code checks it and adds the link and hashtags.
+- Tools: n8n, Claude Haiku, Python, Playwright.
+- Result: demo only.
+- Data note: business data only (public event details). No organiser or attendee details.
+
+## Invoice inbox to draw request (demo)
+- Status: working demo on 12 made-up invoices from 6 made-up suppliers across 3 made-up building projects. Run end to end in Make.com on 21 Nov 2026 with a demo Gmail label, demo Drive folders and a demo Google Sheet. Not run for a client.
+- What it does: supplier invoices that arrive by email as PDFs are read, filed in the right project folder in Google Drive and logged in a Google Sheets tracker without anyone typing them in. Duplicates (same supplier and invoice number, or same supplier and amount) and doubtful ones (a missing field, an unknown project, an unusual amount) are held back for a person to check. Each month's draw request is built from the approved invoices only, by filling a Sheets template, and an invoice that has been drawn is never counted again. Claude reads each PDF and is told never to guess an invoice number; code does the duplicate checks and the totals.
+- Tools: Make.com, Claude Haiku, Gmail, Google Drive, Google Sheets, Google Apps Script.
+- Result: demo only. On the 12 sample invoices, every field Claude read matched the answer key (16 Nov 2026).
+- Data note: business data (supplier names, invoice numbers, amounts). Invoices can carry a sole trader's details, so in a real build the files stay in the client's own Google account.
+
+## Missed-call WhatsApp text-back for clinics (demo)
+- Status: demo for a fictional dental practice (Brightmoor Dental), shown with my own phone. The workflow's rules pass 15 automated checks and the assistant was tested against the live Claude API (22 Nov 2026). Not run for a client.
+- What it does: a caller the front desk can't answer gets a WhatsApp from the practice within seconds instead of voicemail. An assistant asks one question at a time (new or existing patient, what it's about, a good time to call) and the front desk gets a one-line note of who to ring and when. It keeps to booking logistics and never gives clinical advice. Code, not the AI, decides when the note is ready; withheld numbers are never messaged, STOP blocks all further messages, and emails and phone numbers are masked before the AI sees a message. The website's leave-your-number form starts the same conversation.
+- Tools: n8n, Twilio (voice and WhatsApp), Claude Haiku, GSAP.
+- Result: demo only.
+- Data note: this handles patients' phone numbers and messages, so for a real clinic a data processing agreement and DPIA come first.
+
+## AI voice receptionist for clinics (demo)
+- Status: demo for a fictional aesthetics clinic (Lumen Skin Clinic), built to be shown with my own phone. The workflow's rules pass 9 automated checks. Not run for a client.
+- What it does: every call to the clinic is answered. When the team are with clients, a voice assistant says it is an AI and that the call is recorded, takes the caller's first name, whether they are new or returning, what it's about and a good time to call back, and sends the front desk a ready-to-act note on WhatsApp. Anyone who leaves their number on the website's form is rung back straight away. Booking logistics only: no treatment advice, prices or medical questions. Code requires the consent tick, limits calls per number and per day, and alerts the front desk if a call fails.
+- Tools: ElevenLabs, Twilio, n8n, GSAP.
+- Result: demo only.
+- Data note: this handles callers' voice, number and request, and calls are recorded and transcribed, so for a real clinic a data processing agreement and DPIA come first.
+
+## Consent-first lead capture and journey tracker (demo)
+- Status: working demo for a fictional partnerships consultancy (Fernhollow Partners) with 25 invented contacts. The workflow's rules pass 15 automated checks and the whole story runs locally with no accounts. No email is sent and LinkedIn is never accessed: its export is a sample CSV file. Not run for a client.
+- What it does: everyone who signs up on the website, joins the newsletter or fills in a LinkedIn lead form ends up once in one Google Sheet contact list, with a record of what they agreed to, the exact wording they were shown and when. Duplicates are merged, newsletter sign-ups stay pending until confirmed, and plain rules in code place each contact in one of four journey stages (Discovered, Engaged, Identified, Opportunity). For contacts at Opportunity, Claude drafts a short follow-up note for a person to review; code adds the greeting and opt-out line and skips anyone who unsubscribed or only agreed to the newsletter. Unsubscribes go to a suppression list that also blocks later imports.
+- Tools: n8n, Google Sheets, Claude Haiku, GSAP.
+- Result: demo only.
+- Data note: a real build holds the client's prospects' personal data, so a data processing agreement comes first.
+
 <!--
 Not used by the proposal drafter until you fill them in (comments are ignored). Move each one above the comment, give it a "## " heading and say only what is true.
 

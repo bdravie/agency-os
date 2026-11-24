@@ -335,7 +335,9 @@ test("Loom and plain are compared only with enough sent, and mixed cases are lef
 test("the portfolio is read as written, with empty claims left blank", async () => {
   const md = await readFile(path.resolve(process.cwd(), "..", "portfolio/portfolio.md"), "utf8");
   const items = parsePortfolio(md);
-  assert.equal(items.length, 9);
+  assert.equal(items.length, 15);
+  assert.equal(items.find((i) => i.name === "Invoice inbox to draw request").results, null, "a demo's test run is not a result");
+  assert.deepEqual(items.find((i) => i.name === "Missed-call WhatsApp text-back for clinics").tools, ["n8n", "Twilio", "Claude Haiku", "GSAP"]);
   assert.ok(!items.some((i) => /Clinic Buddy|Indulging/.test(i.name)), "commented-out stubs are not read");
   assert.equal(items[0].name, "Agency OS");
   assert.equal(items[0].results, null);
