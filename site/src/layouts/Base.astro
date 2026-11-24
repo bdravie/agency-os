@@ -1,6 +1,7 @@
 ---
-import "@fontsource-variable/bricolage-grotesque";
-import "@fontsource-variable/instrument-sans";
+// Archivo with its width axis for headings, Public Sans for reading. Both are served from this site: no request goes to a font service.
+import "@fontsource-variable/archivo/wdth.css";
+import "@fontsource-variable/public-sans";
 import "../styles/site.css";
 // noindex is for private pages (e.g. the post-purchase page): it asks search engines not to list the page and drops the canonical link.
 // canonical is the page's own path ("/" for the landing page and its test versions, "/blog/<slug>" for a post), so search engines list each page once.
@@ -26,7 +27,8 @@ const url = new URL(canonical, Astro.site).href;
           <meta property="og:locale" content="en_GB" />
           <meta name="twitter:card" content="summary" />
         </>}
-    <meta name="theme-color" content="#14213d" />
+    <meta name="theme-color" content="#f2f5f6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14213d" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {jsonLd && !noindex && <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd).replace(/</g, "\\u003c")} />}
     <script is:inline>document.documentElement.classList.add("js");</script>

@@ -11,18 +11,18 @@ const jsonLd = { "@context": "https://schema.org", "@type": "Blog", name: `${sit
 <Base title={`Blog | ${site.businessName}`} description={description} canonical="/blog" jsonLd={jsonLd}>
   <Header current="blog" />
   <main><section class="hero"><div class="wrap">
-    <div class="label" data-reveal>Blog</div>
-    <h1 data-reveal>Plain guides for clinic owners</h1>
-    <p class="sub" data-reveal>Where calls and enquiries go missing, and what to do about it. Written for dental practices and aesthetics clinics.</p>
+    <div class="label">Blog</div>
+    <h1>Plain guides for clinic owners</h1>
+    <p class="sub">Where calls and enquiries go missing, and what to do about it. Written for dental practices and aesthetics clinics.</p>
     {posts.length === 0
       ? <p class="muted">The first posts are on their way.</p>
       : <div class="posts">
           {posts.map((p) => (
-            <a class="card post-card" href={`/blog/${p.slug}`} data-reveal>
+            <a class="card post-card" href={`/blog/${p.slug}`}>
               <div class="meta"><span class="tag">{NICHES[p.niche]}</span><span>{longDate(p.date)}</span><span>{p.minutes} min read</span></div>
               <h3>{p.title}</h3>
               <p>{p.description}</p>
-              <span class="more">Read it →</span>
+              <span class="more">Read it</span>
             </a>
           ))}
         </div>}

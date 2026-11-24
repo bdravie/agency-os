@@ -1,16 +1,17 @@
 ---
-// The floating bar at the top of every public page. "Book a call" is always in view.
+// A plain line at the top of every public page: the name, two links, and the booking button.
+// The line scrolls away with the page; only the button stays, alone in the corner (bottom corner on a phone), so booking is always one tap away.
 // On the landing page (`home`) the button opens the calendar further down the same page; elsewhere it goes to the landing page's calendar.
 import site from "../content/site.json";
 const { home = false, current = "" } = Astro.props;
 ---
 <header class="top">
-  <nav aria-label="Main">
-    <a class="brand" href="/"><i></i>{site.businessName}</a>
-    <a class="link wide" href={home ? "#how" : "/#how"}>How it works</a>
+  <nav class="wrap" aria-label="Main">
+    <a class="brand" href="/">{site.businessName}</a>
+    <a class="link" href={home ? "#how" : "/#how"}>How it works</a>
     <a class="link" href="/blog" aria-current={current === "blog" ? "page" : undefined}>Blog</a>
     {home
-      ? <a class="btn small" href={site.calLink} data-cta="nav">Book a call</a>
-      : <a class="btn small" href="/#book">Book a call</a>}
+      ? <a class="btn small book" href={site.calLink} data-cta="nav">Book a call</a>
+      : <a class="btn small book" href="/#book">Book a call</a>}
   </nav>
 </header>
