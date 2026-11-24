@@ -3,8 +3,7 @@ import { parseAnswer, parseInline } from "@/lib/knowledgeMath";
 import type { AssistantMessage, AssistantSource } from "@/lib/assistant";
 import "./assistant.css";
 
-// One conversation with the knowledge-base assistant, drawn the same on the full page (server) and in the brain's panel
-// (client). Answers are parsed into blocks and drawn as React elements: the AI's text is never injected as HTML.
+// One conversation with the knowledge-base assistant. Answers are parsed into blocks and drawn as React elements: the AI's text is never injected as HTML.
 
 function Inline({ text, msgId, sources }: { text: string; msgId: number; sources: AssistantSource[] }) {
   return (
@@ -24,7 +23,7 @@ function Inline({ text, msgId, sources }: { text: string; msgId: number; sources
   );
 }
 
-export function AnswerBody({ msg }: { msg: AssistantMessage }) {
+function AnswerBody({ msg }: { msg: AssistantMessage }) {
   return (
     <div className="as-answer">
       {parseAnswer(msg.content).map((b, i) => {
@@ -71,29 +70,26 @@ export default function AssistantThread({ messages, empty }: { messages: Assista
   );
 }
 
-export const TOPIC_ANY = "";
+const TOPIC_ANY = "";
 
-/** The question box, topic picker and web tick, shared by the page and the panel. Plain form fields: they post without JavaScript. */
-export function AssistantFields({ topics, threadId, draft, idPrefix, autoFocus }: {
+/** The question box, topic picker and web tick, as plain form fields: they post without JavaScript. */
+export function AssistantFields({ topics, threadId, draft }: {
   topics: { key: string; label: string; description: string }[];
   threadId: string | null;
   draft?: string;
-  idPrefix: string;
-  autoFocus?: boolean;
 }) {
   return (
     <>
       {threadId && <input type="hidden" name="thread" value={threadId} />}
-      <label htmlFor={`${idPrefix}-q`} className="field-label">Your question</label>
+      <label htmlFor="assistant-q" className="field-label">Your question</label>
       <textarea
-        id={`${idPrefix}-q`}
+        id="assistant-q"
         name="question"
         rows={3}
         required
         maxLength={2000}
         defaultValue={draft}
         placeholder="For example: which contracts do I send before a clinic build?"
-        data-autofocus={autoFocus ? "" : undefined}
       />
       <div className="as-opts">
         <label className="as-topic">

@@ -7,9 +7,9 @@ import { askFromPage } from "@/lib/assistantActions";
 import { knowledgeTopics } from "@/lib/knowledge";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Ask the brain" };
+export const metadata = { title: "Assistant" };
 
-// The assistant's full page: where the brain's core goes with JavaScript off, and the "open full page" of its panel.
+// The knowledge-base assistant. The form posts without JavaScript.
 export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ thread?: string; new?: string; error?: string; q?: string }> }) {
   const sp = await searchParams;
   const threadId = sp.new ? null : validThread(sp.thread) ?? await latestThreadId();
@@ -18,10 +18,10 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   return (
     <div className="as-page">
       <header className="page-header">
-        <nav className="crumbs" aria-label="Breadcrumb"><Link href="/">Dashboard</Link> / <span aria-current="page">Ask the brain</span></nav>
+        <nav className="crumbs" aria-label="Breadcrumb"><Link href="/">Dashboard</Link> / <span aria-current="page">Assistant</span></nav>
         <div className="page-header-row">
           <div>
-            <h1>Ask the brain</h1>
+            <h1>Assistant</h1>
             <p className="page-desc">Answers from your knowledge files ({topics.map((t) => t.label).join(", ")}), with the web only when you tick it.</p>
           </div>
           <div className="page-actions"><Link href="/assistant?new=1" className="btn secondary"><MessageSquarePlus size={16} aria-hidden /> New conversation</Link></div>
@@ -40,7 +40,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
 
       <form action={askFromPage} className="card as-form" aria-label="Ask a question">
         {sp.error && <p className="error" role="alert">{sp.error}</p>}
-        <AssistantFields topics={topics} threadId={threadId} draft={sp.error ? sp.q : undefined} idPrefix="page" />
+        <AssistantFields topics={topics} threadId={threadId} draft={sp.error ? sp.q : undefined} />
         <div className="row-between as-foot">
           <span className="muted">{usage.asked} of {usage.cap} answers used today · answers run only when you press Ask</span>
           <AskButton />

@@ -1,6 +1,6 @@
 # Knowledge base
 
-What the dashboard assistant knows. The assistant sits in the middle of the brain on the Dashboard (and at `/assistant`). It answers from the files listed in `config/knowledge.yaml` and cites the passage it used, so it can only be as good as what is written here.
+What the assistant knows. The assistant is on the Assistant page (`/assistant`, in the sidebar under Home). It answers from the files listed in `config/knowledge.yaml` and cites the passage it used, so it can only be as good as what is written here.
 
 ## How to teach it something
 

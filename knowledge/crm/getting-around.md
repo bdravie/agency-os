@@ -1,13 +1,13 @@
 # Getting around the CRM
 
-## The brain: four lobes
-The Dashboard shows the CRM as a brain with four lobes, one per stage of the business, read clockwise from the front-left. Hover or tap a lobe to see its pages; click a page to open it. The middle of the brain opens this assistant.
-- **Find** (front-left): Lead Sourcer, Niches, Companies, Deals, Proposals. Finding leads and winning work.
-- **Sell** (front-right): Calls, Quotes, Audits, Objections. Turning interest into a signed deal.
-- **Deliver** (back-right): Clients, Outcomes, Enablement, Flowcharts. Doing the work and showing the results.
-- **Grow** (back-left): Content dashboard, Funnel, Site tests. Content, conversion and the public site.
-
-The brain stem under it holds the daily screens (Calendar, Inbox, Tasks) and Setup (Offers, Mailboxes, Suppression). The sidebar has the same pages in six groups; the lobes are four of those groups and the stem is the other two.
+## The sidebar: six groups
+The sidebar groups the pages by what you are doing.
+- **Home**: Dashboard, Calendar, Inbox, Tasks, Assistant. The daily screens, and this assistant.
+- **Find and win**: Lead Sourcer, Niches, Companies, Deals, Proposals. Finding leads and winning work.
+- **Sell**: Calls, Quotes, Audits, Objections. Turning interest into a signed deal.
+- **Deliver**: Clients, Outcomes, Enablement, Flowcharts. Doing the work and showing the results.
+- **Grow**: Content dashboard, Funnel, Site tests. Content, conversion and the public site.
+- **Setup**: Offers, Mailboxes, Suppression.
 
 ## Finding a page quickly
 - Press Cmd+K (or /) anywhere to open the command palette and type a page or company name.
@@ -15,11 +15,11 @@ The brain stem under it holds the daily screens (Calendar, Inbox, Tasks) and Set
 - A Coral number against a sidebar item counts what is waiting on you there; the page it opens lists those items.
 
 ## Where common jobs live
-- Find new leads: Find > Lead Sourcer (Search tab). This week's list is the Lead Sourcer's This week tab.
-- Decide which niches to work: Find > Niches.
-- Write an outreach email: open the company (Find > Companies), then its Outreach tab.
+- Find new leads: Find and win > Lead Sourcer (Search tab). This week's list is the Lead Sourcer's This week tab.
+- Decide which niches to work: Find and win > Niches.
+- Write an outreach email: open the company (Find and win > Companies), then its Outreach tab.
 - Book a meeting: Calendar > Book a meeting, or Book a meeting on a company page.
-- Draft an Upwork proposal: Find > Proposals > New proposal.
+- Draft an Upwork proposal: Find and win > Proposals > New proposal.
 - Price a job: Sell > Quotes, from the offers in Setup > Offers.
 - Record a call and get its pains and next steps: Sell > Calls.
 - Track a client's before-and-after results: Deliver > Outcomes.

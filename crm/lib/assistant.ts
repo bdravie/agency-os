@@ -7,7 +7,7 @@ import { anthropicClient, assistantModel, MODELS } from "./llm";
 import { knowledgeIndex, knowledgeTopics } from "./knowledge";
 import { assembleAnswer, citedRefs, passagesBlock, questionProblem, retrieve, type AnswerBlock, type AssistantSource, type Passage } from "./knowledgeMath";
 
-// The knowledge-base assistant at the centre of the dashboard brain. It runs only when the owner presses Ask, within a
+// The knowledge-base assistant (/assistant). It runs only when the owner presses Ask, within a
 // daily cap, reads the passages from config/knowledge.yaml's files that best match the question (and searches the web only
 // when the owner ticks it), and saves the question and answer in assistant_messages. It reads no CRM records and sends nothing.
 
