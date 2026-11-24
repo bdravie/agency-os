@@ -1,6 +1,6 @@
 # Targets for the Dashboard's Today, This week and This month cards. Edit the numbers to suit you;
 # anything missing or not a positive number falls back to the default shown here.
-# Nothing here is hard-coded in the app. The percentages, the "where you should be by now" tick and the projections
+# Nothing here is hard-coded in the app. The percentages, the "where you should be by now" tooltips and the projections
 # are all worked out from these numbers and from what is really in the CRM.
 
 today:
@@ -17,7 +17,7 @@ month:                    # calendar month, UK time
   new_leads: 60
 
 # Weekly targets per niche (docs/NICHE_FOCUS_PLAN.md, N4). The Dashboard shows one row per active or seeding niche
-# (status in config/niches.yaml), target against this week so far, with the same pace tick as the cards above.
+# (status in config/niches.yaml), target against this week so far.
 #   emails, instagram_dms, linkedin_notes: sends you logged this week to companies in that niche
 #   posts: posts recorded this week (the Posted dialog) for content tagged with that niche, per platform
 # A target for a channel or platform the niche does not use is not shown (the Dashboard says so), so it never asks for outreach the niche refuses.

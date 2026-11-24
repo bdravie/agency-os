@@ -22,19 +22,27 @@ export type PaceCard = {
   period: "today" | "week" | "month";
   eyebrow: string;
   headline: string;
-  badge: { text: string; tone: "good" | "warn" | "neutral" };
+  headlineGoal?: string;    // the goal the headline already states, so it gets no line of its own
+  note: { text: string; tone: "good" | "warn" | "neutral" } | null;
   goals: Goal[];
   summary: Summary;
 };
 
 const pluralise = (n: number, one: string, many = one + "s") => `${n} ${n === 1 ? one : many}`;
 
-function badgeFor(status: GoalStatus, projection: string | null): PaceCard["badge"] {
+function noteFor(status: GoalStatus, projection: string | null): PaceCard["note"] {
   if (status === "done") return { text: "Target reached", tone: "good" };
-  if (status === "early") return { text: "Early days", tone: "neutral" };
+  if (status === "early") return null;   // too soon to say anything useful
   if (status === "on_track") return { text: projection ?? "On track", tone: "good" };
   if (status === "behind") return { text: projection ?? "Behind pace", tone: "warn" };
-  return { text: "", tone: "neutral" };
+  return null;
+}
+
+/** The month's headline is money, so its note says which money, then where it is heading. */
+function revenueNote(rev: Goal): PaceCard["note"] {
+  if (rev.status === "done") return { text: "One-off revenue, target reached", tone: "good" };
+  const heading = rev.projected === null ? "" : `, heading for ${gbp(rev.projected)}`;
+  return { text: `One-off revenue${heading}`, tone: rev.status === "on_track" ? "good" : "neutral" };
 }
 
 /** Today, this week and this month: what is done against what was aimed for, and where each is heading. */
@@ -96,19 +104,20 @@ export async function loadPace(now = new Date()): Promise<{ today: PaceCard; wee
     today: {
       period: "today", eyebrow: "Today",
       headline: done + open === 0 ? "All clear" : `${done} of ${done + open} tasks done`,
-      badge: open > 0 ? { text: `${open} left`, tone: "warn" } : { text: "Nothing due", tone: "good" },
+      headlineGoal: "tasks", note: null,
       goals: todayGoals, summary: todaySummary,
     },
     week: {
       period: "week", eyebrow: `This week · day ${el.dayOfWeek} of 7`,
       headline: weekSummary.status === "done" ? "Week complete" : weekSummary.status === "behind" ? "Behind pace" : weekSummary.status === "early" ? "Early days" : "On pace",
-      badge: badgeFor(weekSummary.status, leadsGoal.projected !== null && weekSummary.status !== "done" ? `Heading for ${pluralise(leadsGoal.projected, "lead")}` : null),
+      note: noteFor(weekSummary.status, leadsGoal.projected !== null && weekSummary.status !== "done" ? `Heading for ${pluralise(leadsGoal.projected, "lead")}` : null),
       goals: weekGoals, summary: weekSummary,
     },
     month: {
       period: "month", eyebrow: `This month · day ${el.dayOfMonth} of ${el.daysInMonth}`,
-      headline: gbp(rev.value),
-      badge: badgeFor(monthSummary.status, rev.projected !== null && rev.status !== "done" ? `Heading for ${gbp(rev.projected)} of ${gbp(rev.target)}` : null),
+      headline: `${gbp(rev.value)} of ${gbp(rev.target)}`,
+      headlineGoal: "revenue",
+      note: revenueNote(rev),
       goals: monthGoals, summary: monthSummary,
     },
   };

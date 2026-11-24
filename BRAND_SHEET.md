@@ -68,7 +68,7 @@ Two fonts, both already loaded by the app (no new downloads).
 Motion explains a change. Apart from the dashboard hero, it never decorates and never loops. Everything else is 150-450ms with one curve, `cubic-bezier(.2,.8,.2,1)` (`--ease-out`), and switches off for anyone who has "reduce motion" set.
 
 1. **Settle-in (420ms):** a page's top-level blocks rise 8px and fade in, 60ms apart.
-2. **Count-up and fill (900ms):** big numbers count up, bars and rings fill when a screen opens. A thin tick on a bar is the pace marker: where you should be by now.
+2. **Count-up and fill (900ms):** big numbers count up, rings fill when a screen opens.
 3. **Type-out:** an AI draft writes itself at reading speed, only after the owner has clicked Generate.
 4. **Press to success (300ms):** shrink, then morph to Lagoon with a tick.
 5. **Lift and drop:** a dragged card lifts (scale 1.03, 2 degrees tilt, bigger shadow) and springs into place.
@@ -96,7 +96,7 @@ Always:
 - White card on Cream, Deep cream tiles inside, the radii above, a shadow instead of a border.
 - One Coral button per screen; Navy text on Coral.
 - Big numbers in Bricolage with tabular figures; labels in small capitals.
-- Progress shows a fill plus a pace tick where there is a target; finished turns Lagoon.
+- Progress against a target is one ring per card and one plain line per goal ("Calls booked 0 / 3"), each number said once; finished turns Lagoon, and where it should be by now is the line's tooltip. No bars, pills or captions per goal on the Dashboard hero (the owner found them too much, 24 Nov 2026), its cards sit 20px apart, and they are frosted so the stripes and dots never sit behind numbers.
 - Check it in both light and dark. It must also work in `DEMO_MODE` with fake data and look good on camera.
 - British English, prices in GBP.
 

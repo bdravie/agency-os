@@ -148,8 +148,7 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 
 /* Motion (BRAND_SHEET.md section 5): a page's top-level blocks settle in; bars and rings fill; nothing loops. */
 @keyframes settle { from { opacity: 0; transform: translateY(8px); } }
-@keyframes bar-fill { from { width: 0; } }
-@property --p { syntax: "<number>"; inherits: false; initial-value: 0; }
+@property --p { syntax: "<number>"; inherits: true; initial-value: 0; }
 @keyframes ring-fill { from { --p: 0; } }
 .main > * { animation: settle 420ms var(--ease-out) backwards; }
 .main > *:nth-child(2) { animation-delay: 60ms; } .main > *:nth-child(3) { animation-delay: 120ms; } .main > *:nth-child(4) { animation-delay: 180ms; } .main > *:nth-child(n+5) { animation-delay: 240ms; }
@@ -846,22 +845,23 @@ button.danger:hover, .btn.danger:hover { color: var(--bad); border-color: var(--
 .pace-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
 @media (max-width: 1100px) { .pace-grid { grid-template-columns: minmax(0, 1fr); } }
 /* "This week by niche" (components/NichePace.tsx): one column per active or seeding niche, folding to one on narrow screens. */
-.niche-pace-card { margin-bottom: 20px; }
-.niche-pace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px 24px; margin-top: 10px; }
-.niche-pace-row { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line-soft); }
-.pace-head { margin: 4px 0 8px; font-family: var(--font-head); font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.goal { margin-top: 14px; font-size: 13.5px; }
-.goal .row-between { margin-bottom: 6px; flex-wrap: nowrap; }
-.goal .row-between b { font-variant-numeric: tabular-nums; }
-.goal .mini { margin-top: 4px; }
-.prog { position: relative; height: 10px; background: var(--surface-2); border-radius: 999px; }
-.prog > b { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--accent); animation: bar-fill 900ms var(--ease-out) backwards; }
-.prog.full > b { background: var(--good); }
-.prog > s { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--text); border-radius: 2px; opacity: 0.55; }
-.ring { position: relative; flex: none; display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--surface-2) 0); animation: ring-fill 1000ms var(--ease-out) backwards; }
-.ring::before { content: ""; position: absolute; width: 64px; height: 64px; border-radius: 50%; background: var(--surface); }
+.niche-pace { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 20px 40px; margin-top: 14px; }
+.niche-pace-row { min-width: 0; }
+.niche-pace-name { margin-bottom: 4px; font-weight: 600; }
+.niche-pace-name .muted { font-size: 13px; font-weight: 400; }
+.niche-pace-row .mini { margin: 6px 0 0; }
+.pace-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.pace-head { margin-top: 4px; font-family: var(--font-head); font-size: 24px; line-height: 1.12; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.pace-note { margin-top: 6px; font-size: 13px; color: var(--text-2); }
+.pace-note.good { color: var(--good); }
+.goal { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 0; font-size: 13.5px; color: var(--text-2); }
+.goal-n { flex: none; font-variant-numeric: tabular-nums; }
+.goal-n b { color: var(--text); }
+.goal.done .goal-n, .goal.done .goal-n b { color: var(--good); }
+.ring { position: relative; flex: none; display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--surface-2) 0); animation: ring-fill 1000ms var(--ease-out) backwards; }
+.ring::before { content: ""; position: absolute; width: 54px; height: 54px; border-radius: 50%; background: var(--surface); }
 .ring.full { background: conic-gradient(var(--good) calc(var(--p) * 1%), var(--surface-2) 0); }
-.ring > span { position: relative; font-family: var(--font-head); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ring > span { position: relative; font-family: var(--font-head); font-size: 17px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 /* A number that counts up with no script: an animated integer shown through a CSS counter. */
 @property --n { syntax: "<integer>"; inherits: false; initial-value: 0; }
 @keyframes count-up { from { --n: 0; } }
@@ -1019,7 +1019,8 @@ button.cover-logo-add { display: flex; align-items: center; gap: 8px; min-height
 .hero-head h1 { margin-top: 6px; font-size: clamp(34px, 4.2vw, 54px); line-height: 1.02; letter-spacing: -0.035em; }
 .hero-prompt { margin: 6px 0 0; font-size: clamp(14px, 1.4vw, 16px); color: var(--text-2); font-weight: 500; }
 .hero-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; color: var(--text-2); }
-.hero .pace-grid { margin-bottom: 0; }
+.hero .pace-grid { margin-bottom: 20px; }
+.hero .pace-grid:last-child { margin-bottom: 0; }
 
 /* ---------- Bible widget (Dashboard hero) ---------- */
 .bible-widget { position: relative; isolation: isolate; overflow: hidden; flex: 1 1 320px; max-width: 480px; min-width: 250px; padding: 12px 16px; border-radius: 18px; background: var(--box-bg); border: 1px solid var(--line); box-shadow: none; }
@@ -1044,11 +1045,12 @@ button.cover-logo-add { display: flex; align-items: center; gap: 8px; min-height
   .spin-quick { animation: none !important; }
 }
 /* Cards on hero: transparent with clean line border */
-.hero .card { background: var(--box-bg); border: 1px solid var(--line); box-shadow: none; }
-.hero .ring, .hero .ring.full { background: none; }
-.hero .ring::before { --p: inherit; inset: 0; width: auto; height: auto; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--track) 0); -webkit-mask: radial-gradient(closest-side, transparent 75%, black 77%); mask: radial-gradient(closest-side, transparent 75%, black 77%); }
+.hero .card { background: var(--box-bg); border: 1px solid var(--line); box-shadow: none; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }   /* frosted, so the stripes and dots never sit behind the numbers */
+.hero .ring, .hero .ring.full { background: none; animation: none; }
+/* The hero ring is drawn by its ::before, so that is what animates: WebKit never repaints it when only the parent's --p does. */
+.hero .ring::before { animation: ring-fill 1000ms var(--ease-out) backwards; inset: 0; width: auto; height: auto; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--track) 0); -webkit-mask: radial-gradient(closest-side, transparent 75%, black 77%); mask: radial-gradient(closest-side, transparent 75%, black 77%); }
 .hero .ring.full::before { background: conic-gradient(var(--good) calc(var(--p) * 1%), var(--track) 0); }
-.hero .prog { background: var(--track); }
+@media (prefers-reduced-motion: reduce) { .hero .ring::before { animation: none; } }
 @media print { .hero { background: none; box-shadow: none; } .hero-particles { display: none; } }
 
 /* ---------- Phone (mobile first, 12 Nov 2026) ----------
