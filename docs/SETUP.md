@@ -92,7 +92,7 @@ Notes
 - If posting fails with a version error, LinkedIn has retired the API version: set `LINKEDIN_API_VERSION` to a recent month (YYYYMM, see learn.microsoft.com/linkedin "versioning").
 - To remove the app's access on LinkedIn's side: LinkedIn > Settings > Data privacy > Permitted services.
 
-## 2e. Adding a demo's workflow to your n8n with one click (optional)
+## 2e. Adding a demo's workflow or an n8n template to your n8n with one click (optional)
 
 A proposal's **Run a demo** tab works without this: each demo has an import line to copy. With it, a demo that has an n8n workflow gets **Send to my n8n**, which adds the workflow to your n8n switched off and gives you a link to open it. No n8n account is needed: the free n8n on this Mac has the same API.
 
@@ -101,9 +101,14 @@ A proposal's **Run a demo** tab works without this: each demo has an import line
 3. Put it in the env file as `N8N_API_KEY=...` and put the change live (`bash scripts/update-crm.sh`). Leave `N8N_API_URL` empty to use the n8n on this Mac.
 4. Open a proposal > Run a demo > **Send to my n8n**. n8n has to be running at the time.
 
+The same button is on a proposal's **Build plan** tab, step 2 (Matching workflow): on each n8n template it finds, on a demo you built in n8n, and on the workflow you chose. Use it when none of your own workflows is a close match and you want to open a public template in your own n8n to show it. Tick **Search n8n's library as well** to see up to three public templates after your own.
+
 Notes
 - The workflow arrives switched off. Connect its credentials in n8n and turn it on there; the CRM never switches a workflow on.
 - A workflow already in n8n with the same name is left as it is. Rename or delete that one to add it again.
+- A public template arrives with no credentials connected (the ones in its file belong to whoever made it), so connect your own. Its file is fetched from n8n's library when you click (one lookup from the day's limit, `N8N_TEMPLATE_DAILY_CAP`) and passed straight to your n8n; the CRM does not keep it. Free templates only.
+- A workflow from your library, or one you pasted, cannot be sent: only its outline was saved here, never the file. Import the original file in n8n instead (Workflows > Import from file).
+- A public template is someone else's work: say it is a pattern you would start from, not a workflow you run.
 - Only the workflow files a demo lists in `config/demos.yaml` are sent, and only to the one address in `N8N_API_URL`.
 - n8n Cloud instead: set `N8N_API_URL` to your instance address (`https://yourname.app.n8n.cloud`). The API is on Cloud's paid plans only, not the free trial (n8n's docs, checked 25 Nov 2026). Check n8n's pricing page for the current price.
 

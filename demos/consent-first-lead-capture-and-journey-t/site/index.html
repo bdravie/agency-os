@@ -137,7 +137,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.1/dist/gsap.min.js"></script>
 <script>
-  // Where the n8n workflow listens. Change with ?hook=… (remembered), e.g. the local stand-in on port 5679.
+  // Where the n8n workflow listens. Change with ?hook=… (remembered), e.g. the local stand-in on port 5690.
   const DEFAULT_HOOK = 'http://localhost:5678/webhook/lead-capture';
   const store = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
   const params = new URLSearchParams(location.search);

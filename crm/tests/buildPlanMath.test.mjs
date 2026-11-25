@@ -304,6 +304,10 @@ test("your own workflows come first: the demos you built and your library are sc
   assert.equal(m[0].score, first[0].score);
   assert.deepEqual(finishMatches(null, all, first).map((x) => x.ref), ["demo:missed-call", "lib:7", "demo:invoice-inbox"]);   // the AI failed: yours first, then the list's own order
   assert.deepEqual(finishMatches({ picks: [] }, pub, first).map((x) => x.ref), ["n8n:1", "n8n:2"]);      // one that was not found cannot be put first
+  // Asked for n8n's library as well: yours stay in front and public templates take the extra places, so the tick always shows something new.
+  const wide = finishMatches({ picks: [{ ref: "lib:7", reason: "Texts back every missed caller." }] }, all, first, 5);
+  assert.deepEqual(wide.map((x) => x.ref), ["demo:missed-call", "lib:7", "n8n:1", "n8n:2", "demo:invoice-inbox"]);
+  assert.deepEqual(finishMatches(null, all, first, 4).map((x) => x.source), ["demo", "library", "n8n", "n8n"]);
   assert.deepEqual(ownFirst(pub, CLINIC), { ranked: [], first: [] });
   assert.deepEqual(ownFirst(mine, "Something about payroll exports.").first, []);                         // nothing of yours is forced in when none is close
 
@@ -432,4 +436,18 @@ test("editing the client page saves the owner's words: step text into the plan, 
   assert.match(cleanPageEdit(fewer, bp, TITLE).error, /plan has changed since this page was opened/);  // never saved over a plan that moved on
   assert.match(cleanPageEdit(draft, { ...bp, pains: other }, TITLE).error, /different pain point/);
   assert.match(cleanPageEdit("nope", bp, TITLE).error, /could not be read/);
+});
+
+test("Send to my n8n from step 2: only a workflow this plan found or chose, and only one with a file to fetch", async () => {
+  const { sendKind } = await import("../lib/buildPlanMath.ts");
+  const match = (ref, source) => ({ ref, source, name: ref, summary: "", apps: [], url: null, reason: "" });
+  const bp = { matches: { basis: "", search: [], considered: 3, notes: [], matches: [match("demo:missed-call", "demo"), match("lib:7", "library"), match("n8n:1750", "n8n")] }, workflow: { ref: "n8n:2001" } };
+  assert.equal(sendKind(bp, "n8n:1750"), "n8n");                  // a public template on a card
+  assert.equal(sendKind(bp, "demo:missed-call"), "demo");         // a demo you built
+  assert.equal(sendKind(bp, "n8n:2001"), "n8n");                  // the chosen one, e.g. from a pasted template link
+  assert.equal(sendKind(bp, "lib:7"), null);                      // only its outline was ever saved
+  assert.equal(sendKind(bp, "n8n:9999"), null);                   // a template this plan never found is not fetched
+  assert.equal(sendKind({ workflow: { ref: "pasted:abc" } }, "pasted:abc"), null);
+  assert.equal(sendKind({}, "n8n:1750"), null);
+  assert.equal(sendKind(bp, ""), null);
 });

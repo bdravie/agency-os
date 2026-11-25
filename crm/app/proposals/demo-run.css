@@ -15,7 +15,7 @@
 .dr-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
 .dr-actions button { justify-content: center; white-space: nowrap; }
 .dr-sent { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.dr .dr-sent li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 0; border: 0; }
+ul.dr-sent > li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 0; border: 0; }
 .dr-sent a { display: inline-flex; align-items: center; gap: 4px; }
 .dr-result { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .dr-result p { margin: 0; }

@@ -10,7 +10,7 @@ process.env.LEAD_DEMO_OUT = mkdtempSync(join(tmpdir(), 'lead-demo-'));
 const { handle, resetSheet, loadSheet, SETTINGS } = await import('./engine.mjs');
 const { seed, loom } = await import('./story.mjs');
 
-const BASE = 'http://127.0.0.1:5679/webhook/lead-capture';
+const BASE = 'http://127.0.0.1:5690/webhook/lead-capture';
 const KEY = SETTINGS.team_key;
 let claude = () => ({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify({ subject: 'Your sponsorship question', body: 'Thanks for getting in touch through our website about finding a sponsor. A good first step is a short list of local businesses whose aims match yours. Would a twenty minute call next week help us work that out together?' }) }] });
 const call = async (path, fields) => {

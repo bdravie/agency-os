@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { Check, ExternalLink } from "lucide-react";
-import { clearWorkflowAction, pasteWorkflowAction, pickWorkflowAction, runMatchesAction } from "@/lib/buildPlanActions";
+import { clearWorkflowAction, pasteWorkflowAction, pickWorkflowAction, runMatchesAction, sendMatchToN8nAction } from "@/lib/buildPlanActions";
+import type { N8nStatus } from "@/lib/n8nPush";
+import { N8nSentView, SendToN8nButton, type N8nSent } from "@/components/SendToN8n";
 import type { MatchStep as Matches, PainStep, Picked, StepState } from "@/lib/buildPlanMath";
 import { looksLikeUrl } from "@/lib/n8nTemplatesMath";
 import { MAX_FILE_CHARS, parseWorkflowText } from "@/lib/workflowParse";
@@ -69,8 +71,18 @@ function PasteBox() {
 // Step 2. Looks through the owner's own workflows first (the demos they have built and their saved library), then n8n's public
 // templates for the places left, shows the top 3 with a reason each, and the owner picks one.
 const SOURCE = { demo: "Your demo", library: "Your library", n8n: "n8n template" } as const;
-export default function MatchStep({ pains, step, picked, state, templatesOn }: { pains?: PainStep; step?: Matches; picked: Picked | null; state: StepState; templatesOn: boolean }) {
-  const { busy, run } = useBuildPlan();
+/** Only a workflow whose n8n file can be fetched can be sent: a demo you built in n8n (its files are in the project) or a public n8n template. */
+const sendable = (source: string, platform?: string) => (source === "demo" && platform !== "make") || source === "n8n";
+
+export default function MatchStep({ pains, step, picked, state, templatesOn, n8n }: { pains?: PainStep; step?: Matches; picked: Picked | null; state: StepState; templatesOn: boolean; n8n: N8nStatus }) {
+  const { id, busy, run } = useBuildPlan();
+  const [sent, setSent] = useState<{ name: string; result: N8nSent } | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+  const sendButton = (ref: string, name: string, source: string) => (
+    <SendToN8nButton n8n={n8n} name={name} kind={source === "demo" ? "Your demo" : "Public template"} disabled={!!busy || !!sending}
+      send={() => { const form = new FormData(); form.set("id", String(id)); form.set("ref", ref); return sendMatchToN8nAction(form); }}
+      onBusy={(on) => setSending(on ? name : null)} onResult={(result) => setSent({ name, result })} />
+  );
   const [search, setSearch] = useState((pains?.search ?? []).join(", "));
   const [wide, setWide] = useState(false);
   const find = () => run("matches", runMatchesAction, { search, ...(wide ? { wide: "1" } : {}) }, "Search finished");
@@ -99,20 +111,26 @@ export default function MatchStep({ pains, step, picked, state, templatesOn }: {
                   <div className="row bp-match-foot">
                     {on ? <span className="badge tone-good"><Check size={13} aria-hidden /> Chosen</span>
                       : <button type="button" className="secondary" disabled={!!busy} onClick={() => run("matches", pickWorkflowAction, { ref: m.ref }, "Workflow chosen")}>Use this one</button>}
-                    {m.url && <a href={m.url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Open on n8n <ExternalLink size={13} aria-hidden /></a>}
+                    {sendable(m.source, m.platform) && sendButton(m.ref, m.name, m.source)}
+                    {m.url && <a href={m.url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }} title="Opens this template's public page on n8n's website, not your own n8n.">See it on n8n.io <ExternalLink size={13} aria-hidden /></a>}
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="muted">Top {step.matches.length} of {step.considered} found{step.search.length ? ` for: ${step.search.join(", ")}` : ""}.{templatesOn ? " Free n8n templates only; nothing about who made a template is kept." : ""}</p>
+          {sending && <p className="muted" role="status">Sending {sending} to n8n…</p>}
+          {sent && !sending && <div className="bp-sent"><span className="field-label">Send to my n8n: {sent.name}</span><N8nSentView sent={sent.result} /></div>}
+          <p className="muted">Top {step.matches.length} of {step.considered} found{step.search.length ? ` for: ${step.search.join(", ")}` : ""}.{templatesOn ? " Free n8n templates only; nothing about who made a template is kept." : ""}{step.matches.some((m) => sendable(m.source, m.platform)) ? " Send to my n8n adds a workflow to your own n8n, switched off, so you can open it there and show it; a public template arrives with no credentials connected." : ""}</p>
         </>
       )}
       {picked && (
         <div className="bp-chosen">
           <p><b>Chosen:</b> {picked.name} · {PLATFORM[picked.workflow.platform]} · {picked.workflow.steps.length} steps{picked.workflow.apps.length ? ` · ${picked.workflow.apps.join(", ")}` : ""}
             {picked.own ? <> <span className="badge tone-good">Yours</span></> : picked.source === "demo" ? <> <span className="badge tone-good">Your demo</span></> : <> <span className="badge tone-neutral">{picked.source === "n8n" ? "Public template" : "Not marked as yours"}</span></>}</p>
-          <button type="button" className="link" disabled={!!busy} onClick={() => run("matches", clearWorkflowAction, {}, "Workflow cleared")}>Plan without a workflow</button>
+          <div className="row">
+            {sendable(picked.source, picked.workflow.platform) && sendButton(picked.ref, picked.name, picked.source)}
+            <button type="button" className="link" disabled={!!busy} onClick={() => run("matches", clearWorkflowAction, {}, "Workflow cleared")}>Plan without a workflow</button>
+          </div>
         </div>
       )}
       {pains && <PasteBox />}

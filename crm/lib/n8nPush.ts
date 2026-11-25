@@ -40,26 +40,10 @@ async function existing(t: N8nTarget, key: string, name: string): Promise<{ id: 
   } catch { return { id: null, problem: `n8n at ${t.label} sent back something that could not be read.` }; }
 }
 
-/** Adds each of a demo's workflow files to the owner's n8n. One that is already there by name is left as it is. */
-export async function pushDemo(recipe: Recipe): Promise<{ results: PushResult[]; label: string; error?: string }> {
-  const status = n8nStatus(), { target } = n8nTarget(process.env.N8N_API_URL), key = process.env.N8N_API_KEY?.trim();
-  if (!target || !key) return { results: [], label: status.label, error: status.problem ?? "n8n is not set up." };
-  if (!recipe.n8n.length) return { results: [], label: target.label, error: "This demo has no n8n workflow file listed in config/demos.yaml." };
+type Ready = Prepared & { added: string };
 
-  const results: PushResult[] = [], ready: (Prepared & { file: string })[] = [];
-  for (const file of recipe.n8n) {
-    const short = path.basename(file);
-    try {
-      const raw = await readFile(path.join(ROOT, file), "utf8");
-      if (raw.length > MAX_FILE) { results.push({ name: short, status: "failed", url: null, note: "The file is too large to send." }); continue; }
-      const made = toCreateBody(JSON.parse(raw));
-      if (!made.value) { results.push({ name: short, status: "failed", url: null, note: `${short} ${made.error}.` }); continue; }
-      ready.push({ ...made.value, file });
-    } catch (err) {
-      results.push({ name: short, status: "failed", url: null, note: `${short} could not be read: ${err instanceof Error ? err.message : String(err)}` });
-    }
-  }
-
+/** Adds prepared workflows to the owner's n8n, one at a time. One that is already there by name is left as it is. */
+async function pushAll(target: N8nTarget, key: string, ready: Ready[], results: PushResult[]): Promise<string | undefined> {
   const newId = new Map<string, string>();   // the file's own id -> the id n8n gave it, so an error workflow can be re-pointed
   const link = (id: string) => `${target.base}/workflow/${encodeURIComponent(id)}`;
   try {
@@ -79,10 +63,49 @@ export async function pushDemo(recipe: Recipe): Promise<{ results: PushResult[];
       let id = "";
       try { id = String(JSON.parse(r.text)?.id ?? ""); } catch { /* answered without an id */ }
       if (id && w.oldId) newId.set(w.oldId, id);
-      results.push({ name, status: "added", url: id ? link(id) : target.base, note: w.errorWorkflow && !repoint ? "Added, switched off. Its error workflow was not found, so set that by hand in the workflow's settings." : "Added, switched off. Connect its credentials in n8n, then turn it on there." });
+      results.push({ name, status: "added", url: id ? link(id) : target.base, note: w.errorWorkflow && !repoint ? "Added, switched off. Its error workflow was not found, so set that by hand in the workflow's settings." : w.added });
     }
   } catch {
-    return { results, label: target.label, error: n8nUnreachable(target) };
+    return n8nUnreachable(target);
   }
-  return { results, label: target.label };
+  return undefined;
+}
+
+function ready(): { target?: N8nTarget; key?: string; label: string; error?: string } {
+  const status = n8nStatus(), { target } = n8nTarget(process.env.N8N_API_URL), key = process.env.N8N_API_KEY?.trim();
+  return target && key ? { target, key, label: target.label } : { label: status.label, error: status.problem ?? "n8n is not set up." };
+}
+
+/** Adds each of a demo's workflow files to the owner's n8n. */
+export async function pushDemo(recipe: Recipe): Promise<{ results: PushResult[]; label: string; error?: string }> {
+  const { target, key, label, error } = ready();
+  if (!target || !key) return { results: [], label, error };
+  if (!recipe.n8n.length) return { results: [], label, error: recipe.make.length ? "This demo is a Make.com blueprint, which n8n cannot take. Import it in Make instead." : "This demo has no n8n workflow file listed in config/demos.yaml." };
+  const results: PushResult[] = [], list: Ready[] = [];
+  for (const file of recipe.n8n) {
+    const short = path.basename(file);
+    try {
+      const raw = await readFile(path.join(ROOT, file), "utf8");
+      if (raw.length > MAX_FILE) { results.push({ name: short, status: "failed", url: null, note: "The file is too large to send." }); continue; }
+      const made = toCreateBody(JSON.parse(raw));
+      if (!made.value) { results.push({ name: short, status: "failed", url: null, note: `${short} ${made.error}.` }); continue; }
+      list.push({ ...made.value, added: "Added, switched off. Connect its credentials in n8n, then turn it on there." });
+    } catch (err) {
+      results.push({ name: short, status: "failed", url: null, note: `${short} could not be read: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  }
+  return { results, label, error: await pushAll(target, key, list, results) };
+}
+
+/**
+ * Adds one workflow file that did not come from the project folder (a free template from n8n's public library) to the owner's n8n.
+ * Its steps arrive without credentials, since the ones a template names belong to whoever made it.
+ */
+export async function pushFile(file: unknown): Promise<{ results: PushResult[]; label: string; error?: string }> {
+  const { target, key, label, error } = ready();
+  if (!target || !key) return { results: [], label, error };
+  const made = toCreateBody(file, { dropCredentials: true });
+  if (!made.value) return { results: [], label, error: `That workflow ${made.error}.` };
+  const results: PushResult[] = [];
+  return { results, label, error: await pushAll(target, key, [{ ...made.value, added: "Added, switched off, with no credentials connected. Connect your own in n8n, then turn it on there." }], results) };
 }

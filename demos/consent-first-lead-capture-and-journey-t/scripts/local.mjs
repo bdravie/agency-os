@@ -1,7 +1,7 @@
 // Run the demo without n8n or Google: the same Code nodes, with the four tabs kept in out/ (git-ignored).
 //   node scripts/local.mjs sample [--ai]   start from an empty sheet, load the sample data, play the three Loom steps, print the tabs
 //   node scripts/local.mjs seed           start from an empty sheet and load only the sample data (the state before the Loom)
-//   node scripts/local.mjs serve  [--ai]   serve the two pages on http://127.0.0.1:5679 with a local stand-in for n8n's webhooks
+//   node scripts/local.mjs serve  [--ai]   serve the two pages on http://127.0.0.1:5690 with a local stand-in for n8n's webhooks
 // --ai drafts follow-ups with Claude Haiku (needs ANTHROPIC_API_KEY; replies are cached in out/cache). Without it, a stand-in note is used.
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
@@ -10,8 +10,9 @@ import { seed, loom } from './story.mjs';
 
 const [cmd = 'sample', ...flags] = process.argv.slice(2);
 const useAi = flags.includes('--ai');
-const PORT = Number(process.env.PORT || 5679);
+const PORT = Number(process.env.PORT || 5690);   // not 5679: n8n's own task runner uses it
 const BASE = `http://127.0.0.1:${PORT}/webhook/lead-capture`;
+const N8N = 'http://localhost:5678/webhook/lead-capture';
 const KEY = SETTINGS.team_key;
 
 const local = async (path, fields) => {
@@ -77,7 +78,14 @@ if (cmd === 'seed') {
       res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
       res.end(JSON.stringify({ ok: false, error: 'The local stand-in failed: ' + e.message }));
     }
-  }).listen(PORT, '127.0.0.1', () => console.log(`Website:   http://127.0.0.1:${PORT}/?hook=${encodeURIComponent(BASE)}\nTeam view: http://127.0.0.1:${PORT}/journey.html?hook=${encodeURIComponent(BASE)}\nTabs in out/*.csv. Ctrl+C to stop.`));
+  }).on('error', (e) => {
+    if (e.code !== 'EADDRINUSE') throw e;
+    console.error(`Port ${PORT} is already in use, perhaps by another copy of this command. Stop that one, or pick another port: PORT=5691 node scripts/local.mjs serve`);
+    process.exit(1);
+  }).listen(PORT, '127.0.0.1', () => {
+    const links = (hook) => `  Website:   http://127.0.0.1:${PORT}/?hook=${encodeURIComponent(hook)}\n  Team view: http://127.0.0.1:${PORT}/journey.html?hook=${encodeURIComponent(hook)}`;
+    console.log(`With n8n and your Google Sheet:\n${links(N8N)}\n\nWithout n8n (tabs kept in out/*.csv):\n${links(BASE)}\n\nThe page remembers whichever you open last. Ctrl+C to stop.`);
+  });
 } else {
   console.log('Use: node scripts/local.mjs sample|seed|serve [--ai]');
 }

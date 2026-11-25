@@ -32,10 +32,10 @@ const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v =
 
 /**
  * A workflow file as the body for n8n's "create a workflow". Read-only fields (id, active, versionId, meta, tags, pinned test data)
- * are dropped, so it always arrives switched off. The file's own id and the id of its error workflow are handed back separately:
+ * are dropped, so it always arrives switched off. With `dropCredentials` (a public template) the steps' credential links are left off too. The file's own id and the id of its error workflow are handed back separately:
  * n8n gives a new workflow a new id, so a link between two workflows has to be re-pointed (see `orderForImport`).
  */
-export function toCreateBody(json: unknown): { value?: Prepared; error?: string } {
+export function toCreateBody(json: unknown, o: { dropCredentials?: boolean } = {}): { value?: Prepared; error?: string } {
   if (!isObject(json) || !Array.isArray(json.nodes) || !isObject(json.connections)) return { error: "is not an n8n workflow file (it has no nodes and connections)" };
   const name = typeof json.name === "string" ? json.name.trim().slice(0, 128) : "";
   if (!name) return { error: "has no name" };
@@ -44,7 +44,9 @@ export function toCreateBody(json: unknown): { value?: Prepared; error?: string 
   const errorWorkflow = typeof settings.errorWorkflow === "string" && settings.errorWorkflow ? settings.errorWorkflow : null;
   delete settings.errorWorkflow;
   if (!settings.executionOrder) settings.executionOrder = "v1";
-  return { value: { body: { name, nodes: json.nodes.map((n) => pick(n as Record<string, unknown>, NODE_KEYS)), connections: json.connections, settings }, oldId: typeof json.id === "string" && json.id ? json.id : null, errorWorkflow } };
+  // A public template's steps name its maker's own credentials, which mean nothing in another n8n: they are left off, and the owner connects theirs.
+  const keys = o.dropCredentials ? NODE_KEYS.filter((k) => k !== "credentials") : NODE_KEYS;
+  return { value: { body: { name, nodes: json.nodes.map((n) => pick(n as Record<string, unknown>, keys)), connections: json.connections, settings }, oldId: typeof json.id === "string" && json.id ? json.id : null, errorWorkflow } };
 }
 
 /** The order to add a demo's workflows in: one that another names as its error workflow goes first, so the link can be re-pointed at its new id. */

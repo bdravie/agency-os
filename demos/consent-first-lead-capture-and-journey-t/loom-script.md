@@ -5,7 +5,7 @@
 - The sample data is loaded: `node demos/consent-first-lead-capture-and-journey-t/scripts/load-sample.mjs`.
 - `node demos/consent-first-lead-capture-and-journey-t/scripts/local.mjs serve` is running so the pages are served.
 - Three browser tabs, in this order:
-  1. **Website:** `http://127.0.0.1:5679/?hook=http://localhost:5678/webhook/lead-capture`
+  1. **Website:** `http://127.0.0.1:5690/?hook=http://localhost:5678/webhook/lead-capture`
   2. **Team view:** the *Open the team view* link, with `&sheet=<ID>` added to its address.
   3. **The Google Sheet**, on the *Contacts* tab, scrolled to the bottom row.
 

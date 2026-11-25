@@ -104,7 +104,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
         <BuildPlanPanel
           id={id} title={proposalName(p)} plan={p.build_plan ?? null} at={p.build_plan_at ? String(p.build_plan_at) : null} rates={rates} usdToGbp={build[2]}
           cases={build[0].map(caseStudyOf).map((c) => ({ id: c.proof_id, label: `${c.client_type}: ${c.built.slice(0, 60)}` }))}
-          tools={{ strong_tools: build[1].strong_tools, familiar_tools: build[1].familiar_tools }} job={p.job_text ?? ""} templatesOn={templatesOn()} autoRun={run === "1"}
+          tools={{ strong_tools: build[1].strong_tools, familiar_tools: build[1].familiar_tools }} job={p.job_text ?? ""} templatesOn={templatesOn()} autoRun={run === "1"} n8n={n8nStatus()}
         />
       )}
       {tab === "fit" && <FitPanel id={id} score={p.fit_score} fit={p.fit_analysis} />}

@@ -1,6 +1,6 @@
 """Writes ../n8n/consent-first-lead-capture.json from the readable pieces in ../n8n-code/ and ../prompts/.
 Run: uv run python demos/consent-first-lead-capture-and-journey-t/scripts/build-workflow.py
-     ... --local --sheet-id <id>   writes n8n/local/ (git-ignored) with your sheet's ID filled in, so you only import it.
+     ... --local --sheet-id PASTE_ID   writes n8n/local/ (git-ignored) with your sheet's ID filled in, so you only import it.
 Edit the Settings below (or in n8n after import), re-run, then re-import (see the README)."""
 
 import argparse

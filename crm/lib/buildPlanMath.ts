@@ -18,8 +18,8 @@ export type Cost = "money" | "time" | "both";
 export type Pain = { id: string; pain: string; quote: string; cost: Cost; why: string; search: string[] };
 export type PainStep = { pains: Pain[]; chosen: string; search: string[]; data_note: string | null; at?: string };
 
-/** `demo` is the workflow of a demo the owner built (config/demos.yaml); `library` is one they saved as run by them. `score` and `shares` are set on the owner's own, by `ownFirst`. */
-export type Candidate = { ref: string; source: "n8n" | "library" | "demo"; name: string; summary: string; apps: string[]; url: string | null; tags?: string[]; score?: number; shares?: string[] };
+/** `demo` is the workflow of a demo the owner built (config/demos.yaml); `library` is one they saved as run by them. `score` and `shares` are set on the owner's own, by `ownFirst`. `platform` says what a demo's workflow is built in: only an n8n one can be sent to n8n. */
+export type Candidate = { ref: string; source: "n8n" | "library" | "demo"; name: string; summary: string; apps: string[]; url: string | null; tags?: string[]; score?: number; shares?: string[]; platform?: "n8n" | "make" };
 export type Match = Candidate & { reason: string };
 export type MatchStep = { basis: string; search: string[]; matches: Match[]; considered: number; notes: string[]; at?: string };
 
@@ -49,6 +49,8 @@ export type BuildPlan = { pains?: PainStep; matches?: MatchStep; workflow?: Pick
 export const HEADING_OWN = "A workflow I use for this kind of problem";
 export const HEADING_PATTERN = "A workflow pattern I'd start from for this kind of problem";
 export const HEADING_DEMO = "A demo workflow I built for this kind of problem";
+/** With "Search n8n's library as well" ticked, up to this many public templates are shown after the owner's own. */
+export const WIDE_EXTRA = 3;
 /** How well one of the owner's own workflows has to score against the job (out of 100, the Run a demo score) to be put ahead of public templates. */
 export const OWN_SIMILAR = 30;
 export const DPA_NOTE = "The job points to personal data. A data processing agreement comes first, before any of their customers' personal data is handled.";
@@ -167,8 +169,10 @@ export function ownFirst(own: Candidate[], about: string): { ranked: Candidate[]
 /**
  * The top 3 with a reason each. Only workflows that were really found can be picked; a reason with a figure or a claim is replaced by a plain one.
  * `first` are the owner's own similar workflows: they always come before anything else, in their own order, whatever the AI ranked.
+ * `limit` is how many to show: 3, or more when the owner asked for n8n's public library as well, so that their own never push
+ * every public template off the list (the extra places then go to public templates before anything else).
  */
-export function finishMatches(raw: any, cands: Candidate[], first: Candidate[] = []): Match[] {
+export function finishMatches(raw: any, cands: Candidate[], first: Candidate[] = [], limit = 3): Match[] {
   const byRef = new Map(cands.map((c) => [c.ref, c]));
   const said = new Map<string, string>();
   for (const p of Array.isArray(raw?.picks) ? raw.picks : []) {
@@ -177,12 +181,13 @@ export function finishMatches(raw: any, cands: Candidate[], first: Candidate[] =
   }
   const out: Match[] = first.filter((c) => byRef.has(c.ref)).slice(0, 3).map((c) => ({ ...c, reason: said.get(c.ref) || codeReason(c) }));
   for (const [ref, reason] of said) {
-    if (out.length >= 3) break;
+    if (out.length >= limit) break;
     const c = byRef.get(ref)!;
     if (!out.some((m) => m.ref === ref)) out.push({ ...c, reason: reason || codeReason(c) });
   }
-  for (const c of cands) {
-    if (out.length >= 3) break;
+  const fill = limit > 3 ? [...cands.filter((c) => c.source === "n8n"), ...cands.filter((c) => c.source !== "n8n")] : cands;
+  for (const c of fill) {
+    if (out.length >= limit) break;
     if (!out.some((m) => m.ref === c.ref)) out.push({ ...c, reason: codeReason(c) });
   }
   return out;
@@ -193,6 +198,16 @@ export const headingFor = (own: boolean) => (own ? HEADING_OWN : HEADING_PATTERN
 export const headingOf = (p: Pick<Picked, "own" | "source">) => (p.own ? HEADING_OWN : p.source === "demo" ? HEADING_DEMO : HEADING_PATTERN);
 
 /** Tidies a chosen workflow read back from the database or sent from the browser. */
+/**
+ * What Send to my n8n may send from step 2, or null. Only a workflow this plan found or has chosen, and only one whose file can be
+ * fetched: a demo's n8n file in the project, or a free template in n8n's public library. A workflow from the library or a pasted
+ * one was only ever kept as an outline, so there is no file to send.
+ */
+export function sendKind(bp: BuildPlan, ref: string): "demo" | "n8n" | null {
+  if (!ref || !((bp.matches?.matches ?? []).some((m) => m.ref === ref) || bp.workflow?.ref === ref)) return null;
+  return ref.startsWith("demo:") ? "demo" : /^n8n:\d{1,7}$/.test(ref) ? "n8n" : null;
+}
+
 export function cleanPicked(v: any): Picked | null {
   const workflow = cleanParsed(v?.workflow);
   if (!workflow || typeof v?.ref !== "string") return null;

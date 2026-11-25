@@ -34,6 +34,18 @@ export async function searchTemplates(phrase: string): Promise<{ hits: TemplateH
   return { hits: cleanHits(json), fresh };
 }
 
+/**
+ * One free template's own workflow file, for Send to my n8n: it is passed straight on to the owner's n8n and not kept here.
+ * Nothing about who made the template is read. Counts as one request, like opening it.
+ */
+export async function fetchTemplateFile(id: number): Promise<{ file: Record<string, unknown>; fresh: boolean }> {
+  const { json, fresh } = await get(`/workflows/${id}`);
+  const t = json?.workflow;
+  if (Number(t?.price) > 0 || t?.purchaseUrl) throw new Error("That is a paid template, so it can't be sent from here. Buy it on n8n and import it there.");
+  if (!t?.workflow || typeof t.workflow !== "object") throw new Error("That template could not be read.");
+  return { file: { ...t.workflow, name: typeof t?.name === "string" && t.name.trim() ? t.name : `n8n template ${id}` }, fresh };
+}
+
 /** One template, as an outline of its steps. The file itself is not kept. */
 export async function fetchTemplate(id: number): Promise<{ name: string; workflow: ParsedWorkflow; fresh: boolean }> {
   const { json, fresh } = await get(`/workflows/${id}`);

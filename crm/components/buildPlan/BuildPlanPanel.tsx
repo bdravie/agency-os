@@ -8,6 +8,7 @@ import { runDemoAction, runMatchesAction, runPainsAction, runPlanAction } from "
 import { applicationText, cleanPicked, stepStates, STEP_LABELS, STEPS, type BuildPlan, type Currency, type StepKey } from "@/lib/buildPlanMath";
 import { clientPageBlock, clientPageHref, stackGapNote } from "@/lib/buildPlanPageMath";
 import type { Rates } from "@/lib/proposalPlanMath";
+import type { N8nStatus } from "@/lib/n8nPush";
 import CopyButton from "@/components/CopyButton";
 import { useToast } from "@/components/Toast";
 import DemoStep, { type CaseOption } from "./DemoStep";
@@ -19,9 +20,9 @@ import { BuildPlanContext, STATE_TEXT, type Shared } from "./shared";
 // The Build plan tab: paste a job post, get the pain point to lead with, a workflow that solves it, a walkthrough of that workflow
 // and a plan with milestones, timeline and a fixed price. Four visible steps, each editable and re-runnable on its own.
 // Run all does them in order, taking the top-ranked choice at steps 1 and 2. Nothing is sent anywhere.
-export default function BuildPlanPanel({ id, title, plan, at, rates, usdToGbp, cases, tools, job, templatesOn, autoRun }: {
+export default function BuildPlanPanel({ id, title, plan, at, rates, usdToGbp, cases, tools, job, templatesOn, autoRun, n8n }: {
   id: number; title: string; plan: BuildPlan | null; at: string | null; rates: Rates; usdToGbp: number | null; cases: CaseOption[];
-  tools: { strong_tools: string[]; familiar_tools: string[] }; job: string; templatesOn: boolean; autoRun: boolean;
+  tools: { strong_tools: string[]; familiar_tools: string[] }; job: string; templatesOn: boolean; autoRun: boolean; n8n: N8nStatus;
 }) {
   const toast = useToast();
   const [busy, setBusy] = useState<StepKey | null>(null);
@@ -115,7 +116,7 @@ export default function BuildPlanPanel({ id, title, plan, at, rates, usdToGbp, c
         {failed && <p className="error" role="alert">{STEP_LABELS[failed.step]}: {failed.message}</p>}
 
         <PainsStep key={`pains-${bp.pains?.at ?? ""}`} step={bp.pains} state={states.pains} />
-        <MatchStep key={`matches-${bp.matches?.at ?? ""}-${bp.pains?.search.join("|") ?? ""}`} pains={bp.pains} step={bp.matches} picked={picked} state={states.matches} templatesOn={templatesOn} />
+        <MatchStep key={`matches-${bp.matches?.at ?? ""}-${bp.pains?.search.join("|") ?? ""}`} pains={bp.pains} step={bp.matches} picked={picked} state={states.matches} templatesOn={templatesOn} n8n={n8n} />
         <DemoStep key={`demo-${bp.demo?.at ?? ""}-${bp.demo?.case_study?.proof_id ?? ""}`} step={bp.demo} picked={picked} state={states.demo} cases={cases} />
         <PlanStep key={`plan-${bp.plan?.at ?? ""}`} step={bp.plan} state={states.plan} title={title} hasPains={!!bp.pains} hasWorkflow={!!picked} rates={rates} usdToGbp={usdToGbp} job={job} tools={tools} />
 

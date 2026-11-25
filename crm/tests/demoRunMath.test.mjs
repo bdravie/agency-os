@@ -158,6 +158,10 @@ test("a workflow file is cut down to exactly what n8n's API accepts, and always 
   assert.deepEqual(Object.keys(value.body.nodes[0]).sort(), ["credentials", "id", "name", "onError", "parameters", "position", "type", "typeVersion", "webhookId"]);
   assert.deepEqual(value.body.settings, { executionOrder: "v1" });                                       // the error workflow is re-pointed by the sender, never sent as the old id
   assert.deepEqual([value.oldId, value.errorWorkflow], ["OldId01", "ErrId02"]);
+  // A public template's steps name its maker's credentials, which mean nothing in your n8n: they are left off.
+  const template = toCreateBody(file, { dropCredentials: true }).value;
+  assert.ok(!("credentials" in template.body.nodes[0]) && template.body.nodes[0].parameters.path === "missed");
+  assert.ok("credentials" in value.body.nodes[0]);                                                       // your own demo keeps its links to your credentials
   assert.deepEqual(toCreateBody({ name: "x", nodes: [{ name: "a", type: "t" }], connections: {} }).value.body.settings, { executionOrder: "v1" });
   assert.match(toCreateBody({ name: "Make blueprint", flow: [] }).error, /not an n8n workflow file/);
   assert.match(toCreateBody({ name: " ", nodes: [{ name: "a", type: "t" }], connections: {} }).error, /no name/);

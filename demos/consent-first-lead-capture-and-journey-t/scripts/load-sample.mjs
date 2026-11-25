@@ -26,6 +26,9 @@ try {
   if (process.argv.includes('--loom')) { console.log(''); await loom(call, KEY, (line) => console.log('  ' + line)); }
   console.log('\nDone. Open the sheet, then the team view.');
 } catch (e) {
-  console.error(`\nStopped: ${e.message}\nIs n8n running, the workflow published, and the sheet ID and Google credential set? See the README.`);
+  const hint = / HTTP 500 /.test(e.message)
+    ? 'n8n answered, so it is running and published, but a step failed. In n8n open the workflow, then Executions, and click the top red one: the red node says why. Usual causes: the Google credential not picked on both sheet nodes (publish again after picking it), the Google Sheets API not enabled, or a tab not named exactly as in the README.'
+    : 'Is n8n running and the workflow published? See the README.';
+  console.error(`\nStopped: ${e.message}\n${hint}`);
   process.exit(1);
 }

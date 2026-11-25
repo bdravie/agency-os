@@ -52,6 +52,9 @@
 .bp-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .bp-chosen { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--good-soft); }
 .bp-chosen p { margin: 0; }
+.bp-sent { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.bp-sent .dr-result { margin-top: 4px; }
+.bp-match-foot { flex-wrap: wrap; }
 
 /* Step 3: the walkthrough and the case study. */
 .bp-walk { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }

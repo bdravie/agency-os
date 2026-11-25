@@ -15,7 +15,7 @@ import { fetchTemplate, searchTemplates, templatesOn } from "./n8nTemplates.ts";
 import { broaden, ENOUGH_HITS, TEMPLATE_PAGE } from "./n8nTemplatesMath.ts";
 import { loadLibrary, loadLibraryWorkflow } from "./workflowLibrary.ts";
 import {
-  eligibleCases, finishDemo, finishMatches, finishPains, finishPlan, ownFirst, rankCandidates, settleDemo,
+  eligibleCases, finishDemo, finishMatches, finishPains, finishPlan, ownFirst, rankCandidates, settleDemo, WIDE_EXTRA,
   type Candidate, type CaseItem, type DemoStep, type MatchStep, type Pain, type PainStep, type Picked, type TailoredStep,
 } from "./buildPlanMath.ts";
 
@@ -67,7 +67,7 @@ export async function extractPains(job: string): Promise<PainStep> {
 
 const MATCH = {
   type: "object" as const,
-  properties: { picks: { type: "array", maxItems: 3, items: { type: "object", properties: { ref: str, reason: str }, required: ["ref", "reason"] } } },
+  properties: { picks: { type: "array", maxItems: 6, items: { type: "object", properties: { ref: str, reason: str }, required: ["ref", "reason"] } } },
   required: ["picks"],
 };
 
@@ -103,7 +103,7 @@ export async function findMatches(job: string, pain: Pain, search: string[], bas
   const notes: string[] = [], cands: Candidate[] = [];
   let requests = 0;
   for (const d of await loadDemoWorkflows()) {
-    cands.push({ ref: d.ref, source: "demo", name: d.name, summary: [d.summary.slice(0, 220), `${d.workflow.steps.length} steps`].filter(Boolean).join(" · "), apps: d.workflow.apps, url: null, tags: d.tags });
+    cands.push({ ref: d.ref, source: "demo", name: d.name, summary: [d.summary.slice(0, 220), `${d.workflow.steps.length} steps`].filter(Boolean).join(" · "), apps: d.workflow.apps, url: null, tags: d.tags, platform: d.workflow.platform });
   }
   for (const w of await loadLibrary()) {
     cands.push({ ref: `lib:${w.id}`, source: "library", name: w.name, summary: [w.solves, `${w.workflow.steps.length} steps`].filter(Boolean).join(" · "), apps: w.apps, url: null, tags: w.tags });
@@ -135,15 +135,17 @@ export async function findMatches(job: string, pain: Pain, search: string[], bas
   if (!cands.length) return { step: { basis, search, matches: [], considered: 0, notes: [...notes, "Nothing was found. Change the search words, or paste a workflow."] }, requests };
   const rest = rankCandidates(cands.filter((c) => !first.some((f) => f.ref === c.ref)), `${pain.pain} ${search.join(" ")}`, 12 - first.length);
   const short = [...first, ...rest];
+  // Asked for n8n's library as well: the owner's own stay in front, and up to three public templates follow them.
+  const limit = wide && first.length ? Math.min(6, first.length + WIDE_EXTRA) : 3;
   const WHERE = { demo: "a demo the consultant built", library: "the consultant's own library", n8n: "n8n public template" } as const;
   const listing = short.map((c) => `[ref ${c.ref}] (${WHERE[c.source]}) ${c.name}\n  ${c.summary || "(no description)"}\n  Apps: ${c.apps.join(", ") || "(not listed)"}`).join("\n");
   let raw: unknown = null;
   try {
-    raw = await askStructured(`${await read("prompts/build-plan-match.md")}\n\nPAIN POINT:\n${pain.pain}\n\nJOB POST:\n${post(job).slice(0, 4000)}\n\nCANDIDATES:\n${listing}`, MATCH, "haiku", 1200);
+    raw = await askStructured(`${await read("prompts/build-plan-match.md")}\n\nPAIN POINT:\n${pain.pain}\n\nHOW MANY: ${limit}\n\nJOB POST:\n${post(job).slice(0, 4000)}\n\nCANDIDATES:\n${listing}`, MATCH, "haiku", 1600);
   } catch {
     notes.push("The AI could not rank these, so they are in keyword order.");
   }
-  return { step: { basis, search, matches: finishMatches(raw, short, first), considered: cands.length, notes }, requests };
+  return { step: { basis, search, matches: finishMatches(raw, short, first, limit), considered: cands.length, notes }, requests };
 }
 
 /** The chosen workflow as an outline: one of the owner's own, or an n8n template read once and then dropped. */

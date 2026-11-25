@@ -9,9 +9,13 @@ import { logActivity } from "./activity";
 import { containsContactDetails } from "./audit";
 import { query } from "./db";
 import { extractPains, findMatches, loadCases, loadPicked, writeDemo, writePlan } from "./buildPlan";
-import { chosenPain, cleanDemoEdit, cleanPainsEdit, cleanPicked, cleanPlanEdit, painBasis, STEP_LABELS, type BuildPlan, type Picked, type StepKey } from "./buildPlanMath";
+import { chosenPain, cleanDemoEdit, cleanPainsEdit, cleanPicked, cleanPlanEdit, painBasis, sendKind, STEP_LABELS, type BuildPlan, type Picked, type StepKey } from "./buildPlanMath";
 import { cleanPageEdit } from "./buildPlanPageMath";
-import { templateDailyCap } from "./n8nTemplates";
+import { fetchTemplateFile, templateDailyCap, templatesOn } from "./n8nTemplates";
+import { loadRecipes } from "./demoRun";
+import { scrub } from "./launch";
+import { pushDemo, pushFile } from "./n8nPush";
+import { pushSummary, type PushResult } from "./n8nPushMath";
 import { cleanSearches, templateIdFromUrl } from "./n8nTemplatesMath";
 import { analyseFit } from "./proposalPlan";
 import { clientPageTitle, proposalName, titleFromJob } from "./proposalName";
@@ -194,6 +198,44 @@ export async function pasteWorkflowAction(form: FormData): Promise<StepResult> {
     return { error: message(err) };
   }
   return { picked: true };
+}
+
+export type MatchSendResult = { error?: string; summary?: string; results?: PushResult[] };
+
+/**
+ * Send to my n8n, from step 2: adds one found workflow to the owner's own n8n (N8N_API_URL, their local one by default), switched off.
+ * A demo they built is sent from its own files; a free template from n8n's public library is fetched (one request, inside the daily
+ * limit) and passed straight on, never kept here. A workflow from their library or a pasted one cannot be sent, because only its
+ * outline was ever saved. Only on their click, after a confirmation naming where it goes.
+ */
+export async function sendMatchToN8nAction(form: FormData): Promise<MatchSendResult> {
+  await requireLogin();
+  const id = Number(val(form, "id")), ref = val(form, "ref"), p = await load(id);
+  if (!p) return { error: "Proposal not found." };
+  const kind = sendKind(p.bp, ref);
+  if (!kind) {
+    return { error: /^(lib|pasted):/.test(ref)
+      ? "Only the outline of this workflow was saved here, not its file, so it cannot be sent. Import the original file in n8n (Workflows > Import from file)."
+      : "That workflow is not one this plan has found or chosen. Search again, then send it from its card." };
+  }
+  try {
+    let sent: Awaited<ReturnType<typeof pushDemo>>, what = "";
+    if (kind === "demo") {
+      const recipe = (await loadRecipes()).recipes.find((r) => `demo:${r.folder}` === ref);
+      if (!recipe) return { error: "That demo is not listed in config/demos.yaml." };
+      sent = await pushDemo(recipe); what = recipe.title;
+    } else {
+      if (!templatesOn()) return { error: "n8n's library is switched off (N8N_TEMPLATES=off), so the template cannot be fetched. Import it on n8n's own site instead." };
+      if ((await n8nAllowance()) < 1) return { error: `Today's limit of ${templateDailyCap()} n8n lookups is reached. Try tomorrow, or import it on n8n's own site.` };
+      const template = await fetchTemplateFile(Number(ref.slice(4)));
+      if (template.fresh) await logged(id, "matches", 1);
+      sent = await pushFile(template.file); what = `n8n template ${ref.slice(4)}`;
+    }
+    if (sent.results.length) await logActivity("demo_sent_to_n8n", { channel: "upwork", body: `${what} sent to n8n at ${sent.label} for proposal #${id}`, meta: { proposal_id: id, ref, source: kind, added: sent.results.filter((r) => r.status === "added").length } });
+    return { error: sent.error ? scrub(sent.error) : undefined, results: sent.results, summary: sent.results.length ? pushSummary(sent.results, sent.label) : undefined };
+  } catch (err) {
+    return { error: scrub(message(err)) };
+  }
 }
 
 /** Plan without a pattern workflow: clears the choice, so the tailored plan is written from the job post alone. */
