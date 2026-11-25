@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ExternalLink, Workflow } from "lucide-react";
+import { Check, ExternalLink, Pencil, Workflow } from "lucide-react";
 import "@/app/proposals/loom-pitch.css";
 import "@/app/proposals/build-plan.css";
 import { runDemoAction, runMatchesAction, runPainsAction, runPlanAction } from "@/lib/buildPlanActions";
 import { applicationText, cleanPicked, stepStates, STEP_LABELS, STEPS, type BuildPlan, type Currency, type StepKey } from "@/lib/buildPlanMath";
-import { clientPageBlock, clientPageHref } from "@/lib/buildPlanPageMath";
+import { clientPageBlock, clientPageHref, stackGapNote } from "@/lib/buildPlanPageMath";
 import type { Rates } from "@/lib/proposalPlanMath";
 import CopyButton from "@/components/CopyButton";
 import { useToast } from "@/components/Toast";
@@ -80,7 +80,7 @@ export default function BuildPlanPanel({ id, title, plan, at, rates, usdToGbp, c
   };
   const text = useMemo(() => applicationText(bp, rates, { currency, usdToGbp }), [bp, rates, currency, usdToGbp]);
   const ready = STEPS.filter((s) => states[s] === "ready").length;
-  const pageBlock = clientPageBlock(bp);
+  const pageBlock = clientPageBlock(bp), stackGap = stackGapNote(bp);
   const currencyPills = usdToGbp ? (
     <div className="pills" role="radiogroup" aria-label="Currency for the price">
       {(["GBP", "USD"] as Currency[]).map((c) => <button key={c} type="button" role="radio" aria-checked={currency === c} className={`pill${currency === c ? " on" : ""}`} onClick={() => setCurrency(c)}>{c === "GBP" ? "Pounds" : "Dollars"}</button>)}
@@ -123,13 +123,15 @@ export default function BuildPlanPanel({ id, title, plan, at, rates, usdToGbp, c
           <div className="lp-head">
             <div>
               <h3>Page to show the client</h3>
-              <p className="muted">The plan as a clean page for a Loom or a call: each step in order with its tool, what the team ends up with, then the milestones and what you would need. Put together by code from the plan as saved, so save your edits first. Its heading is the proposal&apos;s title (Draft &gt; Edit details). Nothing is sent.</p>
+              <p className="muted">The plan as a clean page for a Loom or a call: each step in order with its tech stack, what the team ends up with, then the milestones and what you would need. Put together by code from the plan as saved, so save your edits first. <b>Edit the page</b> lets you reword anything on it and add who it is for, an opening line and a closing line. Nothing is sent.</p>
             </div>
             {currencyPills}
           </div>
+          {!pageBlock && stackGap && <p className="bp-note">{stackGap}</p>}
           {pageBlock ? <p className="muted">{pageBlock}</p> : (
             <div className="row">
               <a className="btn secondary" href={clientPageHref(id, { currency, showPrice })} target="_blank" rel="noopener"><ExternalLink size={14} aria-hidden /> Open the client page</a>
+              <a className="btn secondary" href={clientPageHref(id, { currency, showPrice, edit: true })} target="_blank" rel="noopener"><Pencil size={14} aria-hidden /> Edit the page</a>
               <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={showPrice} onChange={(e) => setShowPrice(e.target.checked)} /> Show the prices</label>
               <span className="muted">Opens in a new tab with no menu. To keep a copy, print it and choose Save as PDF.</span>
             </div>

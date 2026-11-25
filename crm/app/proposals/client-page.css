@@ -1,41 +1,49 @@
-/* The Build plan's client page (/proposals/[id]/build-plan): the plan as numbered steps down one Coral line, ending in what the
-   team ends up with. Shown to a client on a Loom or a call, so it has no sidebar and no controls. Brand tokens only; every class
-   starts cp-. Drawn by components/buildPlan/ClientPageView.tsx. */
+/* The Build plan's client page (/proposals/[id]/build-plan): the plan as numbered steps down one Coral line, each with its tech
+   stack, ending in what the team ends up with. Shown to a client on a Loom or a call, so it has no sidebar and no controls; with
+   ?edit=1 every piece of text is a box to type in under an editing bar. Brand colour tokens only; every class starts cp-.
+   Drawn by components/buildPlan/ClientPageView.tsx (and ClientPageEditor.tsx).
+   Type: this page has its own face (Inter, --font-pitch, set on the page), asked for by the owner on 25 Nov 2026: one plain, bold,
+   easy-to-read face, like a pitch deck. The CRM's own two fonts are not used here. */
 
 body:has(.cp) { background: var(--bg); }   /* plain Cream (Navy in dark): the CRM's grid would sit behind the words on camera */
 
-.cp { min-height: 100vh; display: flex; flex-direction: column; font-size: 16px; line-height: 1.6; color: var(--text-2); }
+.cp { --cp-font: var(--font-pitch), "Helvetica Neue", Arial, system-ui, sans-serif; min-height: 100vh; display: flex; flex-direction: column; font-family: var(--cp-font); font-size: 16px; line-height: 1.6; color: var(--text-2); }
+.cp :is(button, input, textarea, a.btn) { font-family: var(--cp-font); }
 .cp li { padding: 0; border: 0; }   /* the CRM's lists are ruled rows; these are plain */
 .cp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .cp-top { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line-soft); }
 .cp-top-in { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: min(900px, 100%); margin: 0 auto; padding: 16px 24px; }
-.cp-brand { font-family: var(--font-head); font-weight: 700; font-size: 20px; letter-spacing: -0.02em; color: var(--text); }
-.cp-tag, .cp-kicker { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.cp-brand { font-weight: 800; font-size: 20px; letter-spacing: -0.03em; color: var(--text); }
+.cp-tag, .cp-kicker { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .cp-tag { white-space: nowrap; }
 .cp .cp-kicker { display: block; margin: 0 0 8px; }
 
 .cp-main { display: flex; flex-direction: column; gap: 56px; width: min(900px, 100%); margin: 0 auto; padding: 52px 24px 44px; }
-.cp h1 { max-width: 24ch; font-size: clamp(28px, 4.6vw, 44px); line-height: 1.08; letter-spacing: -0.03em; color: var(--text); text-wrap: balance; overflow-wrap: anywhere; }
-.cp h2 { margin: 0 0 20px; font-family: var(--font-head); font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; text-transform: none; color: var(--text); }
-.cp h3 { margin: 0 0 6px; font-family: var(--font-head); font-size: 20px; line-height: 1.25; font-weight: 700; letter-spacing: -0.015em; color: var(--text); overflow-wrap: anywhere; }
+.cp h1 { max-width: 22ch; font-family: var(--cp-font); font-size: clamp(30px, 4.8vw, 46px); line-height: 1.06; font-weight: 800; letter-spacing: -0.035em; color: var(--text); text-wrap: balance; overflow-wrap: anywhere; }
+.cp h2 { margin: 0 0 20px; font-family: var(--cp-font); font-size: 26px; line-height: 1.15; font-weight: 800; letter-spacing: -0.03em; text-transform: none; color: var(--text); }
+.cp h3 { margin: 0 0 6px; font-family: var(--cp-font); font-size: 20px; line-height: 1.25; font-weight: 700; letter-spacing: -0.02em; color: var(--text); overflow-wrap: anywhere; }
 .cp p { margin: 0; }
+.cp .cp-intro { max-width: 60ch; margin-top: 16px; font-size: 18px; line-height: 1.55; }
 
 .cp-problem { margin-top: 28px; padding-left: 18px; border-left: 3px solid var(--accent); }
-.cp-problem-text { max-width: 34ch; font-family: var(--font-head); font-weight: 600; font-size: 22px; line-height: 1.3; letter-spacing: -0.015em; color: var(--text); text-wrap: balance; }
+.cp-problem-text { max-width: 34ch; font-weight: 700; font-size: 22px; line-height: 1.3; letter-spacing: -0.015em; color: var(--text); text-wrap: balance; }
 .cp-problem blockquote { margin: 10px 0 0; max-width: 60ch; font-size: 15px; font-style: italic; color: var(--muted); overflow-wrap: anywhere; }
 
 /* The steps: a numbered circle on the line, the card beside it. (The sizes are --cp-n, not --n: globals.css registers --n as a whole number.) */
 .cp-steps { display: flex; flex-direction: column; gap: 22px; margin: 0; padding: 0; list-style: none; }
 .cp-step { --cp-n: 44px; --cp-top: 14px; position: relative; display: grid; grid-template-columns: var(--cp-n) minmax(0, 1fr); gap: 22px; align-items: start; }
 .cp-step:not(:last-child)::before { content: ""; position: absolute; left: calc(var(--cp-n) / 2 - 1px); top: calc(var(--cp-top) + var(--cp-n)); bottom: calc(-22px - var(--cp-top)); width: 2px; background: color-mix(in srgb, var(--accent) 42%, transparent); }
-.cp-n { position: relative; display: grid; place-items: center; width: var(--cp-n); height: var(--cp-n); margin-top: var(--cp-top); border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); color: var(--text); font-family: var(--font-head); font-weight: 700; font-size: 17px; font-variant-numeric: tabular-nums; }
+.cp-n { position: relative; display: grid; place-items: center; width: var(--cp-n); height: var(--cp-n); margin-top: var(--cp-top); border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); color: var(--text); font-weight: 800; font-size: 17px; font-variant-numeric: tabular-nums; }
 .cp-end .cp-n { background: var(--text); border-color: var(--text); color: var(--bg); }
 
 .cp-card { padding: 22px 26px; background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--radius); box-shadow: var(--shadow-1); }
 .cp-step .cp-card p { max-width: 64ch; }
-.cp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
-.cp-chips li { padding: 3px 12px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); font-size: 13px; font-weight: 600; }
+/* Under every step: everything it needs to run. */
+.cp-stack { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.cp .cp-stack .cp-kicker { margin: 0; white-space: nowrap; }
+.cp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cp-chips li { padding: 3px 12px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 13px; font-weight: 600; }
 .cp .cp-jump { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; font-size: 14px; color: var(--muted); }
 .cp-jump svg { flex: none; margin-top: 4px; }
 .cp-jump b { color: var(--text-2); font-weight: 600; }
@@ -53,26 +61,56 @@ body:has(.cp) { background: var(--bg); }   /* plain Cream (Navy in dark): the CR
 .cp-mile-main h3 { margin: 0; font-size: 17px; }
 .cp-mile-main ul { display: flex; flex-direction: column; gap: 2px; margin: 6px 0 0; padding-left: 18px; list-style: disc; font-size: 15px; }
 .cp-mile-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cp-mile-side b { font-family: var(--font-head); font-size: 20px; line-height: 1.25; color: var(--text); }
+.cp-mile-side b { font-size: 20px; font-weight: 800; line-height: 1.25; letter-spacing: -0.02em; color: var(--text); }
 .cp-mile-side span, .cp-sub { font-size: 13.5px; color: var(--muted); }
 .cp-totals { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
 .cp-totals > div { flex: 1 1 220px; display: flex; flex-direction: column; padding: 16px 18px; border-radius: var(--radius-md); background: var(--surface-2); }
-.cp-totals strong { font-family: var(--font-head); font-weight: 700; font-size: 30px; line-height: 1.15; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; color: var(--text); }
+.cp-totals strong { font-weight: 800; font-size: 32px; line-height: 1.15; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; color: var(--text); }
 
 .cp-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; }
-.cp .cp-pair h2 { margin: 0 0 12px; font-family: var(--font); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.cp .cp-pair h2 { margin: 0 0 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .cp-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding-left: 18px; list-style: disc; }
 .cp-list li::marker, .cp-mile-main li::marker { color: var(--muted); }
 
 .cp-case { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px 20px; margin: 0; }
-.cp-case dt { padding-top: 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.cp-case dt { padding-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .cp-case dd { margin: 0; }
+
+/* The owner's closing line. */
+.cp-closing { padding-left: 18px; border-left: 3px solid var(--accent); }
+.cp-closing-text { max-width: 40ch; font-weight: 700; font-size: 22px; line-height: 1.3; letter-spacing: -0.02em; color: var(--text); }
 
 .cp-note { padding: 14px 18px; border-radius: var(--radius-md); background: var(--surface-2); font-size: 15px; }
 .cp-foot { margin-top: auto; padding: 24px 24px 40px; text-align: center; font-size: 13.5px; color: var(--muted); }
 
 /* Nothing to show yet (the plan is missing or out of date). */
 .cp-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+
+/* ---------- Editing (?edit=1) ----------
+   Each piece of text is a box that keeps the look of the text it replaces: same size, weight and place, with a dashed edge. */
+.cp .cp-field { display: block; width: 100%; max-width: 100%; min-height: 0; margin: 0; padding: 2px 8px; background: transparent; color: inherit; border: 1px dashed var(--line-strong); border-radius: 8px; box-shadow: none; font: inherit; letter-spacing: inherit; text-transform: none; resize: none; field-sizing: content; overflow: hidden; }
+.cp .cp-field:hover { border-color: var(--muted); }
+.cp .cp-field:focus { border-style: solid; border-color: var(--ring); background: color-mix(in srgb, var(--surface) 60%, transparent); box-shadow: 0 0 0 1px var(--ring); }
+.cp .cp-field::placeholder { color: var(--placeholder); font-weight: 400; }
+.cp-field-lines { line-height: 1.75; }
+.cp-outcome .cp-field-lines { margin-top: 12px; }
+.cp .cp-for { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.cp .cp-for .cp-field { flex: 1 1 220px; width: auto; max-width: 420px; font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.cp .cp-stack .cp-field { flex: 1 1 260px; width: auto; font-size: 14px; font-weight: 600; }
+.cp .cp-hint { margin-top: 8px; font-size: 13px; font-style: normal; color: var(--muted); }
+.cp .cp-hint-top { margin: -10px 0 16px; max-width: 70ch; }
+.cp-editing .cp-top { position: static; }
+.cp-bar { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: var(--shadow-1); }
+.cp-bar-in { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 20px; width: min(900px, 100%); margin: 0 auto; padding: 10px 24px; }
+.cp-bar-text { display: flex; flex-direction: column; flex: 1 1 220px; min-width: 0; font-size: 13.5px; line-height: 1.4; color: var(--muted); }
+.cp-bar-text strong { font-size: 15px; color: var(--text); }
+.cp-bar-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; font-size: 13.5px; }
+.cp-bar-good { color: var(--good); font-weight: 600; }
+.cp-bar-bad { max-width: 46ch; color: var(--bad); font-weight: 600; }
+.cp-bar-quiet, .cp-bar-back { color: var(--muted); }
+/* Touch screens: a box under 16px makes Safari zoom in and stay there. Big text keeps its size; small text goes up to 16px.
+   (The id in :is() only lifts this above the CRM's own 16px rule, which is !important.) */
+@media (pointer: coarse) { :is(.cp, #cp-lift) .cp-field { font-size: max(16px, 1em) !important; } }
 
 /* Settle-in (BRAND_SHEET.md, motion 1): the heading, then each step 60ms after the one before. Nothing loops. */
 @media (prefers-reduced-motion: no-preference) {
@@ -86,7 +124,10 @@ body:has(.cp) { background: var(--bg); }   /* plain Cream (Navy in dark): the CR
   .cp-main { gap: 40px; padding: 30px 16px 32px; }
   .cp h2 { font-size: 21px; margin-bottom: 16px; }
   .cp h3 { font-size: 18px; }
-  .cp-problem-text { font-size: 19px; }
+  .cp-problem-text, .cp-closing-text { font-size: 19px; }
+  .cp .cp-intro { font-size: 16.5px; }
+  .cp-bar-in { padding: 10px 16px; }
+  .cp-bar-text span { display: none; }
   .cp-step { --cp-n: 32px; --cp-top: 16px; gap: 12px; }
   .cp-n { font-size: 14px; }
   .cp-card { padding: 16px 18px; }
@@ -104,6 +145,6 @@ body:has(.cp) { background: var(--bg); }   /* plain Cream (Navy in dark): the CR
   .cp-top { position: static; }
   .cp-main { gap: 32px; padding-top: 24px; }
   .cp-card { box-shadow: none; }
-  .cp-step, .cp-card, .cp-problem { break-inside: avoid; }
+  .cp-step, .cp-card, .cp-problem, .cp-closing { break-inside: avoid; }
   .cp h2 { break-after: avoid; }
 }

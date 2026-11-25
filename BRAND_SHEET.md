@@ -45,6 +45,7 @@ Two fonts, both already loaded by the app (no new downloads).
 - **Body: Instrument Sans** 400/500/600: lists, forms, tables, buttons.
 - Section labels are small capitals: 11.5-12px, 600, +0.06 to +0.12em, muted.
 - Sizes: label 12, small 13, body 15, section 20-30, page and numbers 30-62.
+- **One exception, asked for by the owner (25 Nov 2026):** the Build plan's client page (`/proposals/[id]/build-plan`, shown to a client on a Loom or a call) is set in **Inter** alone, heavy for headings, like a pitch deck. It is loaded only on that page. Everything inside the CRM keeps the two fonts above, and the "no new fonts" rule below still holds for everything else.
 
 ## 3. Shape and surfaces
 

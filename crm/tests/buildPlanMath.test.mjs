@@ -283,14 +283,14 @@ test("a digit inside a tool's name is not a made-up figure, and does not back a 
 // ---------- The client page (buildPlanPageMath.ts) ----------
 
 test("the client page is the saved plan step by step, with tools as chips, the places the flow jumps, and the same prices as the application", async () => {
-  const { clientPage, clientPageBlock, clientPageHref, splitTools } = await import("../lib/buildPlanPageMath.ts");
+  const { clientPage, clientPageBlock, clientPageHref } = await import("../lib/buildPlanPageMath.ts");
   const pains = finishPains(rawPains(), JOB).step, basis = painBasis({ pains });
   const demo = finishDemo(rawDemo(), picked(), eligibleCases(PROOF), basis).step, plan = finishPlan(rawPlan(), JOB, basis, "n8n:2").step;
   const bp = { pains, workflow: picked(), demo, plan };
   const page = clientPage(bp, DEFAULT_RATES);
   assert.equal(clientPageBlock(bp), null);
   assert.deepEqual(page.problem, { text: pains.pains[0].pain, quote: pains.pains[0].quote });
-  assert.deepEqual(page.steps.map((s) => [s.n, s.title, s.tools]), [[1, "Rightmove enquiry arrives", ["Gmail"]], [2, "Read the enquiry", []], [3, "Add to your CRM", ["Your CRM"]], [4, "Reply straight away", ["Gmail"]], [5, "Tell the branch", []]]);
+  assert.deepEqual(page.steps.map((s) => [s.n, s.title, s.stack]), [[1, "Rightmove enquiry arrives", ["Gmail"]], [2, "Read the enquiry", []], [3, "Add to your CRM", ["Your CRM"]], [4, "Reply straight away", ["Gmail"]], [5, "Tell the branch", []]]);
   assert.deepEqual(page.steps[1].jumps, [{ label: "Not an enquiry", to: 5, back: false }]);         // the next step in line is not a jump
   assert.deepEqual(page.steps[0].jumps, []);
   assert.deepEqual(page.outcomes, plan.outcomes);
@@ -316,9 +316,83 @@ test("the client page is the saved plan step by step, with tools as chips, the p
   assert.equal(clientPage({ ...bp, demo: { ...demo, ref: "n8n:9" } }, DEFAULT_RATES).caseStudy, null);
   assert.match(clientPage({ ...bp, plan: finishPlan(rawPlan(), `${JOB} We hold tenants' personal data.`, basis, "n8n:2").step }, DEFAULT_RATES).dataNote, /data processing agreement comes first/);
 
-  assert.deepEqual(splitTools("Shopify, Klaviyo / OpenAI and shopify"), ["Shopify", "Klaviyo", "OpenAI"]);
-  assert.deepEqual(splitTools("Your CRM"), ["Your CRM"]);
-  assert.deepEqual(splitTools(null), []);
+  assert.deepEqual([page.title, page.client, page.intro, page.closing], [null, null, null, null]);   // nothing of the owner's own until they type it
   assert.equal(clientPageHref(7, { currency: "GBP", showPrice: true }), "/proposals/7/build-plan");
   assert.equal(clientPageHref(7, { currency: "USD", showPrice: false }), "/proposals/7/build-plan?currency=usd&price=0");
+  assert.equal(clientPageHref(7, { currency: "USD", showPrice: true, edit: true }), "/proposals/7/build-plan?edit=1&currency=usd");
+});
+
+test("every step carries its full tech stack: the AI's list is kept in order, gaps are named, and each tool is checked on its own", async () => {
+  const { splitStack, stackOf, stepsWithoutStack } = await import("../lib/buildPlanMath.ts");
+  const { clientPage, stackGapNote } = await import("../lib/buildPlanPageMath.ts");
+  assert.deepEqual(splitStack("Shopify, Klaviyo / OpenAI and shopify; Slack"), ["Shopify", "Klaviyo", "OpenAI", "Slack"]);
+  assert.deepEqual(splitStack("Rightmove/Zoopla, AT&T"), ["Rightmove/Zoopla", "AT&T"]);                 // only a spaced divider splits a name
+  assert.deepEqual(splitStack("Your CRM"), ["Your CRM"]);
+  assert.deepEqual(splitStack(null), []);
+  assert.equal(splitStack("a,b,c,d,e,f,g,h").length, 6);
+
+  const raw = rawPlan();
+  raw.flow = raw.flow.map((f, i) => ({ label: f.label, detail: f.detail, stack: [["Gmail", "n8n"], ["n8n", "OpenAI"], ["n8n", "Your CRM"], ["n8n", "Gmail", "gmail"], []][i] }));
+  const { step, problems, missing } = finishPlan(raw, JOB, "leads go cold", "n8n:2");
+  assert.deepEqual(problems, []);                                                                       // a gap is asked for again, never a reason to throw the plan away
+  assert.deepEqual(missing, [5]);
+  assert.deepEqual(step.flow.map((f) => f.tool), ["Gmail, n8n", "n8n, OpenAI", "n8n, Your CRM", "n8n, Gmail", null]);
+  assert.deepEqual(stackOf(step.flow[3]), ["n8n", "Gmail"]);
+  assert.deepEqual(stepsWithoutStack(step.flow), [5]);
+  assert.deepEqual(finishPlan(rawPlan(), JOB, "leads go cold", "n8n:2").missing, [2, 5]);              // an older reply with one tool a step still reads
+
+  const pains = finishPains(rawPains(), JOB).step, bp = { pains, plan: { ...step, basis: painBasis({ pains }), ref: "" } };
+  assert.deepEqual(clientPage(bp, DEFAULT_RATES).steps.map((s) => s.stack), [["Gmail", "n8n"], ["n8n", "OpenAI"], ["n8n", "Your CRM"], ["n8n", "Gmail"], []]);
+  assert.match(stackGapNote(bp), /No tech stack on step 5\./);
+  assert.equal(stackGapNote({ pains, plan: { ...bp.plan, flow: bp.plan.flow.slice(0, 4) } }), null);
+  assert.deepEqual(toolsToCheck(step.flow, JOB, { strong_tools: ["n8n", "Gmail"], familiar_tools: [] }), ["OpenAI"]);   // each tool on its own; "Your CRM" is theirs
+  // The owner's own typing in step 4 is one comma list, tidied the same way.
+  assert.equal(cleanPlanEdit({ ...rawPlan(), flow: [{ label: "A step", detail: "It happens.", tool: " Gmail ,n8n,  gmail " }, { label: "B step", detail: "Then this.", tool: "" }] }, step).value.flow[0].tool, "Gmail, n8n");
+});
+
+test("editing the client page saves the owner's words: step text into the plan, the page's own lines beside it, contact details refused", async () => {
+  const { clientPage, cleanPageEdit, pageDraft } = await import("../lib/buildPlanPageMath.ts");
+  const pains = finishPains(rawPains(), JOB).step, basis = painBasis({ pains });
+  const plan = finishPlan(rawPlan(), JOB, basis, "").step, bp = { pains, plan };
+  const TITLE = "Lettings enquiry follow-up";
+  const draft = pageDraft(clientPage(bp, DEFAULT_RATES), TITLE);
+  assert.equal(draft.title, TITLE);
+  assert.equal(draft["step.0.stack"], "Gmail");
+  assert.equal(draft["mile.0.delivers"], "Enquiries read and filed in the CRM");
+  assert.equal(draft.outcomes.split("\n").length, 2);
+
+  // Saved untouched, nothing changes and nothing of the owner's own is stored (so the title keeps following the proposal).
+  const same = cleanPageEdit(draft, bp, TITLE).value;
+  assert.deepEqual(same.plan, plan);
+  assert.deepEqual(same.page, { basis, title: "", client: "", intro: "", problem: "", closing: "" });
+
+  const edited = cleanPageEdit({
+    ...draft, title: "Never lose a Rightmove enquiry again", client: "Harbour Lettings", intro: "  Built around your 3 branches.  ", problem: "Enquiries wait until the next day", closing: "A 15 minute call to confirm access.",
+    "step.1.title": "Read and sort it", "step.1.detail": "Each enquiry is read and sorted in 2 minutes.", "step.1.stack": "n8n, OpenAI,n8n",
+    outcomes: "- A lead record for every enquiry\n\n• A weekly list", access: "Inbox access", assumptions: "", "mile.0.name": "Capture", "mile.0.delivers": "Filed in the CRM\nA test run",
+  }, bp, TITLE).value;
+  assert.deepEqual(edited.page, { basis, title: "Never lose a Rightmove enquiry again", client: "Harbour Lettings", intro: "Built around your 3 branches.", problem: "Enquiries wait until the next day", closing: "A 15 minute call to confirm access." });
+  assert.deepEqual([edited.plan.flow[1].label, edited.plan.flow[1].detail, edited.plan.flow[1].tool], ["Read and sort it", "Each enquiry is read and sorted in 2 minutes.", "n8n, OpenAI"]);   // their own figure is theirs
+  assert.deepEqual(edited.plan.outcomes, ["A lead record for every enquiry", "A weekly list"]);
+  assert.deepEqual(edited.plan.assumptions, []);
+  assert.deepEqual([edited.plan.milestones[0].name, edited.plan.milestones[0].delivers, edited.plan.milestones[0].hours_low, edited.plan.milestones[0].ease], ["Capture", ["Filed in the CRM", "A test run"], 4, "medium"]);   // hours and prices are not touched
+  assert.deepEqual(edited.plan.branches, plan.branches);
+  assert.match(edited.plan.mermaid, /Read and sort it/);                                              // a diagram drawn by code follows the new title
+  assert.equal(cleanPageEdit({ ...draft, "step.1.title": "Read and sort it" }, { pains, plan: { ...plan, mermaid: "flowchart LR\n  A[My own] --> B[Drawing]" } }, TITLE).value.plan.mermaid, "flowchart LR\n  A[My own] --> B[Drawing]");   // the owner's own is left alone
+
+  // The page shows the owner's words, and their wording of the problem only while the plan is about that pain point.
+  const shown = clientPage({ pains, plan: edited.plan, page: edited.page }, DEFAULT_RATES);
+  assert.deepEqual([shown.title, shown.client, shown.intro, shown.closing, shown.problem.text], ["Never lose a Rightmove enquiry again", "Harbour Lettings", "Built around your 3 branches.", "A 15 minute call to confirm access.", "Enquiries wait until the next day"]);
+  assert.equal(shown.problem.quote, pains.pains[0].quote);                                            // the quote stays the job post's own
+  const other = { ...pains, chosen: "p2" }, otherBasis = painBasis({ pains: other });
+  assert.equal(clientPage({ pains: other, plan: { ...edited.plan, basis: otherBasis }, page: edited.page }, DEFAULT_RATES).problem.text, "Hours a week copying enquiries into the CRM");
+
+  assert.match(cleanPageEdit({ ...draft, intro: "Call me on 07700 900123" }, bp, TITLE).error, /email addresses and phone numbers/);
+  assert.match(cleanPageEdit({ ...draft, "step.2.detail": "Write to hello@example.com" }, bp, TITLE).error, /email addresses and phone numbers/);
+  assert.match(cleanPageEdit({ ...draft, "step.2.title": " " }, bp, TITLE).error, /Step 3 needs a title/);
+  assert.match(cleanPageEdit({ ...draft, "mile.1.name": "" }, bp, TITLE).error, /Milestone 2 needs a name/);
+  const fewer = { ...draft }; delete fewer["step.4.title"];
+  assert.match(cleanPageEdit(fewer, bp, TITLE).error, /plan has changed since this page was opened/);  // never saved over a plan that moved on
+  assert.match(cleanPageEdit(draft, { ...bp, pains: other }, TITLE).error, /different pain point/);
+  assert.match(cleanPageEdit("nope", bp, TITLE).error, /could not be read/);
 });

@@ -17,3 +17,8 @@ export function proposalName(p: { id: number | string; job_title?: string | null
   if (title && company) return `${title} · ${company}`;
   return title || company || `Proposal #${p.id}`;
 }
+
+/** The title the Build plan's client page shows when the owner has not typed their own: the job title, or the job post's first line. */
+export function clientPageTitle(jobTitle: string | null | undefined, jobText: string | null | undefined): string {
+  return clean(jobTitle ?? "") || titleFromJob(jobText ?? "") || "Your project";
+}

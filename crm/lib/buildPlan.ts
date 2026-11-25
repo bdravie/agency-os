@@ -157,7 +157,7 @@ export async function writeDemo(job: string, pain: Pain, picked: Picked, basis: 
 const PLAN = {
   type: "object" as const,
   properties: {
-    flow: { type: "array", minItems: 4, maxItems: 8, items: { type: "object", properties: { label: str, detail: str, tool: { type: ["string", "null"] } }, required: ["label", "detail", "tool"] } },
+    flow: { type: "array", minItems: 4, maxItems: 8, items: { type: "object", properties: { label: str, detail: str, stack: { type: "array", items: str, minItems: 1, maxItems: 6 } }, required: ["label", "detail", "stack"] } },
     branches: { type: "array", maxItems: 4, items: { type: "object", properties: { from: { type: "integer" }, to: { type: "integer" }, label: str }, required: ["from", "to", "label"] } },
     outcomes: strings(4), access: strings(6),
     milestones: {
@@ -179,7 +179,8 @@ export async function writePlan(job: string, pain: Pain, picked: Picked | null, 
   const ask = (extra = "") => askStructured<any>(prompt + extra, PLAN, upworkModel(), 5000);
   const raw = await ask();
   let r = finishPlan(raw, job, basis, ref);
-  if (r.problems.length) r = finishPlan(await ask(refusal(r.problems, raw)), job, basis, ref);
+  const gaps = () => r.missing.map((n) => `step ${n} of the flow has an empty stack: name every tool, app or service that step needs`);
+  if (r.problems.length || r.missing.length) r = finishPlan(await ask(refusal([...r.problems, ...gaps()], raw)), job, basis, ref);
   if (r.problems.length) throw failed(r.problems);
-  return r.step;
+  return r.step;   // a step still without a stack is flagged on the page for the owner to fill in
 }

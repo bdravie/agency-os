@@ -31,6 +31,7 @@ export type DemoStep = {
   case_study: CaseStudy | null; case_reason: string; notes: string[]; at?: string;
 };
 
+/** `tool` is the step's whole tech stack as one comma-separated list ("Gmail, n8n, HubSpot"); `stackOf` splits it. */
 export type FlowStep = { label: string; detail: string; tool: string | null };
 export type Branch = { from: number; to: number; label: string };
 export type PlanMilestone = { name: string; delivers: string[]; ease: Ease; hours_low: number; hours_high: number };
@@ -39,7 +40,9 @@ export type TailoredStep = {
   milestones: PlanMilestone[]; assumptions: string[]; data_note: string | null; at?: string;
 };
 
-export type BuildPlan = { pains?: PainStep; matches?: MatchStep; workflow?: Picked | null; demo?: DemoStep; plan?: TailoredStep };
+/** The owner's own words for the client page (buildPlanPageMath.ts). An empty one means "use what the plan says". `basis` is the pain point `problem` was written for. */
+export type PageNotes = { basis: string; title: string; client: string; intro: string; problem: string; closing: string; at?: string };
+export type BuildPlan = { pains?: PainStep; matches?: MatchStep; workflow?: Picked | null; demo?: DemoStep; plan?: TailoredStep; page?: PageNotes };
 
 export const HEADING_OWN = "A workflow I use for this kind of problem";
 export const HEADING_PATTERN = "A workflow pattern I'd start from for this kind of problem";
@@ -253,6 +256,21 @@ export function cleanDemoEdit(raw: any, current: DemoStep, picked: Picked, cases
 
 // ---------- Step 4: the tailored build plan ----------
 
+/** A step's tech stack as separate names. Commas are the usual divider; "A / B", "A + B", "A and B" are split too. */
+export function splitStack(tool: string | null | undefined): string[] {
+  const seen = new Set<string>(), out: string[] = [];
+  for (const t of (tool ?? "").split(/\s*[,;·\n]\s*|\s+(?:[/+&]|and|or)\s+/i)) {
+    const name = t.trim().slice(0, 30).trim();
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    out.push(name);
+  }
+  return out.slice(0, 6);
+}
+export const stackOf = (f: FlowStep) => splitStack(f.tool);
+/** The numbers (from 1) of the steps that name no tool at all. The client page states the tech stack under every step, so these need filling in. */
+export const stepsWithoutStack = (flow: FlowStep[]) => flow.map((f, i) => (stackOf(f).length ? 0 : i + 1)).filter(Boolean);
+
 const nodeLabel = (s: unknown) => text(s, 60).replace(/["[\]{}()<>|#;`\\]/g, "").replace(/\s+/g, " ").trim().slice(0, 40);
 
 /** The plan's diagram, built in code from its steps so it always draws: the steps in a line, plus any branch the plan names. */
@@ -268,10 +286,10 @@ export function planMermaid(flow: FlowStep[], branches: Branch[]): string {
 /** `keep` is how a piece of text is tidied: the AI's has contact details stripped, the owner's is left whole so it can be refused with a reason. */
 function readPlan(raw: any, keep: (v: unknown, max: number) => string = scrub) {
   const lines = (v: unknown, n: number, max: number) => (Array.isArray(v) ? v : []).map((s) => keep(s, max)).filter(Boolean).slice(0, n);
-  const flow: FlowStep[] = (Array.isArray(raw?.flow) ? raw.flow : []).map((f: any) => ({ label: nodeLabel(keep(f?.label, 60)), detail: keep(f?.detail, 260), tool: keep(f?.tool, 40) || null }))
+  const flow: FlowStep[] = (Array.isArray(raw?.flow) ? raw.flow : []).map((f: any) => ({ label: nodeLabel(keep(f?.label, 60)), detail: keep(f?.detail, 260), tool: splitStack(keep(Array.isArray(f?.stack) ? f.stack.join(", ") : f?.tool, 240)).join(", ") || null }))
     .filter((f: FlowStep) => f.label && f.detail).slice(0, 9);
   const whole = (n: unknown) => Math.round(Number(n));
-  const branches: Branch[] = (Array.isArray(raw?.branches) ? raw.branches : []).map((b: any) => ({ from: whole(b?.from), to: whole(b?.to), label: keep(b?.label, 24) }))
+  const branches: Branch[] = (Array.isArray(raw?.branches) ? raw.branches : []).map((b: any) => ({ from: whole(b?.from), to: whole(b?.to), label: keep(b?.label, 60) }))   // whole on the client page; the diagram shortens it itself
     .filter((b: Branch) => b.from >= 1 && b.to >= 1 && b.from <= flow.length && b.to <= flow.length && b.from !== b.to).slice(0, 4);
   const milestones: PlanMilestone[] = (Array.isArray(raw?.milestones) ? raw.milestones : []).map((m: any): PlanMilestone => {
     const low = halfHours(Math.max(0.5, Math.min(80, Number(m?.hours_low) || 0.5)));
@@ -281,7 +299,7 @@ function readPlan(raw: any, keep: (v: unknown, max: number) => string = scrub) {
 }
 
 /** Finish the AI's tailored plan. Nothing in it may be a price, a promise, a number the job post does not give, or a story about past clients. */
-export function finishPlan(raw: any, job: string, basis: string, ref: string): { step: TailoredStep; problems: string[] } {
+export function finishPlan(raw: any, job: string, basis: string, ref: string): { step: TailoredStep; problems: string[]; missing: number[] } {
   const p = readPlan(raw);
   const problems: string[] = [
     p.flow.length < 4 && `the flow has ${p.flow.length} steps; it needs 4 to 9`, p.outcomes.length < 2 && "what the team ends up with needs at least 2 items",
@@ -293,13 +311,14 @@ export function finishPlan(raw: any, job: string, basis: string, ref: string): {
     else if (unbackedNumbers(s, job).length) problems.push(`"${s.slice(0, 60)}" uses a number that is not in the job post (${unbackedNumbers(s, job).join(", ")})`);
     if (PAST_WORK.test(s)) problems.push(`"${s.slice(0, 60)}" talks about past client work`);
   }
-  return { step: { basis, ref, ...p, mermaid: planMermaid(p.flow, p.branches), data_note: PERSONAL_DATA.test(job) ? DPA_NOTE : null }, problems: [...new Set(problems)] };
+  // A step with no tech stack is worth one more ask, but not worth throwing the plan away: the owner can fill it in.
+  return { step: { basis, ref, ...p, mermaid: planMermaid(p.flow, p.branches), data_note: PERSONAL_DATA.test(job) ? DPA_NOTE : null }, problems: [...new Set(problems)], missing: stepsWithoutStack(p.flow) };
 }
 
 /** Tools the plan names that are neither in the job post nor on the owner's tool lists: shown as a warning to check, never a refusal. */
 export function toolsToCheck(flow: FlowStep[], job: string, lists: { strong_tools: string[]; familiar_tools: string[] }): string[] {
   const post = ` ${normaliseTool(job)} `;
-  return [...new Set(flow.map((f) => f.tool ?? "").filter((t) => t && !/^(?:your|their|the)\b/i.test(t) && toolLevel(t, lists) === "not_listed" && !post.includes(` ${normaliseTool(t)} `)))];
+  return [...new Set(flow.flatMap(stackOf).filter((t) => t && !/^(?:your|their|the)\b/i.test(t) && toolLevel(t, lists) === "not_listed" && !post.includes(` ${normaliseTool(t)} `)))];
 }
 
 /** The owner's own edit to the plan. Their numbers and wording are theirs; only contact details are refused. */

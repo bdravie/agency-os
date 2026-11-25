@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { runPlanAction, savePlanAction } from "@/lib/buildPlanActions";
-import { money, planMermaid, quoteFor, toolsToCheck, type FlowStep, type PlanMilestone, type StepState, type TailoredStep } from "@/lib/buildPlanMath";
+import { money, planMermaid, quoteFor, stepsWithoutStack, toolsToCheck, type FlowStep, type PlanMilestone, type StepState, type TailoredStep } from "@/lib/buildPlanMath";
 import type { Ease, Rates } from "@/lib/proposalPlanMath";
 import MermaidView from "@/components/MermaidView";
 import { useToast } from "@/components/Toast";
@@ -28,6 +28,7 @@ export default function PlanStep({ step, state, title, hasPains, hasWorkflow, ra
   const [code, setCode] = useState(step?.mermaid ?? "");
   const quote = useMemo(() => (miles.length ? quoteFor(miles, rates) : null), [miles, rates]);
   const unknown = useMemo(() => toolsToCheck(flow, job, tools), [flow, job, tools]);
+  const noStack = useMemo(() => stepsWithoutStack(flow), [flow]);
   const setStep = (i: number, change: Partial<FlowStep>) => setFlow(flow.map((f, n) => (n === i ? { ...f, ...change } : f)));
   const setMile = (i: number, change: Partial<PlanMilestone>) => setMiles(miles.map((m, n) => (n === i ? { ...m, ...change } : m)));
   const rerun = () => {
@@ -56,13 +57,14 @@ export default function PlanStep({ step, state, title, hasPains, hasWorkflow, ra
                   <span className="bp-walk-n" aria-hidden>{i + 1}</span>
                   <input value={f.label} maxLength={40} aria-label={`Step ${i + 1} short label`} placeholder="Short label" onChange={(e) => setStep(i, { label: e.target.value })} />
                   <textarea rows={rowsFor(f.detail, 70)} value={f.detail} maxLength={260} aria-label={`Step ${i + 1} detail`} placeholder="What happens" onChange={(e) => setStep(i, { detail: e.target.value })} />
-                  <input value={f.tool ?? ""} maxLength={40} aria-label={`Step ${i + 1} tool`} placeholder="Tool" onChange={(e) => setStep(i, { tool: e.target.value || null })} />
+                  <input value={f.tool ?? ""} maxLength={200} aria-label={`Step ${i + 1} tech stack, separated by commas`} placeholder="Tech stack, commas" onChange={(e) => setStep(i, { tool: e.target.value || null })} />
                   <button type="button" className="secondary bp-x" aria-label={`Remove step ${i + 1}`} disabled={flow.length <= 2} onClick={() => setFlow(flow.filter((_, n) => n !== i))}><X size={14} aria-hidden /></button>
                 </li>
               ))}
             </ol>
             {flow.length < 9 && <button type="button" className="link" style={{ marginTop: 6 }} onClick={() => setFlow([...flow, { label: "", detail: "", tool: null }])}><Plus size={13} aria-hidden /> Add a step</button>}
           </div>
+          {noStack.length > 0 && <p className="bp-note">No tech stack on step{noStack.length === 1 ? "" : "s"} {noStack.join(", ")}. The client page states it under every step, so list everything {noStack.length === 1 ? "it needs" : "they need"} in the last box, separated by commas.</p>}
           {unknown.length > 0 && <p className="bp-note">Not in the job post or on your tool lists: {unknown.join(", ")}. Check before you send it, or add {unknown.length === 1 ? "it" : "them"} to your profile.</p>}
 
           <MermaidView code={code} />

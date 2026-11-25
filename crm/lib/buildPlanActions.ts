@@ -10,10 +10,11 @@ import { containsContactDetails } from "./audit";
 import { query } from "./db";
 import { extractPains, findMatches, loadCases, loadPicked, writeDemo, writePlan } from "./buildPlan";
 import { chosenPain, cleanDemoEdit, cleanPainsEdit, cleanPicked, cleanPlanEdit, painBasis, STEP_LABELS, type BuildPlan, type Picked, type StepKey } from "./buildPlanMath";
+import { cleanPageEdit } from "./buildPlanPageMath";
 import { templateDailyCap } from "./n8nTemplates";
 import { cleanSearches, templateIdFromUrl } from "./n8nTemplatesMath";
 import { analyseFit } from "./proposalPlan";
-import { proposalName, titleFromJob } from "./proposalName";
+import { clientPageTitle, proposalName, titleFromJob } from "./proposalName";
 import { cleanParsed, type ParsedWorkflow } from "./workflowParse";
 
 export type StepResult = { error?: string; picked?: boolean };
@@ -24,10 +25,10 @@ const message = (err: unknown) => (err instanceof Error ? err.message : String(e
 const now = () => new Date().toISOString();
 const LIBRARY = "/proposals/library";
 
-async function load(id: number): Promise<{ job: string; bp: BuildPlan } | null> {
+async function load(id: number): Promise<{ job: string; title: string | null; bp: BuildPlan } | null> {
   if (!Number.isInteger(id)) return null;
-  const [p] = await query<{ job_text: string | null; build_plan: BuildPlan | null }>(`SELECT job_text, build_plan FROM proposals WHERE id = $1`, [id]);
-  return p ? { job: p.job_text ?? "", bp: p.build_plan ?? {} } : null;
+  const [p] = await query<{ job_text: string | null; job_title: string | null; build_plan: BuildPlan | null }>(`SELECT job_text, job_title, build_plan FROM proposals WHERE id = $1`, [id]);
+  return p ? { job: p.job_text ?? "", title: p.job_title, bp: p.build_plan ?? {} } : null;
 }
 
 /** Saves one or more parts, leaving the others as they are. */
@@ -254,6 +255,24 @@ export async function savePlanAction(form: FormData): Promise<StepResult> {
   const edit = cleanPlanEdit(raw, p.bp.plan);
   if (!edit.value) return { error: edit.error };
   await save(id, { plan: edit.value });
+  return {};
+}
+
+/**
+ * The owner's edit of the client page (/proposals/[id]/build-plan?edit=1): their own words, saved only on their click. Step and list
+ * text goes into the plan itself, so the application text follows; the page's own words (title, who it is for, opening and closing
+ * lines, the problem in their wording) are kept beside it. No AI runs and nothing is sent.
+ */
+export async function saveClientPageAction(form: FormData): Promise<StepResult> {
+  await requireLogin();
+  const id = Number(val(form, "id")), p = await load(id);
+  if (!p) return { error: "Proposal not found." };
+  let raw: unknown;
+  try { raw = JSON.parse(String(form.get("value") ?? "null")); } catch { return { error: "That could not be read." }; }
+  const edit = cleanPageEdit(raw, p.bp, clientPageTitle(p.title, p.job));
+  if (!edit.value) return { error: edit.error };
+  await save(id, { plan: edit.value.plan, page: { ...edit.value.page, at: now() } });
+  revalidatePath(`/proposals/${id}/build-plan`);
   return {};
 }
 
