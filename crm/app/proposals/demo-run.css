@@ -12,6 +12,11 @@
 .dr-rank { color: var(--muted); font-variant-numeric: tabular-nums; }
 .dr-shares { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .dr-shares .field-label { margin: 0 4px 0 0; }
+.dr-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.dr-actions button { justify-content: center; white-space: nowrap; }
+.dr-sent { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.dr .dr-sent li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 0; border: 0; }
+.dr-sent a { display: inline-flex; align-items: center; gap: 4px; }
 .dr-result { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 .dr-result p { margin: 0; }
 .dr-ok { color: var(--good); font-weight: 600; }
@@ -26,7 +31,7 @@
 .dr-note { margin: 0; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--warn-soft); color: var(--warn); font-size: 14px; }
 @media (max-width: 640px) {
   .dr-head { grid-template-columns: 62px minmax(0, 1fr); }
-  .dr-head > button { grid-column: 1 / -1; justify-content: center; }
+  .dr-actions { grid-column: 1 / -1; }
   .dr-score { min-height: 62px; }
   .dr-score b { font-size: 24px; }
   .dr-links { margin-left: 0; display: flex; margin-top: 4px; }

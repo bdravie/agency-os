@@ -41,7 +41,9 @@ export default function DemoStep({ step, picked, state, cases }: { step?: Demo; 
       {step && (
         <>
           {field("Heading the client sees", <input value={heading} maxLength={120} onChange={(e) => setHeading(e.target.value)} />)}
-          {picked && !picked.own && <p className="muted">This is {picked.source === "n8n" ? "a public template" : "not marked as a workflow you have run"}, so it is headed as a pattern you would start from, not a workflow you use. Once you have run it yourself, save it to your workflow library and it is headed as yours.</p>}
+          {picked && !picked.own && (picked.source === "demo"
+            ? <p className="muted">This is a demo you built, so it is headed as a demo, not as a workflow you use. You can run it or add it to your n8n from the Run a demo tab.</p>
+            : <p className="muted">This is {picked.source === "n8n" ? "a public template" : "not marked as a workflow you have run"}, so it is headed as a pattern you would start from, not a workflow you use. Once you have run it yourself, save it to your workflow library and it is headed as yours.</p>)}
           <MermaidView code={code} />
           <details>
             <summary className="muted" style={{ cursor: "pointer" }}>Diagram code (Mermaid)</summary>

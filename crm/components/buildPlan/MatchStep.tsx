@@ -66,18 +66,22 @@ function PasteBox() {
   );
 }
 
-// Step 2. Searches n8n's public templates and the owner's own library, shows the top 3 with a reason each, and the owner picks one.
+// Step 2. Looks through the owner's own workflows first (the demos they have built and their saved library), then n8n's public
+// templates for the places left, shows the top 3 with a reason each, and the owner picks one.
+const SOURCE = { demo: "Your demo", library: "Your library", n8n: "n8n template" } as const;
 export default function MatchStep({ pains, step, picked, state, templatesOn }: { pains?: PainStep; step?: Matches; picked: Picked | null; state: StepState; templatesOn: boolean }) {
   const { busy, run } = useBuildPlan();
   const [search, setSearch] = useState((pains?.search ?? []).join(", "));
-  const find = () => run("matches", runMatchesAction, { search }, "Search finished");
+  const [wide, setWide] = useState(false);
+  const find = () => run("matches", runMatchesAction, { search, ...(wide ? { wide: "1" } : {}) }, "Search finished");
   return (
     <StepFrame step="matches" state={state} canRun={!!pains} runLabel={step ? "Search again" : "Find workflows"} onRun={find}
       stale="These were found for a different pain point. Search again, or keep the workflow you chose if it still fits."
-      intro={templatesOn ? "Searches n8n's public template library and your own saved workflows for ones that solve the pain point. You pick one." : "Searches your own saved workflows (n8n's public library is switched off). You pick one, or paste one."}>
+      intro={templatesOn ? "Looks through your own workflows first: the demos you have built and your saved library. n8n's public template library is only searched for the places left. You pick one." : "Looks through your own workflows: the demos you have built and your saved library (n8n's public library is switched off). You pick one, or paste one."}>
       {pains && (
         <div className="bp-search">
           {field("Search words (up to 3 phrases, commas between)", <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && !busy) find(); }} />)}
+          {templatesOn && <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={wide} onChange={(e) => setWide(e.target.checked)} /> Search n8n&apos;s library as well, even when my own fit</label>}
         </div>
       )}
       {step?.notes.map((n, i) => <p key={i} className="bp-note">{n}</p>)}
@@ -88,7 +92,7 @@ export default function MatchStep({ pains, step, picked, state, templatesOn }: {
               const on = picked?.ref === m.ref;
               return (
                 <div key={m.ref} className={`bp-match${on ? " on" : ""}`}>
-                  <span><span className={`badge tone-${m.source === "library" ? "good" : "neutral"}`}>{m.source === "library" ? "Your library" : "n8n template"}</span></span>
+                  <span className="row" style={{ gap: 6 }}><span className={`badge tone-${m.source === "n8n" ? "neutral" : "good"}`}>{SOURCE[m.source] ?? "n8n template"}</span>{m.source !== "n8n" && typeof m.score === "number" && <span className="muted" title="The same score as on the Run a demo tab: shared tags, tools and wording, worked out in code.">Match {m.score} / 100</span>}</span>
                   <h4>{m.name}</h4>
                   <p>{m.reason}</p>
                   {m.apps.length > 0 && <div className="bp-apps">{m.apps.slice(0, 6).map((a) => <span key={a} className="badge tone-neutral">{a}</span>)}</div>}
@@ -107,7 +111,7 @@ export default function MatchStep({ pains, step, picked, state, templatesOn }: {
       {picked && (
         <div className="bp-chosen">
           <p><b>Chosen:</b> {picked.name} · {PLATFORM[picked.workflow.platform]} · {picked.workflow.steps.length} steps{picked.workflow.apps.length ? ` · ${picked.workflow.apps.join(", ")}` : ""}
-            {picked.own ? <> <span className="badge tone-good">Yours</span></> : <> <span className="badge tone-neutral">{picked.source === "n8n" ? "Public template" : "Not marked as yours"}</span></>}</p>
+            {picked.own ? <> <span className="badge tone-good">Yours</span></> : picked.source === "demo" ? <> <span className="badge tone-good">Your demo</span></> : <> <span className="badge tone-neutral">{picked.source === "n8n" ? "Public template" : "Not marked as yours"}</span></>}</p>
           <button type="button" className="link" disabled={!!busy} onClick={() => run("matches", clearWorkflowAction, {}, "Workflow cleared")}>Plan without a workflow</button>
         </div>
       )}

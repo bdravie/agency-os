@@ -7,12 +7,15 @@ import { parse } from "yaml";
 import { askStructured, upworkModel } from "./llm.ts";
 import { withPositioning } from "./positioning.ts";
 import { query } from "./db.ts";
-import { loadProfile } from "./pitchLibrary.ts";
+import { loadProfile, loadProof } from "./pitchLibrary.ts";
+import { loadRecipes } from "./demoRun.ts";
+import { joinDemos, mainWorkflowFile } from "./demoRunMath.ts";
+import { parseWorkflowText, MAX_FILE_CHARS, type ParsedWorkflow } from "./workflowParse.ts";
 import { fetchTemplate, searchTemplates, templatesOn } from "./n8nTemplates.ts";
 import { broaden, ENOUGH_HITS, TEMPLATE_PAGE } from "./n8nTemplatesMath.ts";
 import { loadLibrary, loadLibraryWorkflow } from "./workflowLibrary.ts";
 import {
-  eligibleCases, finishDemo, finishMatches, finishPains, finishPlan, rankCandidates, settleDemo,
+  eligibleCases, finishDemo, finishMatches, finishPains, finishPlan, ownFirst, rankCandidates, settleDemo,
   type Candidate, type CaseItem, type DemoStep, type MatchStep, type Pain, type PainStep, type Picked, type TailoredStep,
 } from "./buildPlanMath.ts";
 
@@ -68,18 +71,48 @@ const MATCH = {
   required: ["picks"],
 };
 
+export type DemoWorkflow = { ref: string; folder: string; name: string; summary: string; tags: string[]; workflow: ParsedWorkflow };
+
 /**
- * Looks for workflows that solve the pain point: n8n's public library (unless it is switched off or over today's limit) and the
- * owner's own saved ones. A cheap model picks the top 3; if it fails, the keyword ranking stands. `requests` is how many calls to n8n were really made
- * (5 at most: up to 3 phrases, and 2 shorter ones if those found little).
+ * The workflows of the demos the owner has already built: each demo's main workflow file (config/demos.yaml), read from the project
+ * folder and kept only as an outline, named and described by its entry under Proof and answers. A file that cannot be read is skipped.
  */
-export async function findMatches(job: string, pain: Pain, search: string[], basis: string, allowance: number): Promise<{ step: MatchStep; requests: number }> {
+export async function loadDemoWorkflows(): Promise<DemoWorkflow[]> {
+  const [{ recipes }, proof] = await Promise.all([loadRecipes(), loadProof()]);
+  const out: DemoWorkflow[] = [];
+  for (const d of joinDemos(proof, recipes)) {
+    const file = d.recipe ? mainWorkflowFile(d.recipe) : null;
+    if (!d.recipe || !file) continue;
+    try {
+      const raw = await readFile(path.join(ROOT, file), "utf8");
+      const workflow = raw.length <= MAX_FILE_CHARS ? parseWorkflowText(raw).workflow : undefined;
+      if (workflow) out.push({ ref: `demo:${d.recipe.folder}`, folder: d.recipe.folder, name: d.name, summary: d.one_line || d.recipe.shows, tags: d.tags, workflow });
+    } catch { /* a missing file only means that demo is not offered */ }
+  }
+  return out;
+}
+
+/**
+ * Looks for workflows that solve the pain point, **the owner's own first**: the workflows of the demos they have built and the ones
+ * in their library are scored against the job in code, and those similar enough go to the front. n8n's public library is only
+ * searched to fill the places left (or when `wide` asks for it anyway), unless it is switched off or over today's limit. A cheap
+ * model picks among the rest and writes the reasons; if it fails, the keyword ranking stands. `requests` is how many calls to n8n
+ * were really made (5 at most: up to 3 phrases, and 2 shorter ones if those found little).
+ */
+export async function findMatches(job: string, pain: Pain, search: string[], basis: string, allowance: number, wide = false): Promise<{ step: MatchStep; requests: number }> {
   const notes: string[] = [], cands: Candidate[] = [];
   let requests = 0;
-  for (const w of await loadLibrary()) {
-    cands.push({ ref: `lib:${w.id}`, source: "library", name: w.name, summary: [w.solves, w.tags.length ? `Tags: ${w.tags.join(", ")}` : "", `${w.workflow.steps.length} steps`].filter(Boolean).join(" · "), apps: w.apps, url: null });
+  for (const d of await loadDemoWorkflows()) {
+    cands.push({ ref: d.ref, source: "demo", name: d.name, summary: [d.summary.slice(0, 220), `${d.workflow.steps.length} steps`].filter(Boolean).join(" · "), apps: d.workflow.apps, url: null, tags: d.tags });
   }
-  if (!templatesOn()) notes.push("n8n's library is switched off (N8N_TEMPLATES=off), so only your own library was searched.");
+  for (const w of await loadLibrary()) {
+    cands.push({ ref: `lib:${w.id}`, source: "library", name: w.name, summary: [w.solves, `${w.workflow.steps.length} steps`].filter(Boolean).join(" · "), apps: w.apps, url: null, tags: w.tags });
+  }
+  const own = ownFirst(cands, `${pain.pain} ${search.join(" ")} ${post(job)}`), first = own.first;
+  cands.splice(0, cands.length, ...own.ranked);   // each of the owner's own now carries its score and what it shares
+  if (first.length) notes.push(`${first.length === 1 ? "One of your own workflows is" : `${first.length} of your own workflows are`} close to this job, so ${first.length === 1 ? "it is" : "they are"} listed first.`);
+  if (!templatesOn()) notes.push("n8n's library is switched off (N8N_TEMPLATES=off), so only your own workflows were searched.");
+  else if (first.length >= 3 && !wide) notes.push("Three of your own fit, so n8n's public library was not searched. Tick \"Search n8n's library as well\" to see what is there too.");
   else {
     const found = () => cands.filter((c) => c.source === "n8n").length;
     const look = async (phrases: string[]): Promise<boolean> => {
@@ -100,19 +133,26 @@ export async function findMatches(job: string, pain: Pain, search: string[], bas
     if ((await look(search)) && found() < ENOUGH_HITS) await look(broaden(search));
   }
   if (!cands.length) return { step: { basis, search, matches: [], considered: 0, notes: [...notes, "Nothing was found. Change the search words, or paste a workflow."] }, requests };
-  const short = rankCandidates(cands, `${pain.pain} ${search.join(" ")}`);
-  const listing = short.map((c) => `[ref ${c.ref}] (${c.source === "library" ? "the consultant's own library" : "n8n public template"}) ${c.name}\n  ${c.summary || "(no description)"}\n  Apps: ${c.apps.join(", ") || "(not listed)"}`).join("\n");
+  const rest = rankCandidates(cands.filter((c) => !first.some((f) => f.ref === c.ref)), `${pain.pain} ${search.join(" ")}`, 12 - first.length);
+  const short = [...first, ...rest];
+  const WHERE = { demo: "a demo the consultant built", library: "the consultant's own library", n8n: "n8n public template" } as const;
+  const listing = short.map((c) => `[ref ${c.ref}] (${WHERE[c.source]}) ${c.name}\n  ${c.summary || "(no description)"}\n  Apps: ${c.apps.join(", ") || "(not listed)"}`).join("\n");
   let raw: unknown = null;
   try {
     raw = await askStructured(`${await read("prompts/build-plan-match.md")}\n\nPAIN POINT:\n${pain.pain}\n\nJOB POST:\n${post(job).slice(0, 4000)}\n\nCANDIDATES:\n${listing}`, MATCH, "haiku", 1200);
   } catch {
     notes.push("The AI could not rank these, so they are in keyword order.");
   }
-  return { step: { basis, search, matches: finishMatches(raw, short), considered: cands.length, notes }, requests };
+  return { step: { basis, search, matches: finishMatches(raw, short, first), considered: cands.length, notes }, requests };
 }
 
 /** The chosen workflow as an outline: one of the owner's own, or an n8n template read once and then dropped. */
 export async function loadPicked(ref: string): Promise<{ picked: Picked; requests: number }> {
+  if (ref.startsWith("demo:")) {
+    const d = (await loadDemoWorkflows()).find((w) => w.ref === ref);
+    if (!d) throw new Error("That demo's workflow could not be found. Check its entry in config/demos.yaml.");
+    return { picked: { ref, source: "demo", own: false, name: d.name, url: null, workflow: d.workflow }, requests: 0 };
+  }
   const [kind, raw] = ref.split(":"), id = Number(raw);
   if (!Number.isInteger(id) || id <= 0) throw new Error("That workflow is not known.");
   if (kind === "lib") {

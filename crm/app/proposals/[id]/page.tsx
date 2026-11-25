@@ -27,6 +27,7 @@ import { templatesOn } from "@/lib/n8nTemplates";
 import { loadProfile } from "@/lib/pitchLibrary";
 import DemoRunPanel from "@/components/DemoRunPanel";
 import { demoServing, demosFor } from "@/lib/demoRun";
+import { n8nStatus } from "@/lib/n8nPush";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
       {tab === "plan" && <PlanPanel id={id} plan={p.plan} planAt={p.plan_at ? String(p.plan_at) : null} rates={rates} />}
       {tab === "loom" && loomPanel}
       {tab === "improve" && <ImprovePanel id={id} score={p.fit_score} improvements={p.improvements} at={p.improvements_at ? String(p.improvements_at) : null} hourly={rates.hourly_rate_gbp} jobPrice={jobPrice} />}
-      {tab === "run" && demoRun && <DemoRunPanel id={id} top={demoRun.top} closer={demoRun.closer} problems={demoRun.problems} demos={demoRun.demos} serving={demoServing()} />}
+      {tab === "run" && demoRun && <DemoRunPanel id={id} top={demoRun.top} closer={demoRun.closer} problems={demoRun.problems} demos={demoRun.demos} serving={demoServing()} n8n={n8nStatus()} />}
       {tab === "demo" && <DemoBriefPanel id={id} brief={p.demo_brief ?? null} prompt={p.demo_brief ? demoBriefPrompt(p.demo_brief, proposalName(p), p.job_text ?? "") : ""} at={p.demo_brief_at ? String(p.demo_brief_at) : null} hourly={rates.hourly_rate_gbp} />}
     </>
   );

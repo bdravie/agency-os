@@ -43,7 +43,9 @@ export default function Modal({ label, onClose, drawer = false, dismissOnBackdro
       onCancel={(e) => { e.preventDefault(); latest.current(); }}
       // Chrome lets a repeated Escape close the dialog anyway. Tell the pop-up; if it stays open, show it again.
       onClose={() => {
-        if (leaving.current) return;
+        // A close event arrives a moment after the dialog closed. If the dialog is open again by then, the event is stale: while
+        // developing, React mounts every pop-up twice (close, then open again), and without this the pop-up cancelled itself at once.
+        if (leaving.current || ref.current?.open) return;
         latest.current();
         requestAnimationFrame(() => { const d = ref.current; if (d && !d.open && !leaving.current) d.showModal(); });
       }}

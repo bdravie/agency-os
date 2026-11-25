@@ -26,7 +26,7 @@ export const toolError = (err: any): string =>
   err?.code === "ENOENT" ? "The Python tools are not set up on this computer. In the project folder run: uv sync (install uv first with: brew install uv)." : String(err?.stderr || err?.message || err);
 
 /** Never let a secret reach the screen or the database, even inside an error message. */
-export const scrub = (text: string) => ["DATABASE_URL", "COMPANIES_HOUSE_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_PLACES_API_KEY", "SEARCH_API_KEY", "APIFY_TOKEN", "APP_PASSWORD", "SESSION_SECRET"]
+export const scrub = (text: string) => ["DATABASE_URL", "COMPANIES_HOUSE_API_KEY", "ANTHROPIC_API_KEY", "GOOGLE_PLACES_API_KEY", "SEARCH_API_KEY", "APIFY_TOKEN", "APP_PASSWORD", "SESSION_SECRET", "N8N_API_KEY"]
   .reduce((t, k) => { const v = process.env[k]; return v && v.length > 6 ? t.split(v).join("[hidden]") : t; }, text).slice(-6000);
 
 export const PLAIN_PLACE = /^[A-Za-z0-9 .,'&-]{2,60}$/;

@@ -98,7 +98,7 @@ export async function savePainsAction(form: FormData): Promise<StepResult> {
   return {};
 }
 
-/** Step 2, click-only: search n8n's library and the owner's own for workflows that solve the chosen pain point. With `auto`, the top match is taken straight away. */
+/** Step 2, click-only: the owner's own demo workflows and library first, then n8n's library for the places left (or anyway, with `wide`). With `auto`, the top match is taken straight away. */
 export async function runMatchesAction(form: FormData): Promise<StepResult> {
   await requireLogin();
   const id = Number(val(form, "id")), p = await load(id), pain = chosenPain(p?.bp);
@@ -108,9 +108,9 @@ export async function runMatchesAction(form: FormData): Promise<StepResult> {
     const typed = form.has("search") ? cleanSearches(val(form, "search").split(",")) : [];
     const search = typed.length ? typed : p.bp.pains!.search;
     const allowance = await n8nAllowance();
-    const { step, requests } = await findMatches(p.job, pain, search, painBasis(p.bp), allowance);
+    const { step, requests } = await findMatches(p.job, pain, search, painBasis(p.bp), allowance, val(form, "wide") === "1");
     let workflow: Picked | undefined, spent = requests;
-    if (val(form, "auto") === "1" && step.matches[0] && (step.matches[0].source === "library" || allowance - requests > 0)) {
+    if (val(form, "auto") === "1" && step.matches[0] && (step.matches[0].source !== "n8n" || allowance - requests > 0)) {
       try {
         const got = await loadPicked(step.matches[0].ref);
         workflow = got.picked; spent += got.requests;

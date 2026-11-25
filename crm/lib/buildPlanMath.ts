@@ -3,6 +3,7 @@
 // finishes each reply, places the case study word for word from the owner's own table, and works out the timeline and the
 // fixed price. The AI never writes a client's name, a result or a price.
 import { containsContactDetails } from "./audit.ts";
+import { rankDemos } from "./demoRunMath.ts";
 import { buildMermaid, normaliseTool, PERSONAL_DATA, toolLevel, type ProofItem } from "./loomPitchMath.ts";
 import { cleanSearches } from "./n8nTemplatesMath.ts";
 import { priceMilestones, type Ease, type Milestone, type Pricing, type Rates } from "./proposalPlanMath.ts";
@@ -17,12 +18,13 @@ export type Cost = "money" | "time" | "both";
 export type Pain = { id: string; pain: string; quote: string; cost: Cost; why: string; search: string[] };
 export type PainStep = { pains: Pain[]; chosen: string; search: string[]; data_note: string | null; at?: string };
 
-export type Candidate = { ref: string; source: "n8n" | "library"; name: string; summary: string; apps: string[]; url: string | null };
+/** `demo` is the workflow of a demo the owner built (config/demos.yaml); `library` is one they saved as run by them. `score` and `shares` are set on the owner's own, by `ownFirst`. */
+export type Candidate = { ref: string; source: "n8n" | "library" | "demo"; name: string; summary: string; apps: string[]; url: string | null; tags?: string[]; score?: number; shares?: string[] };
 export type Match = Candidate & { reason: string };
 export type MatchStep = { basis: string; search: string[]; matches: Match[]; considered: number; notes: string[]; at?: string };
 
-/** The workflow the owner chose. `own` is true only for one from their library, or a pasted one they say they have run. */
-export type Picked = { ref: string; source: "n8n" | "library" | "pasted"; own: boolean; name: string; url: string | null; workflow: ParsedWorkflow };
+/** The workflow the owner chose. `own` is true only for one from their library, or a pasted one they say they have run. A demo they built is theirs, but it is a demo, so it is never `own`. */
+export type Picked = { ref: string; source: "n8n" | "library" | "pasted" | "demo"; own: boolean; name: string; url: string | null; workflow: ParsedWorkflow };
 
 export type CaseItem = Pick<ProofItem, "id" | "name" | "kind" | "one_line" | "problem_solved" | "results" | "tags" | "tools"> & { client_type?: string | null };
 export type CaseStudy = { proof_id: number; client_type: string; problem: string; built: string; results: string | null };
@@ -46,6 +48,9 @@ export type BuildPlan = { pains?: PainStep; matches?: MatchStep; workflow?: Pick
 
 export const HEADING_OWN = "A workflow I use for this kind of problem";
 export const HEADING_PATTERN = "A workflow pattern I'd start from for this kind of problem";
+export const HEADING_DEMO = "A demo workflow I built for this kind of problem";
+/** How well one of the owner's own workflows has to score against the job (out of 100, the Run a demo score) to be put ahead of public templates. */
+export const OWN_SIMILAR = 30;
 export const DPA_NOTE = "The job points to personal data. A data processing agreement comes first, before any of their customers' personal data is handled.";
 export const MERMAID_MAX = 6000;
 
@@ -137,23 +142,44 @@ export function rankCandidates(cands: Candidate[], about: string, limit = 12): C
   const score = (c: Candidate) => {
     const hit = (s: string, weight: number) => new Set(tokens(s).filter((w) => want.has(w))).size * weight;
     const s = hit(c.name, 2) + hit(c.apps.join(" "), 2) + hit(c.summary, 1);
-    return c.source === "library" ? s + 1.5 : s;
+    return c.source === "n8n" ? s : s + 1.5;
   };
   return cands.map((c, i) => ({ c, s: score(c), i })).sort((a, b) => b.s - a.s || a.i - b.i).slice(0, limit).map((x) => x.c);
 }
 
-const codeReason = (c: Candidate) => (c.apps.length ? `Uses ${c.apps.slice(0, 3).join(", ")}.` : c.source === "library" ? "From your own library." : "Closest by name.");
+const WHOSE = { demo: "A demo you built.", library: "From your own library.", n8n: "" } as const;
+const codeReason = (c: Candidate) =>
+  c.source !== "n8n" && c.shares?.length ? `${WHOSE[c.source]} Shares ${c.shares.slice(0, 4).join(", ")} with this job.`
+    : c.apps.length ? `${WHOSE[c.source]} Uses ${c.apps.slice(0, 3).join(", ")}.`.trim() : WHOSE[c.source] || "Closest by name.";
 
-/** The top 3 with a reason each. Only workflows that were really found can be picked; a reason with a figure or a claim is replaced by a plain one. */
-export function finishMatches(raw: any, cands: Candidate[]): Match[] {
+/**
+ * The owner's own workflows (their demos and their library) scored against the job, best first, with the ones similar enough to go
+ * ahead of any public template (`first`, three at most). The score is the same one the Run a demo tab shows: shared tags, tools and
+ * wording, worked out in code.
+ */
+export function ownFirst(own: Candidate[], about: string): { ranked: Candidate[]; first: Candidate[] } {
+  const mine = own.filter((c) => c.source !== "n8n"), byRef = new Map(mine.map((c) => [c.ref, c]));
+  const scored = rankDemos(about, mine.map((c) => ({ key: c.ref, name: c.name, one_line: c.summary, problem: "", tags: c.tags ?? [], tools: c.apps, recipe: null })));
+  const ranked = scored.map((m) => ({ ...byRef.get(m.key)!, score: m.score, shares: m.shares }));
+  return { ranked, first: ranked.filter((c) => (c.score ?? 0) >= OWN_SIMILAR).slice(0, 3) };
+}
+
+/**
+ * The top 3 with a reason each. Only workflows that were really found can be picked; a reason with a figure or a claim is replaced by a plain one.
+ * `first` are the owner's own similar workflows: they always come before anything else, in their own order, whatever the AI ranked.
+ */
+export function finishMatches(raw: any, cands: Candidate[], first: Candidate[] = []): Match[] {
   const byRef = new Map(cands.map((c) => [c.ref, c]));
-  const out: Match[] = [];
+  const said = new Map<string, string>();
   for (const p of Array.isArray(raw?.picks) ? raw.picks : []) {
-    const c = byRef.get(String(p?.ref ?? ""));
-    if (!c || out.some((m) => m.ref === c.ref)) continue;
-    const reason = scrub(p?.reason, 180);
-    out.push({ ...c, reason: !reason || FIGURE.test(reason) || PAST_WORK.test(reason) ? codeReason(c) : reason });
-    if (out.length === 3) break;
+    const ref = String(p?.ref ?? ""), reason = scrub(p?.reason, 180);
+    if (byRef.has(ref) && !said.has(ref)) said.set(ref, !reason || FIGURE.test(reason) || PAST_WORK.test(reason) ? "" : reason);
+  }
+  const out: Match[] = first.filter((c) => byRef.has(c.ref)).slice(0, 3).map((c) => ({ ...c, reason: said.get(c.ref) || codeReason(c) }));
+  for (const [ref, reason] of said) {
+    if (out.length >= 3) break;
+    const c = byRef.get(ref)!;
+    if (!out.some((m) => m.ref === ref)) out.push({ ...c, reason: reason || codeReason(c) });
   }
   for (const c of cands) {
     if (out.length >= 3) break;
@@ -163,14 +189,16 @@ export function finishMatches(raw: any, cands: Candidate[]): Match[] {
 }
 
 export const headingFor = (own: boolean) => (own ? HEADING_OWN : HEADING_PATTERN);
+/** The heading for the chosen workflow: "a workflow I use" only for one the owner runs, a demo is called a demo, anything else is a pattern to start from. */
+export const headingOf = (p: Pick<Picked, "own" | "source">) => (p.own ? HEADING_OWN : p.source === "demo" ? HEADING_DEMO : HEADING_PATTERN);
 
 /** Tidies a chosen workflow read back from the database or sent from the browser. */
 export function cleanPicked(v: any): Picked | null {
   const workflow = cleanParsed(v?.workflow);
   if (!workflow || typeof v?.ref !== "string") return null;
-  const source = v.source === "n8n" || v.source === "library" ? v.source : "pasted";
+  const source = v.source === "n8n" || v.source === "library" || v.source === "demo" ? v.source : "pasted";
   const url = typeof v.url === "string" && /^https:\/\/n8n\.io\/workflows\/\d+$/.test(v.url) ? v.url : null;
-  return { ref: v.ref.slice(0, 40), source, own: source === "library" || (source === "pasted" && v.own === true), name: scrub(v.name, 120) || workflow.name || "Workflow", url, workflow };
+  return { ref: v.ref.slice(0, 120), source, own: source === "library" || (source === "pasted" && v.own === true), name: scrub(v.name, 120) || workflow.name || "Workflow", url, workflow };
 }
 
 // ---------- Step 3: the demo workflow ----------
@@ -223,7 +251,7 @@ export function finishDemo(raw: any, picked: Picked, cases: CaseItem[], basis: s
   const reason = scrub(raw?.case_reason, 200);
   return {
     step: {
-      basis, ref: picked.ref, heading: headingFor(picked.own), summary, mermaid: workflowMermaid(picked.workflow), walkthrough,
+      basis, ref: picked.ref, heading: headingOf(picked), summary, mermaid: workflowMermaid(picked.workflow), walkthrough,
       case_study: item ? caseStudyOf(item) : null, case_reason: item && reason && !FIGURE.test(reason) ? reason : "", notes: [],
     },
     problems, bad,

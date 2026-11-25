@@ -6,7 +6,7 @@
 export type Cmd = string[];
 export type OpenLink = { label: string; url: string };
 export type Serve = { command: Cmd; cwd: "root" | "demo"; port: number; env: Record<string, string>; open: OpenLink[] };
-export type Recipe = { folder: string; proof: string; title: string; shows: string; steps: Cmd[]; serve: Serve | null; n8n: string[]; note: string };
+export type Recipe = { folder: string; proof: string; title: string; shows: string; steps: Cmd[]; serve: Serve | null; n8n: string[]; make: string[]; note: string };
 
 export const RUNNERS = ["node", "python", "npm"] as const;
 /** Ports a demo page may not take: the CRM's own, and the two n8n uses. */
@@ -53,12 +53,17 @@ export function cleanRecipes(raw: unknown): { recipes: Recipe[]; problems: strin
       serve = { command: s.command, cwd: s.cwd === "demo" ? "demo" : "root", port, env, open };
     }
     if (!steps.length && !serve) { fail("has nothing to run"); continue; }
-    const n8n: string[] = Array.isArray(e.n8n) ? e.n8n : [];
-    if (n8n.length > 6 || n8n.some((f) => typeof f !== "string" || !f.startsWith(`demos/${folder}/`) || !f.endsWith(".json") || f.split("/").includes("..") || /[\s'"`$;&|<>\\]/.test(f))) { fail("the n8n files must be .json files inside its own folder"); continue; }
-    recipes.push({ folder, proof: str(e.proof, 120), title: str(e.title, 120) || folder, shows: str(e.shows, 300), steps, serve, n8n, note: str(e.note, 300) });
+    const n8n: string[] = Array.isArray(e.n8n) ? e.n8n : [], make: string[] = Array.isArray(e.make) ? e.make : [];
+    const outside = (f: unknown) => typeof f !== "string" || !f.startsWith(`demos/${folder}/`) || !f.endsWith(".json") || f.split("/").includes("..") || /[\s'"`$;&|<>\\]/.test(f);
+    if (n8n.length > 6 || n8n.some(outside)) { fail("the n8n files must be .json files inside its own folder"); continue; }
+    if (make.length > 6 || make.some(outside)) { fail("the make files must be .json files inside its own folder"); continue; }
+    recipes.push({ folder, proof: str(e.proof, 120), title: str(e.title, 120) || folder, shows: str(e.shows, 300), steps, serve, n8n, make, note: str(e.note, 300) });
   }
   return { recipes, problems };
 }
+
+/** A demo's main workflow file (the first one listed, n8n before Make): what the Build plan reads as "a workflow you already have". */
+export const mainWorkflowFile = (r: Recipe): string | null => r.n8n[0] ?? r.make[0] ?? null;
 
 /** The lines to paste in Terminal to load a demo's workflows into n8n, for showing it there. */
 export const n8nImportLines = (r: Recipe) => r.n8n.map((f) => `npx n8n import:workflow --input=${f}`);

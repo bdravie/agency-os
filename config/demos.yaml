@@ -12,7 +12,9 @@
 #   steps   commands run once, in order; what they print is shown on screen. Each starts with node, python or npm.
 #   serve   optional: a local page that stays up until you press Stop.
 #             command, port, open (label and address on 127.0.0.1 at that port), cwd: demo (run inside the demo's folder), env
-#   n8n     optional: the workflow files, for the "show it inside n8n" import line
+#   n8n     optional: the n8n workflow files. Send to my n8n adds them to your n8n, and the Build plan's step 2 reads the first
+#           one as a workflow you already have, before it looks at n8n's public templates.
+#   make    optional: Make.com blueprint files, read the same way by the Build plan (they cannot be sent to n8n)
 #   note    optional: one more line shown under the result
 #
 # After adding a demo with /new-demo, add its entry here and add it under Proof and answers as a demo.
@@ -79,6 +81,7 @@ demos:
       - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, approve]
       - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, draw, --project, MILL, --month, 2026-10]
       - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, show]
+    make: [demos/invoice-inbox-to-draw-request/make/invoice-inbox.blueprint.json]
     note: The Make.com version for the full Loom is set up by hand. The steps are in the demo's README.
 
   - folder: client-report

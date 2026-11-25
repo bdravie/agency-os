@@ -1,19 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Play, Square } from "lucide-react";
+import { ExternalLink, Play, Send, Square } from "lucide-react";
 import "@/app/proposals/demo-run.css";
-import { runDemoAction, stopDemoAction, type DemoRunResult } from "@/lib/demoRunActions";
+import { runDemoAction, sendToN8nAction, stopDemoAction, type DemoRunResult, type N8nSendResult } from "@/lib/demoRunActions";
 import { n8nImportLines, type DemoMatch } from "@/lib/demoRunMath";
 import type { Serving } from "@/lib/demoRun";
+import type { N8nStatus } from "@/lib/n8nPush";
+import { useConfirm } from "@/components/ConfirmDialog";
 import CopyButton from "@/components/CopyButton";
 
 // The Run a demo tab on a proposal: the three demos you have already built that are closest to this job, scored by code
 // (shared tools, tags and wording; no AI), each with a button that runs its demo version on this computer.
 // The demo version is the free one: fake data, the demo's own offline mode, nothing sent. One demo page is up at a time.
-export default function DemoRunPanel({ id, top, closer, problems, demos, serving: first }: {
-  id: number; top: DemoMatch[]; closer: DemoMatch[]; problems: string[]; demos: number; serving: Serving | null;
+// Send to my n8n adds a demo's workflow to the owner's own n8n through n8n's API, after a confirmation that names where it goes.
+export default function DemoRunPanel({ id, top, closer, problems, demos, serving: first, n8n }: {
+  id: number; top: DemoMatch[]; closer: DemoMatch[]; problems: string[]; demos: number; serving: Serving | null; n8n: N8nStatus;
 }) {
+  const [confirm, confirmDialog] = useConfirm();
+  const [sent, setSent] = useState<Record<string, N8nSendResult>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, DemoRunResult>>({});
   const [serving, setServing] = useState<Serving | null>(first);
@@ -28,6 +33,26 @@ export default function DemoRunPanel({ id, top, closer, problems, demos, serving
       if (r.serving !== undefined) setServing(r.serving);
     } catch (err) {
       setResults((all) => ({ ...all, [folder]: { error: err instanceof Error ? err.message : String(err) } }));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const send = async (folder: string, name: string, files: number) => {
+    const ok = await confirm({
+      title: files === 1 ? "Add this workflow to your n8n?" : `Add these ${files} workflows to your n8n?`,
+      details: [["Demo", name], ["n8n", n8n.local ? `${n8n.label} (on this computer)` : n8n.label]],
+      body: "It is added switched off, and nothing already in n8n is changed. A workflow there with the same name is left as it is.",
+      confirmLabel: "Add to n8n",
+    });
+    if (!ok) return;
+    const form = new FormData();
+    form.set("id", String(id)); form.set("folder", folder);
+    setBusy(`n8n:${folder}`);
+    try {
+      const r = await sendToN8nAction(form);
+      setSent((all) => ({ ...all, [folder]: r }));
+    } catch (err) {
+      setSent((all) => ({ ...all, [folder]: { error: err instanceof Error ? err.message : String(err) } }));
     } finally {
       setBusy(null);
     }
@@ -60,7 +85,7 @@ export default function DemoRunPanel({ id, top, closer, problems, demos, serving
         <ol className="dr-list">
           {top.map((m, i) => {
             const recipe = m.recipe!, r = results[recipe.folder], working = busy === recipe.folder, up = serving?.folder === recipe.folder;
-            const lines = n8nImportLines(recipe);
+            const lines = n8nImportLines(recipe), pushed = sent[recipe.folder], sending = busy === `n8n:${recipe.folder}`;
             return (
               <li key={m.key} className="dr-item" aria-busy={working}>
                 <div className="dr-head">
@@ -75,10 +100,34 @@ export default function DemoRunPanel({ id, top, closer, problems, demos, serving
                       : <p className="muted">Nothing in the job post matches this one.</p>}
                     {recipe.shows && <p className="muted"><b>Running it shows:</b> {recipe.shows}</p>}
                   </div>
-                  <button type="button" className={i === 0 ? undefined : "secondary"} disabled={!!busy} onClick={() => run(recipe.folder)}>
-                    <Play size={14} aria-hidden /> {working ? "Running…" : up ? "Run again" : r ? "Run again" : "Run demo"}
-                  </button>
+                  <div className="dr-actions">
+                    <button type="button" className={i === 0 ? undefined : "secondary"} disabled={!!busy} onClick={() => run(recipe.folder)}>
+                      <Play size={14} aria-hidden /> {working ? "Running…" : up ? "Run again" : r ? "Run again" : "Run demo"}
+                    </button>
+                    {lines.length > 0 && n8n.ready && (
+                      <button type="button" className="secondary" disabled={!!busy} onClick={() => send(recipe.folder, m.name, lines.length)}>
+                        <Send size={14} aria-hidden /> {sending ? "Sending…" : "Send to my n8n"}
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {pushed && (
+                  <div className="dr-result">
+                    {pushed.error && <p className="error" role="alert">{pushed.error}</p>}
+                    {pushed.summary && <p className={pushed.results?.some((x) => x.status === "failed") ? undefined : "dr-ok"} role="status">{pushed.summary}</p>}
+                    {pushed.results && pushed.results.length > 0 && (
+                      <ul className="dr-sent">
+                        {pushed.results.map((x) => (
+                          <li key={x.name}>
+                            <span className={`badge tone-${x.status === "added" ? "good" : x.status === "already" ? "neutral" : "bad"}`}>{x.status === "added" ? "Added" : x.status === "already" ? "Already there" : "Not added"}</span>
+                            <span><b>{x.name}</b>{x.url && <> · <a href={x.url} target="_blank" rel="noopener noreferrer">Open in n8n <ExternalLink size={13} aria-hidden /></a></>}<br /><span className="muted">{x.note}</span></span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
                 {r && (
                   <div className="dr-result">
@@ -89,11 +138,14 @@ export default function DemoRunPanel({ id, top, closer, problems, demos, serving
                 )}
 
                 <details className="dr-more">
-                  <summary className="muted">Files, and showing it inside n8n</summary>
+                  <summary className="muted">{lines.length > 0 ? "Files, and adding it to n8n by hand" : "Files"}</summary>
                   <p className="muted">Folder: <code>demos/{recipe.folder}/</code>. The Loom script is <code>loom-script.md</code> and the full setup is in <code>README.md</code>.</p>
                   {lines.length > 0 && (
                     <>
-                      <p className="muted">To show the workflow inside n8n: start n8n in Terminal with <code>npx n8n</code>, open <a href="http://localhost:5678" target="_blank" rel="noopener noreferrer">localhost:5678</a> and sign in with the local login you made the first time. To load this demo&apos;s workflow, stop n8n and run this from the project folder, then start it again:</p>
+                      {n8n.ready
+                        ? <p className="muted"><b>Send to my n8n</b> adds this demo&apos;s {lines.length === 1 ? "workflow" : `${lines.length} workflows`} to n8n at {n8n.label} while n8n is running, switched off, ready to open. Connect its credentials there before you turn it on.</p>
+                        : <p className="muted"><b>To add it to n8n with one click:</b> {n8n.problem} {n8n.label ? `It will go to n8n at ${n8n.label}; set N8N_API_URL to use another one.` : ""}</p>}
+                      <p className="muted">By hand instead: stop n8n, run this in Terminal from the project folder, then start n8n again with <code>npx n8n</code>.</p>
                       <pre className="dr-out" id={`dr-n8n-${recipe.folder}`}>{lines.join("\n")}</pre>
                       <CopyButton targetId={`dr-n8n-${recipe.folder}`} label="Copy the import line" />
                     </>
@@ -109,6 +161,7 @@ export default function DemoRunPanel({ id, top, closer, problems, demos, serving
         <p className="muted">Closer on paper, but not set up to run from here: {closer.map((m) => `${m.name} (${m.score})`).join(", ")}. A demo runs from here once it has a folder in demos/ and an entry in config/demos.yaml.</p>
       )}
       {problems.length > 0 && <p className="dr-note" role="status">Left out of config/demos.yaml: {problems.join("; ")}.</p>}
+      {confirmDialog}
     </section>
   );
 }

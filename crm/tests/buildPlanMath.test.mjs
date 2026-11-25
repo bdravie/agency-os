@@ -79,7 +79,7 @@ test("the top 3 can only be workflows that were found; a reason with a figure or
   const m = finishMatches({ picks: [{ ref: "n8n:2", reason: "Replies to the enquiry while they are still looking." }, { ref: "n8n:99", reason: "made up" }, { ref: "lib:7", reason: "Cuts response time by 80%." }, { ref: "n8n:2", reason: "again" }] }, CANDS);
   assert.deepEqual(m.map((x) => x.ref), ["n8n:2", "lib:7", "n8n:1"]);
   assert.equal(m[0].reason, "Replies to the enquiry while they are still looking.");
-  assert.equal(m[1].reason, "Uses Gmail.");
+  assert.equal(m[1].reason, "From your own library. Uses Gmail.");                   // the plain reason says whose it is
   assert.equal(m[2].reason, "Uses OpenAI.");
   assert.deepEqual(finishMatches(null, CANDS.slice(3)).map((x) => x.reason), ["Closest by name."]);
   assert.deepEqual(finishMatches({ picks: [] }, []), []);
@@ -278,6 +278,43 @@ test("a digit inside a tool's name is not a made-up figure, and does not back a 
   assert.deepEqual(finishPlan(withN8n, JOB, "leads go cold", "n8n:2").problems, []);                   // the job post never mentions n8n
   assert.deepEqual(lineProblems("n8n checks whether the email is a real enquiry."), []);
   assert.deepEqual(lineProblems("It replies within 5 minutes."), ["a number"]);
+});
+
+test("your own workflows come first: the demos you built and your library are scored against the job, and the similar ones go ahead of any public template", async () => {
+  const { ownFirst, OWN_SIMILAR, headingOf, HEADING_DEMO } = await import("../lib/buildPlanMath.ts");
+  const CLINIC = "We are a dental practice. We miss calls at lunch and patients book elsewhere. We want an automatic WhatsApp text back for missed calls using Twilio and n8n.";
+  const mine = [
+    { ref: "demo:invoice-inbox", source: "demo", name: "Invoice inbox to draw request (demo)", summary: "Supplier invoices arriving by email are read, filed and logged.", apps: ["Gmail", "Google Sheets"], url: null, tags: ["invoices", "make", "gmail"] },
+    { ref: "demo:missed-call", source: "demo", name: "Missed-call WhatsApp text-back for clinics (demo)", summary: "A missed call to a clinic gets a WhatsApp reply within seconds.", apps: ["Twilio", "n8n"], url: null, tags: ["dental", "missed-calls", "whatsapp", "twilio"] },
+    { ref: "lib:7", source: "library", name: "Missed calls to SMS", summary: "Texts back anyone whose call was missed.", apps: ["Twilio"], url: null, tags: ["missed-calls"] },
+  ];
+  const pub = [{ ref: "n8n:1", source: "n8n", name: "WhatsApp missed call text back with Twilio", summary: "Text back missed calls on WhatsApp.", apps: ["Twilio", "WhatsApp"], url: "https://n8n.io/workflows/1" }, { ref: "n8n:2", source: "n8n", name: "Dental booking bot", summary: "", apps: [], url: "https://n8n.io/workflows/2" }];
+  const { ranked, first } = ownFirst([...mine, ...pub], CLINIC);
+  assert.deepEqual(ranked.map((c) => c.ref), ["demo:missed-call", "lib:7", "demo:invoice-inbox"]);       // public templates are never scored as yours
+  assert.deepEqual(first.map((c) => c.ref), ["demo:missed-call", "lib:7"]);
+  assert.ok(first.every((c) => c.score >= OWN_SIMILAR) && ranked[2].score < OWN_SIMILAR);
+  assert.ok(first[0].shares.includes("Twilio") && first[0].shares.includes("missed calls"));
+
+  // Whatever the AI ranks, your similar ones stay in front, in their own order; the AI's picks fill what is left.
+  const all = [...ranked, ...pub];
+  const m = finishMatches({ picks: [{ ref: "n8n:1", reason: "Texts the caller back on WhatsApp straight after a missed call." }, { ref: "lib:7", reason: "Texts back every missed caller." }, { ref: "n8n:2", reason: "A booking bot." }] }, all, first);
+  assert.deepEqual(m.map((x) => [x.ref, x.source]), [["demo:missed-call", "demo"], ["lib:7", "library"], ["n8n:1", "n8n"]]);
+  assert.match(m[0].reason, /^A demo you built\. Shares .*Twilio/);                                       // no AI reason for it, so a plain one that says it is a demo
+  assert.equal(m[1].reason, "Texts back every missed caller.");
+  assert.equal(m[0].score, first[0].score);
+  assert.deepEqual(finishMatches(null, all, first).map((x) => x.ref), ["demo:missed-call", "lib:7", "demo:invoice-inbox"]);   // the AI failed: yours first, then the list's own order
+  assert.deepEqual(finishMatches({ picks: [] }, pub, first).map((x) => x.ref), ["n8n:1", "n8n:2"]);      // one that was not found cannot be put first
+  assert.deepEqual(ownFirst(pub, CLINIC), { ranked: [], first: [] });
+  assert.deepEqual(ownFirst(mine, "Something about payroll exports.").first, []);                         // nothing of yours is forced in when none is close
+
+  // A demo is called a demo: never "a workflow I use", even though it is yours. The long reference of a demo survives a round trip.
+  const demo = cleanPicked({ ...picked({ source: "demo", ref: "demo:consent-first-lead-capture-and-journey-t", url: null }), own: true });
+  assert.deepEqual([demo.source, demo.own, demo.ref], ["demo", false, "demo:consent-first-lead-capture-and-journey-t"]);
+  assert.equal(headingOf(demo), HEADING_DEMO);
+  assert.equal(headingOf({ own: true, source: "library" }), HEADING_OWN);
+  assert.equal(headingOf({ own: false, source: "n8n" }), HEADING_PATTERN);
+  assert.equal(finishDemo(rawDemo(), demo, [], "x").step.heading, "A demo workflow I built for this kind of problem");
+  assert.equal(stepStates({ pains: finishPains(rawPains(), JOB).step, workflow: demo, demo: { ...finishDemo(rawDemo(), demo, [], "leads go cold because nobody replies until the next day").step } }).demo, "ready");
 });
 
 // ---------- The client page (buildPlanPageMath.ts) ----------

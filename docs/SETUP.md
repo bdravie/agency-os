@@ -92,6 +92,21 @@ Notes
 - If posting fails with a version error, LinkedIn has retired the API version: set `LINKEDIN_API_VERSION` to a recent month (YYYYMM, see learn.microsoft.com/linkedin "versioning").
 - To remove the app's access on LinkedIn's side: LinkedIn > Settings > Data privacy > Permitted services.
 
+## 2e. Adding a demo's workflow to your n8n with one click (optional)
+
+A proposal's **Run a demo** tab works without this: each demo has an import line to copy. With it, a demo that has an n8n workflow gets **Send to my n8n**, which adds the workflow to your n8n switched off and gives you a link to open it. No n8n account is needed: the free n8n on this Mac has the same API.
+
+1. Start n8n in Terminal (`npx n8n`), open http://localhost:5678 and sign in with the local login you made the first time it ran. That login lives in n8n's own folder on the Mac (`~/.n8n`), not in this project.
+2. In n8n: **Settings > n8n API > Create an API key**. Give it a label, copy the key.
+3. Put it in the env file as `N8N_API_KEY=...` and put the change live (`bash scripts/update-crm.sh`). Leave `N8N_API_URL` empty to use the n8n on this Mac.
+4. Open a proposal > Run a demo > **Send to my n8n**. n8n has to be running at the time.
+
+Notes
+- The workflow arrives switched off. Connect its credentials in n8n and turn it on there; the CRM never switches a workflow on.
+- A workflow already in n8n with the same name is left as it is. Rename or delete that one to add it again.
+- Only the workflow files a demo lists in `config/demos.yaml` are sent, and only to the one address in `N8N_API_URL`.
+- n8n Cloud instead: set `N8N_API_URL` to your instance address (`https://yourname.app.n8n.cloud`). The API is on Cloud's paid plans only, not the free trial (n8n's docs, checked 25 Nov 2026). Check n8n's pricing page for the current price.
+
 ## 3. Accounts and API keys, in the order you need them
 
 | When | Service | Sign up | `.env` key | Cost |
