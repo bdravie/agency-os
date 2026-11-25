@@ -102,6 +102,7 @@ export default function ProposalBoard({ initial, tab = "all", deletedCount = 0 }
         <b className="tier-title">
           <Link href={`/proposals/${r.id}`} onClick={(e) => e.stopPropagation()}>{name}</Link>
           {r.pitch_mode === "loom" && <span className="badge tone-violet" style={{ marginLeft: 8 }}>Loom</span>}
+          {r.pitch_mode === "build_plan" && <span className="badge tone-violet" style={{ marginLeft: 8 }}>Build plan</span>}
           {isArch && <span className="badge tone-neutral" style={{ marginLeft: 8 }} title={archiveLabel(r.archive_reason)}>{statusLabel(r.status)}</span>}
         </b>
         <span className="tier-fit">{r.fit_score !== null && <span className={`badge tone-${fitTone(r.fit_score)}`}>{r.fit_score}/10</span>}</span>

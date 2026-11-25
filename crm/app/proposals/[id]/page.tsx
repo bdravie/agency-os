@@ -20,12 +20,17 @@ import { priceMilestones } from "@/lib/proposalPlanMath";
 import { loadRates } from "@/lib/proposalPlan";
 import { proposalName } from "@/lib/proposalName";
 import { demoBriefPrompt } from "@/lib/demoBriefMath";
+import BuildPlanPanel from "@/components/buildPlan/BuildPlanPanel";
+import { loadCases, loadUsdRate } from "@/lib/buildPlan";
+import { caseStudyOf, stepStates, STEPS } from "@/lib/buildPlanMath";
+import { templatesOn } from "@/lib/n8nTemplates";
+import { loadProfile } from "@/lib/pitchLibrary";
 
 export const dynamic = "force-dynamic";
 
-const TABS = ["draft", "fit", "plan", "loom", "improve", "demo"] as const;
+const TABS = ["draft", "build", "fit", "plan", "loom", "improve", "demo"] as const;
 
-export default async function ProposalPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+export default async function ProposalPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; run?: string }> }) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const [p] = await query<any>(`SELECT * FROM proposals WHERE id = $1`, [id]);
@@ -33,8 +38,11 @@ export default async function ProposalPage({ params, searchParams }: { params: P
   const rates = await loadRates();
   const jobPrice = p.plan?.milestones?.length ? priceMilestones(p.plan.milestones, rates).total : null;
   const isLoom = p.pitch_mode === "loom";
-  const asked = (await searchParams).tab;
-  const tab = TABS.find((t) => t === asked) ?? (isLoom ? "loom" : "draft");
+  const isBuild = p.pitch_mode === "build_plan";
+  const { tab: asked, run } = await searchParams;
+  const tab = TABS.find((t) => t === asked) ?? (isLoom ? "loom" : isBuild ? "build" : "draft");
+  const buildStates = stepStates(p.build_plan);
+  const build = tab === "build" ? await Promise.all([loadCases(), loadProfile(), loadUsdRate()]) : null;
   const loomOwed = isLoom && !!p.loom_pitch && !p.loom_recorded_at && p.status === "Draft" && !p.archived_at;
   const loomPanel = <LoomPitchPanel id={id} title={proposalName(p)} pitch={p.loom_pitch} pitchAt={p.loom_pitch_at ? String(p.loom_pitch_at) : null} inputs={p.loom_inputs} loomUrl={p.loom_url} />;
   return (
@@ -43,7 +51,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
         back={{ href: "/proposals", label: "Proposals" }}
         title={proposalName(p)}
         actions={<ProposalActions id={id} title={proposalName(p)} status={p.status} archived={!!p.archived_at} />}
-        description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} />{isLoom && <span className="badge tone-violet">Loom pitch</span>}<span>Fit {p.fit_score}/10</span>{/^https?:\/\//i.test(p.job_url ?? "") && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Open on Upwork <ExternalLink size={13} aria-hidden /></a>}</span>}
+        description={<span className="row" style={{ gap: 10 }}><Badge value={p.status} />{isLoom && <span className="badge tone-violet">Loom pitch</span>}{isBuild && <span className="badge tone-violet">Build plan</span>}<span>Fit {p.fit_score}/10</span>{/^https?:\/\//i.test(p.job_url ?? "") && <a href={p.job_url} target="_blank" rel="noreferrer" className="row" style={{ gap: 4 }}>Open on Upwork <ExternalLink size={13} aria-hidden /></a>}</span>}
       />
       <section className="card stack" style={{ gap: 8, marginBottom: 18 }} aria-label="Pipeline">
         <ProposalStageBar id={id} status={p.status} title={proposalName(p)} lostReason={p.lost_reason} />
@@ -55,6 +63,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
         current={tab}
         tabs={[
           { key: "draft", label: "Draft", href: `/proposals/${id}?tab=draft` },
+          { key: "build", label: "Build plan", href: `/proposals/${id}?tab=build`, count: STEPS.filter((s) => buildStates[s] === "ready").length },
           { key: "fit", label: "Fit", href: `/proposals/${id}?tab=fit` },
           { key: "plan", label: "Plan and price", href: `/proposals/${id}?tab=plan`, count: p.plan?.milestones?.length },
           { key: "loom", label: "Loom pitch", href: `/proposals/${id}?tab=loom`, count: loomOwed ? 1 : undefined, hot: loomOwed },
@@ -68,12 +77,12 @@ export default async function ProposalPage({ params, searchParams }: { params: P
           <div className="grid">
             <ToastForm action={saveProposal} success="Proposal saved" className="card stack" style={{ gap: 10 }}>
               <input type="hidden" name="id" value={id} />
-              <h2>{isLoom ? "Tracking" : "Your draft (edit freely)"}</h2>
-              {isLoom ? (p.draft && <input type="hidden" name="draft" value={p.draft} />) : <textarea id="draft" name="draft" rows={16} defaultValue={p.draft ?? ""} aria-label="Draft" />}
+              <h2>{isLoom || isBuild ? "Tracking" : "Your draft (edit freely)"}</h2>
+              {isLoom || (isBuild && !p.draft) ? (p.draft && <input type="hidden" name="draft" value={p.draft} />) : <textarea id="draft" name="draft" rows={16} defaultValue={p.draft ?? ""} aria-label="Draft" />}
               <div className="row">
                 <input name="connects_used" type="number" min="0" placeholder="Connects used" aria-label="Connects used" defaultValue={p.connects_used ?? ""} style={{ width: 150 }} />
                 <button>Save</button>
-                {!isLoom && <CopyButton targetId="draft" />}
+                {!isLoom && !(isBuild && !p.draft) && <CopyButton targetId="draft" />}
               </div>
             </ToastForm>
             <section className="card">
@@ -86,6 +95,13 @@ export default async function ProposalPage({ params, searchParams }: { params: P
         </div>
       )}
 
+      {tab === "build" && build && (
+        <BuildPlanPanel
+          id={id} title={proposalName(p)} plan={p.build_plan ?? null} at={p.build_plan_at ? String(p.build_plan_at) : null} rates={rates} usdToGbp={build[2]}
+          cases={build[0].map(caseStudyOf).map((c) => ({ id: c.proof_id, label: `${c.client_type}: ${c.built.slice(0, 60)}` }))}
+          tools={{ strong_tools: build[1].strong_tools, familiar_tools: build[1].familiar_tools }} job={p.job_text ?? ""} templatesOn={templatesOn()} autoRun={run === "1"}
+        />
+      )}
       {tab === "fit" && <FitPanel id={id} score={p.fit_score} fit={p.fit_analysis} />}
       {tab === "plan" && <PlanPanel id={id} plan={p.plan} planAt={p.plan_at ? String(p.plan_at) : null} rates={rates} />}
       {tab === "loom" && loomPanel}

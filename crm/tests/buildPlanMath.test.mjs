@@ -1,0 +1,269 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  applicationText, caseStudyOf, chosenPain, cleanDemoEdit, cleanPainsEdit, cleanPicked, cleanPlanEdit, eligibleCases, finishDemo, finishMatches, finishPains, finishPlan,
+  HEADING_OWN, HEADING_PATTERN, lineProblems, money, painBasis, planMermaid, quoteFor, quoteInPost, rankCandidates, settleDemo, stepStates, toolsToCheck, unbackedNumbers,
+} from "../lib/buildPlanMath.ts";
+import { DEFAULT_RATES } from "../lib/proposalPlanMath.ts";
+import { parseWorkflow } from "../lib/workflowParse.ts";
+
+const JOB = `We run a lettings agency with 3 branches. Every week our team spends hours copying new enquiries from Rightmove emails into our CRM by hand,
+and we lose leads because nobody replies until the next day. We also chase 40 landlords a month for safety certificates on a spreadsheet. Budget is $800.`;
+
+const rawPains = (o = {}) => ({
+  pains: [
+    { pain: "Leads go cold because nobody replies until the next day", quote: "we lose leads because nobody replies until the next day", cost: "money", why: "Each lost enquiry is a let they do not win.", search: ["Lead auto reply email", "enquiry to CRM", "lead auto reply email"] },
+    { pain: "Hours a week copying enquiries into the CRM", quote: "Every week our team spends hours copying new enquiries", cost: "time", why: "Staff time across 3 branches.", search: ["email to crm"] },
+    { pain: "Invented one", quote: "this sentence is not in the post at all", cost: "time", why: "" },
+    { pain: "Chasing 40 landlords for certificates", quote: "chase 40 landlords a month for safety certificates", cost: "weird", why: "" },
+  ], ...o,
+});
+
+test("a quote counts only if it is in the job post, whatever the case, spacing or punctuation", () => {
+  assert.ok(quoteInPost("We lose leads because  nobody replies, until the next day!", JOB));
+  assert.ok(quoteInPost("copying new enquiries from Rightmove emails into our CRM by hand, and we lose leads", JOB));   // across a line break
+  assert.ok(!quoteInPost("we lose customers because nobody replies", JOB));
+  assert.ok(!quoteInPost("lose leads", JOB));                                                                          // too short to prove anything
+});
+
+test("pain points keep the AI's ranking, drop any without a real quote, and commit to the first", () => {
+  const { step, problems } = finishPains(rawPains(), JOB);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(step.pains.map((p) => [p.id, p.cost]), [["p1", "money"], ["p2", "time"], ["p3", "both"]]);
+  assert.equal(step.chosen, "p1");
+  assert.deepEqual(step.search, ["lead auto reply email", "enquiry to crm"]);
+  assert.equal(step.data_note, null);
+  assert.match(finishPains(rawPains(), `${JOB} We hold tenants' personal data.`).step.data_note, /data processing agreement/);
+});
+
+test("pain points are refused with nothing quoted, a made-up number or a story about past clients", () => {
+  assert.match(finishPains({ pains: [{ pain: "Slow replies", quote: "not in the post you see", cost: "time", why: "" }] }, JOB).problems[0], /word for word/);
+  assert.match(finishPains({ pains: [] }, JOB).problems[0], /no pain points/);
+  assert.match(finishPains(rawPains({ pains: [{ ...rawPains().pains[0], why: "Probably 25 lost lets a month." }] }), JOB).problems[0], /number that is not in the job post \(25\)/);
+  assert.match(finishPains(rawPains({ pains: [{ ...rawPains().pains[0], why: "A previous client had the same issue." }] }), JOB).problems[0], /past client work/);
+  assert.deepEqual(finishPains(rawPains({ pains: [{ ...rawPains().pains[0], search: [] }] }), JOB).step.search, ["leads cold because nobody"]);
+  assert.deepEqual(unbackedNumbers("3 branches, 40 landlords, 7 days", JOB), ["7"]);
+});
+
+test("the owner's edit can reword, add and re-pick; quotes stay the post's own and contact details are refused", () => {
+  const current = finishPains(rawPains(), JOB).step;
+  const { value } = cleanPainsEdit({ chosen: "p2", search: ["rightmove crm"], pains: [{ id: "p1", pain: "Slow replies lose lets", quote: "typed over", cost: "money", why: "" }, { id: "p2", pain: "Copying by hand", cost: "time", why: "" }, { pain: "My own idea: 50 hours a month", cost: "time", why: "" }] }, current);
+  assert.equal(value.chosen, "p2");
+  assert.deepEqual(value.search, ["rightmove crm"]);                                   // typed search words win
+  assert.deepEqual(cleanPainsEdit({ chosen: "p2", search: current.search, pains: current.pains }, current).value.search, ["email to crm"]);   // another angle brings its own
+  assert.deepEqual(cleanPainsEdit({ chosen: "p1", search: [], pains: current.pains }, current).value.search, current.search);
+  assert.equal(value.pains[0].quote, current.pains[0].quote);
+  assert.deepEqual(value.pains.map((p) => p.id), ["p1", "p2", "own3"]);
+  assert.equal(value.pains[2].quote, "");
+  assert.equal(chosenPain({ pains: value }).pain, "Copying by hand");
+  assert.equal(painBasis({ pains: value }), "copying by hand");
+  assert.match(cleanPainsEdit({ pains: [{ id: "p1", pain: "Call 07700 900123", cost: "time" }] }, current).error, /email addresses and phone numbers/);
+  assert.match(cleanPainsEdit({ pains: [] }, current).error, /at least one/);
+  assert.equal(cleanPainsEdit({ chosen: "nope", pains: [{ id: "p2", pain: "Copying by hand" }] }, current).value.chosen, "p2");
+});
+
+const CANDS = [
+  { ref: "n8n:1", source: "n8n", name: "Summarise RSS feeds with OpenAI", summary: "News digest.", apps: ["OpenAI"], url: "https://n8n.io/workflows/1" },
+  { ref: "n8n:2", source: "n8n", name: "Auto reply to new lead emails with Gmail", summary: "Replies to an enquiry within a minute.", apps: ["Gmail", "HubSpot"], url: "https://n8n.io/workflows/2" },
+  { ref: "lib:7", source: "library", name: "Enquiry to CRM and reply", summary: "Stops leads going cold.", apps: ["Gmail"], url: null },
+  { ref: "n8n:3", source: "n8n", name: "Post to Slack", summary: "", apps: [], url: "https://n8n.io/workflows/3" },
+];
+
+test("candidates are ranked by shared words, with the owner's own workflows given a head start", () => {
+  const ranked = rankCandidates(CANDS, "leads go cold because nobody replies to a new enquiry email");
+  assert.deepEqual(ranked.map((c) => c.ref).slice(0, 2), ["lib:7", "n8n:2"]);
+  assert.equal(rankCandidates(CANDS, "enquiry", 2).length, 2);
+});
+
+test("the top 3 can only be workflows that were found; a reason with a figure or a claim becomes a plain one; gaps are topped up", () => {
+  const m = finishMatches({ picks: [{ ref: "n8n:2", reason: "Replies to the enquiry while they are still looking." }, { ref: "n8n:99", reason: "made up" }, { ref: "lib:7", reason: "Cuts response time by 80%." }, { ref: "n8n:2", reason: "again" }] }, CANDS);
+  assert.deepEqual(m.map((x) => x.ref), ["n8n:2", "lib:7", "n8n:1"]);
+  assert.equal(m[0].reason, "Replies to the enquiry while they are still looking.");
+  assert.equal(m[1].reason, "Uses Gmail.");
+  assert.equal(m[2].reason, "Uses OpenAI.");
+  assert.deepEqual(finishMatches(null, CANDS.slice(3)).map((x) => x.reason), ["Closest by name."]);
+  assert.deepEqual(finishMatches({ picks: [] }, []), []);
+});
+
+const node = (name, type, x) => ({ name, type: `n8n-nodes-base.${type}`, position: [x, 0], parameters: {} });
+const link = (...to) => ({ main: to.map((t) => [{ node: t, type: "main", index: 0 }]) });
+const WF = parseWorkflow({ name: "Reply to new enquiries", nodes: [node("New enquiry email", "gmailTrigger", 0), node("Is it a real lead?", "if", 100), node("Add to HubSpot", "hubspot", 200), node("Send reply in 5 minutes", "gmail", 300)],
+  connections: { "New enquiry email": link("Is it a real lead?"), "Is it a real lead?": link("Add to HubSpot"), "Add to HubSpot": link("Send reply in 5 minutes") } }).workflow;
+const picked = (o = {}) => ({ ref: "n8n:2", source: "n8n", own: false, name: "Auto reply to new lead emails", url: "https://n8n.io/workflows/2", workflow: WF, ...o });
+const PROOF = [
+  { id: 1, name: "Harbour Lettings", kind: "client", client_type: "A lettings agency", one_line: "An enquiry inbox for Harbour Lettings that replies and files each lead.", problem_solved: "Harbour Lettings lost enquiries overnight.", results: "Replies now go out the same hour.", tags: ["lettings"], tools: ["n8n"] },
+  { id: 2, name: "Reels engine", kind: "own_business", client_type: null, one_line: "My own content pipeline from idea to post.", problem_solved: "Posting took a day a week.", results: null, tags: [], tools: [] },
+  { id: 3, name: "Missed call demo", kind: "demo", one_line: "A demo of missed-call text back.", problem_solved: "Missed calls are lost bookings.", results: null, tags: [], tools: [] },
+  { id: 4, name: "Half filled", kind: "client", one_line: "Something for a client.", problem_solved: null, results: null, tags: [], tools: [] },
+];
+
+test("only real work with the problem written down is a case study; demos never are", () => {
+  assert.deepEqual(eligibleCases(PROOF).map((p) => p.id), [1, 2]);
+});
+
+test("a case study is the owner's own words, with the client's name swapped out and nothing added", () => {
+  const c = caseStudyOf(PROOF[0]);
+  assert.deepEqual(c, { proof_id: 1, client_type: "A lettings agency", problem: "The client lost enquiries overnight.", built: "An enquiry inbox for the client that replies and files each lead.", results: "Replies now go out the same hour." });
+  assert.deepEqual(caseStudyOf(PROOF[1]), { proof_id: 2, client_type: "My own business", problem: "Posting took a day a week.", built: "My own content pipeline from idea to post.", results: null });
+  assert.equal(caseStudyOf({ ...PROOF[0], client_type: "" }).client_type, "A client");
+});
+
+const rawDemo = (o = {}) => ({
+  summary: "Catches each new enquiry and replies while the person is still looking.",
+  walkthrough: [{ id: "s1", text: "A new enquiry email arrives in the shared inbox." }, { id: "s2", text: "It checks whether the email is a real enquiry." }, { id: "s4", text: "It sends a reply in 5 minutes." }, { id: "s9", text: "Not a step." }],
+  case_id: 1, case_reason: "Same problem: enquiries going unanswered.", ...o,
+});
+
+test("the demo has one line per step in the workflow's order, code-written where the AI gave none, and the heading follows where it came from", () => {
+  const { step, problems } = finishDemo(rawDemo(), picked(), eligibleCases(PROOF), "leads go cold");
+  assert.deepEqual(problems, []);
+  assert.deepEqual(step.walkthrough.map((w) => w.id), ["s1", "s2", "s3", "s4"]);
+  assert.equal(step.walkthrough[2].text, "Add to HubSpot: uses HubSpot.");
+  assert.equal(step.walkthrough[3].text, "It sends a reply in 5 minutes.");            // 5 is in the step's own name
+  assert.equal(step.heading, HEADING_PATTERN);
+  assert.equal(finishDemo(rawDemo(), picked({ own: true, source: "library", ref: "lib:7" }), [], "x").step.heading, HEADING_OWN);
+  assert.match(step.mermaid, /^flowchart LR/);
+  assert.equal(step.case_study.proof_id, 1);
+  assert.equal(step.ref, "n8n:2");
+});
+
+test("a case study can only be one from the table: an unknown id or a demo means no client story", () => {
+  assert.equal(finishDemo(rawDemo({ case_id: 3 }), picked(), eligibleCases(PROOF), "x").step.case_study, null);
+  assert.equal(finishDemo(rawDemo({ case_id: null }), picked(), eligibleCases(PROOF), "x").step.case_study, null);
+  assert.equal(finishDemo(rawDemo({ case_id: 99, case_reason: "why" }), picked(), eligibleCases(PROOF), "x").step.case_reason, "");
+});
+
+test("a line with a figure, a number of its own, a client claim or contact details is caught, and replaced by code if it comes back again", () => {
+  assert.deepEqual(lineProblems("Saves the team 10 hours a week"), ["a number"]);
+  assert.deepEqual(lineProblems("Lifts replies by 40%"), ["a figure or a guarantee", "a number"]);
+  assert.deepEqual(lineProblems("I built this for a client last year"), ["a claim about client work"]);
+  assert.deepEqual(lineProblems("Guaranteed to reply"), ["a figure or a guarantee"]);
+  assert.deepEqual(lineProblems("Emails the client their invoice"), []);
+  const r = finishDemo(rawDemo({ summary: "Cuts response time by 80%.", walkthrough: [{ id: "s1", text: "Saved another client 12 hours a week." }] }), picked(), [], "x");
+  assert.deepEqual(r.bad, ["s1", "summary"]);
+  assert.equal(r.problems.length, 2);
+  const settled = settleDemo(r.step, picked(), r.bad);
+  assert.equal(settled.walkthrough[0].text, "New enquiry email: starts the workflow, uses Gmail.");
+  assert.equal(settled.summary, "Auto reply to new lead emails");
+  assert.match(settled.notes[0], /1 walkthrough line was written by code/);
+  assert.equal(settleDemo(r.step, picked(), []), r.step);
+});
+
+test("the owner's edit to the demo keeps their wording, lets them swap or drop the case study, and refuses contact details", () => {
+  const current = finishDemo(rawDemo(), picked(), eligibleCases(PROOF), "x").step;
+  const { value } = cleanDemoEdit({ heading: "How I handle this", walkthrough: [{ id: "s1", text: "Saved a client 10 hours (my real number)." }], case_id: 2 }, current, picked(), eligibleCases(PROOF));
+  assert.equal(value.heading, "How I handle this");
+  assert.equal(value.walkthrough[0].text, "Saved a client 10 hours (my real number).");
+  assert.equal(value.walkthrough[1].text, current.walkthrough[1].text);
+  assert.equal(value.case_study.proof_id, 2);
+  assert.equal(value.case_reason, "");
+  assert.equal(cleanDemoEdit({ case_id: null }, current, picked(), eligibleCases(PROOF)).value.case_study, null);
+  assert.equal(cleanDemoEdit({ case_id: 1 }, current, picked(), eligibleCases(PROOF)).value.case_reason, current.case_reason);
+  assert.equal(cleanDemoEdit({ case_id: 3 }, current, picked(), eligibleCases(PROOF)).value.case_study, null);
+  assert.match(cleanDemoEdit({ summary: "Email me on jane@example.com" }, current, picked(), []).error, /email addresses/);
+});
+
+const rawPlan = (o = {}) => ({
+  flow: [
+    { label: "Rightmove enquiry arrives", detail: "A new Rightmove enquiry email lands in your shared inbox.", tool: "Gmail" },
+    { label: "Read the enquiry", detail: "The enquiry is read and the property and contact preference are pulled out.", tool: null },
+    { label: "Add to your CRM", detail: "A lead record is created in your CRM for the right one of your 3 branches.", tool: "Your CRM" },
+    { label: "Reply straight away", detail: "The enquirer gets a reply the same hour, in your wording.", tool: "Gmail" },
+    { label: "Tell the branch", detail: "The branch sees the new lead with what to do next.", tool: null },
+  ],
+  branches: [{ from: 2, to: 5, label: "Not an enquiry" }, { from: 1, to: 2, label: "dup" }, { from: 9, to: 1, label: "bad" }],
+  outcomes: ["A lead record in your CRM for every enquiry", "A weekly list of enquiries and how fast each was answered"],
+  access: ["Access to the shared enquiries inbox", "An API key or login for your CRM"],
+  milestones: [
+    { name: "Enquiry capture", delivers: ["Enquiries read and filed in the CRM"], ease: "medium", hours_low: 4, hours_high: 6 },
+    { name: "Replies and branch alerts", delivers: ["Reply template in your wording"], ease: "hard", hours_low: 3, hours_high: 5 },
+  ],
+  assumptions: ["Your CRM has an API"], ...o,
+});
+
+test("the tailored plan is finished in code: a diagram that draws, branches that exist, and no price, promise, made-up number or client story", () => {
+  const { step, problems } = finishPlan(rawPlan(), JOB, "leads go cold", "n8n:2");
+  assert.deepEqual(problems, []);
+  assert.equal(step.flow.length, 5);
+  assert.deepEqual(step.branches, [{ from: 2, to: 5, label: "Not an enquiry" }, { from: 1, to: 2, label: "dup" }]);
+  assert.match(step.mermaid, /S1\["Rightmove enquiry arrives"\]/);
+  assert.match(step.mermaid, /S2 -->\|"Not an enquiry"\| S5/);
+  assert.equal(step.mermaid.match(/S1 -->/g).length, 1);                        // a branch that only repeats the next step adds no second arrow
+  assert.equal(step.basis, "leads go cold");
+  const bad = (o) => finishPlan(rawPlan(o), JOB, "x", "").problems.join(" | ");
+  assert.match(bad({ outcomes: ["Replies within 2 minutes", "A dashboard"] }), /number that is not in the job post \(2\)/);
+  assert.match(bad({ assumptions: ["Fixed price of £500"] }), /price, a percentage or a guarantee/);
+  assert.match(bad({ access: ["Like I did for a previous client"] }), /past client work/);
+  assert.match(bad({ flow: rawPlan().flow.slice(0, 2) }), /needs 4 to 9/);
+  assert.match(bad({ milestones: [] }), /at least 2 milestones/);
+  assert.match(finishPlan(rawPlan(), `${JOB} It includes patient records.`, "x", "").step.data_note, /data processing agreement/);
+});
+
+test("a tool in the plan is flagged only when it is in neither the job post nor the owner's tool lists", () => {
+  const flow = [{ label: "a", detail: "b", tool: "Rightmove" }, { label: "a", detail: "b", tool: "n8n" }, { label: "a", detail: "b", tool: "Zapier" }, { label: "a", detail: "b", tool: "Your CRM" }, { label: "a", detail: "b", tool: null }, { label: "a", detail: "b", tool: "Make.com" }];
+  assert.deepEqual(toolsToCheck(flow, JOB, { strong_tools: ["n8n"], familiar_tools: ["Make"] }), ["Zapier"]);
+});
+
+test("the timeline is whole working days in order, and the milestone prices add up to the fixed price exactly", () => {
+  const q = quoteFor(rawPlan().milestones, DEFAULT_RATES);
+  // 5h x £45 = £225; 4h x £45 x 1.25 = £225; +15% = £517.50, rounded up to £520
+  assert.equal(q.total, 520);
+  assert.deepEqual(q.lines.map((l) => [l.days, l.from_day, l.to_day, l.price]), [[1, 1, 1, 260], [1, 2, 2, 260]]);
+  assert.equal(q.days, 2);
+  const uneven = quoteFor([{ name: "A", delivers: [], ease: "easy", hours_low: 1, hours_high: 1 }, { name: "B", delivers: [], ease: "easy", hours_low: 13, hours_high: 13 }, { name: "C", delivers: [], ease: "hard", hours_low: 7, hours_high: 7 }], DEFAULT_RATES);
+  assert.equal(uneven.lines.reduce((s, l) => s + l.price, 0), uneven.total);
+  assert.deepEqual(uneven.lines.map((l) => [l.from_day, l.to_day]), [[1, 1], [2, 4], [5, 6]]);
+  const tiny = quoteFor([{ name: "A", delivers: [], ease: "easy", hours_low: 0.5, hours_high: 0.5 }], DEFAULT_RATES);
+  assert.equal(tiny.total, DEFAULT_RATES.min_project_gbp);                       // never below the minimum project price
+  assert.equal(tiny.lines[0].price, DEFAULT_RATES.min_project_gbp);
+  assert.equal(money(520, "GBP", 0.75), "£520");
+  assert.equal(money(520, "USD", 0.75), "$695");
+  assert.equal(money(1520, "USD", null), "£1,520");                              // no saved rate, so it stays in pounds
+});
+
+test("the owner's edit to the plan keeps their numbers and rebuilds the diagram unless they typed their own", () => {
+  const current = finishPlan(rawPlan(), JOB, "x", "").step;
+  const { value } = cleanPlanEdit({ ...rawPlan({ outcomes: ["Replies within 2 minutes"] }), mermaid: "" }, current);
+  assert.deepEqual(value.outcomes, ["Replies within 2 minutes"]);
+  assert.equal(value.mermaid, planMermaid(value.flow, value.branches));
+  assert.equal(cleanPlanEdit({ ...rawPlan(), mermaid: "flowchart TD\n  A --> B" }, current).value.mermaid, "flowchart TD\n  A --> B");
+  assert.match(cleanPlanEdit(rawPlan({ access: ["Ring 07700 900123"] }), current).error, /email addresses and phone numbers/);
+  assert.match(cleanPlanEdit(rawPlan({ flow: [] }), current).error, /at least 2 steps/);
+});
+
+test("a step is out of date when the angle or the workflow it was built for changes", () => {
+  const pains = finishPains(rawPains(), JOB).step, basis = painBasis({ pains });
+  const demo = finishDemo(rawDemo(), picked(), [], basis).step, plan = finishPlan(rawPlan(), JOB, basis, "n8n:2").step;
+  const bp = { pains, matches: { basis, search: [], matches: [], considered: 0, notes: [] }, workflow: picked(), demo, plan };
+  assert.deepEqual(stepStates(bp), { pains: "ready", matches: "ready", demo: "ready", plan: "ready" });
+  assert.deepEqual(stepStates({ ...bp, pains: { ...pains, chosen: "p2" } }), { pains: "ready", matches: "stale", demo: "stale", plan: "stale" });
+  assert.deepEqual(stepStates({ ...bp, workflow: picked({ ref: "lib:7" }) }), { pains: "ready", matches: "ready", demo: "stale", plan: "stale" });
+  assert.deepEqual(stepStates(null), { pains: "empty", matches: "empty", demo: "empty", plan: "empty" });
+  assert.deepEqual(stepStates({ pains, plan: finishPlan(rawPlan(), JOB, basis, "").step }), { pains: "ready", matches: "empty", demo: "empty", plan: "ready" });   // a plan can stand without a workflow
+});
+
+test("a chosen workflow read back keeps only the outline, and only the owner's own counts as theirs", () => {
+  assert.equal(cleanPicked({ ...picked(), own: true }).own, false);                               // a public template is never "mine"
+  assert.equal(cleanPicked({ ...picked({ source: "pasted", ref: "pasted:1", url: "https://example.com/x" }), own: true }).own, true);
+  assert.equal(cleanPicked({ ...picked({ source: "pasted", ref: "pasted:1", url: "https://example.com/x" }) }).url, null);
+  assert.equal(cleanPicked({ ...picked({ source: "library", ref: "lib:7" }) }).own, true);
+  assert.equal(cleanPicked({ ref: "x", workflow: null }), null);
+});
+
+test("the application text is put together by code, leaves out anything out of date, and prices in the chosen currency", () => {
+  const pains = finishPains(rawPains(), JOB).step, basis = painBasis({ pains });
+  const demo = finishDemo(rawDemo(), picked(), eligibleCases(PROOF), basis).step, plan = finishPlan(rawPlan(), JOB, basis, "n8n:2").step;
+  const bp = { pains, workflow: picked(), demo, plan };
+  const t = applicationText(bp, DEFAULT_RATES);
+  assert.match(t, /THE PROBLEM I'D SOLVE FIRST\nLeads go cold/);
+  assert.match(t, /A WORKFLOW PATTERN I'D START FROM FOR THIS KIND OF PROBLEM/);
+  assert.match(t, /Who for: A lettings agency/);
+  assert.ok(!t.includes("Harbour"));
+  assert.match(t, /1\. Enquiry capture \(day 1\): £260/);
+  assert.match(t, /Timeline: 2 working days from the day I have access\.\nFixed price: £520/);
+  assert.match(applicationText(bp, DEFAULT_RATES, { currency: "USD", usdToGbp: 0.75 }), /Fixed price: \$695/);
+  const moved = applicationText({ ...bp, pains: { ...pains, chosen: "p2" } }, DEFAULT_RATES);
+  assert.match(moved, /Hours a week copying/);
+  assert.ok(!moved.includes("MY PLAN FOR YOU") && !moved.includes("WORKFLOW PATTERN"));
+  assert.equal(applicationText({}, DEFAULT_RATES), "");
+});

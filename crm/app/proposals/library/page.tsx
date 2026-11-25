@@ -1,6 +1,11 @@
 import "../loom-pitch.css";
+import "../build-plan.css";
 import { deleteAnswerAction, deleteProofAction, saveAnswerAction, saveProfileAction, saveProofAction } from "@/lib/pitchLibraryActions";
 import { loadBank, loadProfile, loadProof } from "@/lib/pitchLibrary";
+import { deleteLibraryWorkflowAction, saveLibraryWorkflowAction } from "@/lib/buildPlanActions";
+import { loadLibrary } from "@/lib/workflowLibrary";
+import { plainStep } from "@/lib/workflowParse";
+import WorkflowUpload from "@/components/buildPlan/WorkflowUpload";
 import { dateOnly } from "@/lib/format";
 import ToastForm from "@/components/ToastForm";
 import { PageHeader } from "@/components/ui";
@@ -21,7 +26,8 @@ function ProofForm({ item }: { item?: Awaited<ReturnType<typeof loadProof>>[numb
         {field("What kind of project", <select name="kind" defaultValue={item?.kind ?? "demo"}>{Object.entries(KINDS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>)}
       </div>
       {field("What it is, in a line (held back from the generator until this is filled in)", <textarea name="one_line" rows={2} defaultValue={item?.one_line ?? ""} />)}
-      {field("Problem it solved", <textarea name="problem_solved" rows={2} defaultValue={item?.problem_solved ?? ""} />)}
+      {field("Problem it solved (a real client or own-business project with this filled in can be shown as a case study in a Build plan)", <textarea name="problem_solved" rows={2} defaultValue={item?.problem_solved ?? ""} />)}
+      {field("Client type, for a case study (how they are described instead of by name, e.g. \"A lettings agency\")", <input name="client_type" maxLength={80} defaultValue={item?.client_type ?? ""} />)}
       <div className="grid">
         {field("Tools used (commas)", <input name="tools" defaultValue={item?.tools.join(", ")} />)}
         {field("Tags (commas)", <input name="tags" defaultValue={item?.tags.join(", ")} />)}
@@ -48,10 +54,10 @@ function AnswerForm({ a }: { a?: Awaited<ReturnType<typeof loadBank>>[number] })
 }
 
 export default async function Library() {
-  const [profile, proof, bank] = await Promise.all([loadProfile(), loadProof(), loadBank()]);
+  const [profile, proof, bank, workflows] = await Promise.all([loadProfile(), loadProof(), loadBank(), loadLibrary()]);
   return (
     <>
-      <PageHeader back={{ href: "/proposals", label: "Proposals" }} title="Proof and answers" description="What a Loom pitch is allowed to say about you. It uses nothing else, so keep this true and it improves as you do." />
+      <PageHeader back={{ href: "/proposals", label: "Proposals" }} title="Proof and answers" description="What a Loom pitch or a Build plan is allowed to say about you. They use nothing else, so keep this true and it improves as you do." />
       <section className="card" aria-labelledby="profile-h" style={{ marginBottom: 16 }}>
         <h2 id="profile-h">My profile</h2>
         <ToastForm action={saveProfileAction} success="Profile saved" className="stack" style={{ gap: 10 }}>
@@ -81,6 +87,32 @@ export default async function Library() {
           </details>
         ))}
         <details className="lp-item"><summary><b>Add a project</b></summary><ProofForm /></details>
+      </section>
+
+      <section className="card stack" aria-labelledby="workflows-h" style={{ marginBottom: 16, gap: 12 }}>
+        <div>
+          <h2 id="workflows-h">Workflow library</h2>
+          <p className="muted">Workflows you have built and run yourself. A Build plan searches these alongside n8n&apos;s public templates, prefers them, and presents one as &ldquo;a workflow I use&rdquo;. Only add ones that is true of.</p>
+        </div>
+        {workflows.map((w) => (
+          <details key={w.id} className="lp-item">
+            <summary><b>{w.name}</b> <span className="badge tone-neutral">{w.platform === "make" ? "Make" : "n8n"}</span><span className="muted">{w.workflow.steps.length} steps{w.apps.length ? ` · ${w.apps.join(", ")}` : ""}</span>{!w.solves && <span className="badge tone-warn">No problem written: harder to match</span>}</summary>
+            <ToastForm action={saveLibraryWorkflowAction} success="Workflow saved" className="stack" style={{ gap: 10 }}>
+              <input type="hidden" name="id" value={w.id} />
+              <div className="grid">
+                {field("Name", <input name="name" defaultValue={w.name} required maxLength={120} />)}
+                {field("Tags (commas)", <input name="tags" defaultValue={w.tags.join(", ")} />)}
+              </div>
+              {field("The problem it solves, in a line (this is what the search matches on)", <input name="solves" defaultValue={w.solves ?? ""} maxLength={300} />)}
+              <div><button className="secondary">Save workflow</button></div>
+            </ToastForm>
+            <ol className="bp-outline" style={{ marginTop: 10 }}>{w.workflow.steps.map((st) => <li key={st.id}>{plainStep(st)}</li>)}</ol>
+            <ToastForm action={deleteLibraryWorkflowAction} success="Workflow removed" confirm={`Remove ${w.name} from your workflow library?`} style={{ marginTop: 8 }}>
+              <input type="hidden" name="id" value={w.id} /><button className="link">Remove</button>
+            </ToastForm>
+          </details>
+        ))}
+        <WorkflowUpload />
       </section>
 
       <section className="card stack" aria-labelledby="bank-h" style={{ gap: 12 }}>

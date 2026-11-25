@@ -39,13 +39,14 @@ export async function saveProofAction(form: FormData): Promise<{ error?: string 
   if (link && !isHttps(link)) return { error: "The link must be a full https address." };
   if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "That date could not be read." };
   const texts = ["one_line", "problem_solved", "results", "notes"].map((k) => val(form, k) || null);
-  if (containsContactDetails(`${name} ${texts.join(" ")}`)) return { error: "Leave email addresses and phone numbers out of the proof library." };
+  const clientType = val(form, "client_type").slice(0, 80) || null;
+  if (containsContactDetails(`${name} ${texts.join(" ")} ${clientType ?? ""}`)) return { error: "Leave email addresses and phone numbers out of the proof library." };
   const kind = val(form, "kind");
   if (!["client", "own_business", "demo", "internal_tool"].includes(kind)) return { error: "Choose what kind of project this is." };
-  const params = [name, kind, texts[0], texts[1], commas(val(form, "tools")), texts[2], link || null, commas(val(form, "tags")), date || null, texts[3]];
+  const params = [name, kind, texts[0], texts[1], commas(val(form, "tools")), texts[2], link || null, commas(val(form, "tags")), date || null, texts[3], clientType];
   try {
-    if (id) await query(`UPDATE proof_items SET name=$2, kind=$3, one_line=$4, problem_solved=$5, tools=$6, results=$7, link=$8, tags=$9, last_worked_on=$10, notes=$11 WHERE id=$1`, [id, ...params]);
-    else await query(`INSERT INTO proof_items (name, kind, one_line, problem_solved, tools, results, link, tags, last_worked_on, notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, params);
+    if (id) await query(`UPDATE proof_items SET name=$2, kind=$3, one_line=$4, problem_solved=$5, tools=$6, results=$7, link=$8, tags=$9, last_worked_on=$10, notes=$11, client_type=$12 WHERE id=$1`, [id, ...params]);
+    else await query(`INSERT INTO proof_items (name, kind, one_line, problem_solved, tools, results, link, tags, last_worked_on, notes, client_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`, params);
   } catch (err) {
     if ((err as { code?: string }).code === "23505") return { error: "You already have a project with that name." };
     throw err;

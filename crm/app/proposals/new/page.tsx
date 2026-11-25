@@ -3,10 +3,12 @@
 import { useActionState, useState } from "react";
 import { createProposal } from "@/lib/actions";
 import { createLoomPitch } from "@/lib/loomPitchActions";
+import { createBuildPlan } from "@/lib/buildPlanActions";
 import { PageHeader } from "@/components/ui";
 
 const MODES = {
   plain: { label: "Plain proposal", intro: "Paste the whole job post. You'll get a fit score and a draft under 150 words in about 15 seconds." },
+  build: { label: "Build plan", intro: "For sending many a day without building a demo each time. Paste the job post and you'll get the pain point to lead with, a workflow that solves it, and a plan with milestones, timeline and a fixed price. About a minute, shown step by step." },
   loom: { label: "Loom pitch", intro: "For custom jobs. Paste the job post and you'll get everything to record a 3 to 4 minute Loom, plus a very short cover letter. Takes about a minute." },
 } as const;
 
@@ -14,11 +16,12 @@ export default function NewProposal() {
   const [mode, setMode] = useState<keyof typeof MODES>("plain");
   const [plainMessage, plainAction, plainPending] = useActionState(createProposal, null);
   const [loomMessage, loomAction, loomPending] = useActionState(createLoomPitch, null);
-  const pending = plainPending || loomPending, message = mode === "loom" ? loomMessage : plainMessage;
+  const [buildMessage, buildAction, buildPending] = useActionState(createBuildPlan, null);
+  const pending = plainPending || loomPending || buildPending, message = mode === "loom" ? loomMessage : mode === "build" ? buildMessage : plainMessage;
   return (
     <>
       <PageHeader back={{ href: "/proposals", label: "Proposals" }} title="New proposal" description={MODES[mode].intro} />
-      <form action={mode === "loom" ? loomAction : plainAction} className="card stack" style={{ gap: 12, maxWidth: 760 }}>
+      <form action={mode === "loom" ? loomAction : mode === "build" ? buildAction : plainAction} className="card stack" style={{ gap: 12, maxWidth: 760 }}>
         <div className="pills" role="radiogroup" aria-label="Mode">
           {(Object.keys(MODES) as (keyof typeof MODES)[]).map((m) => (
             <button key={m} type="button" role="radio" aria-checked={mode === m} className={`pill${mode === m ? " on" : ""}`} onClick={() => setMode(m)}>{MODES[m].label}</button>
@@ -38,7 +41,9 @@ export default function NewProposal() {
         )}
         <label className="muted"><input type="checkbox" name="force" /> Draft anyway if the fit score is below 6</label>
         <button disabled={pending} style={{ alignSelf: "flex-start" }}>
-          {mode === "loom" ? (pending ? "Writing your Loom pitch… (about a minute)" : "Write Loom pitch") : (pending ? "Scoring and drafting… (about 15 seconds)" : "Draft proposal")}
+          {mode === "loom" ? (pending ? "Writing your Loom pitch… (about a minute)" : "Write Loom pitch")
+            : mode === "build" ? (pending ? "Scoring the job… (about 10 seconds)" : "Start build plan")
+            : (pending ? "Scoring and drafting… (about 15 seconds)" : "Draft proposal")}
         </button>
         {message && <p className="error" role="alert">{message}</p>}
       </form>

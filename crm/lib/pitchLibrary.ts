@@ -16,8 +16,8 @@ export async function loadProfile(): Promise<Profile> {
   };
 }
 
-export const loadProof = () => query<ProofItem & { id: number }>(
-  `SELECT id::int AS id, name, kind, one_line, problem_solved, tools, results, link, tags, to_char(last_worked_on, 'YYYY-MM-DD') AS last_worked_on, notes
+export const loadProof = () => query<ProofItem & { id: number; client_type: string | null }>(
+  `SELECT id::int AS id, name, kind, client_type, one_line, problem_solved, tools, results, link, tags, to_char(last_worked_on, 'YYYY-MM-DD') AS last_worked_on, notes
      FROM proof_items ORDER BY (kind = 'client') DESC, (kind = 'own_business') DESC, (kind = 'demo') DESC, name`);
 
 export const loadBank = () => query<BankAnswer & { last_used_at: string | null }>(

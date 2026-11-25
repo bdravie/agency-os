@@ -1,0 +1,101 @@
+/* The Build plan tab on a proposal, and the workflow library. Brand tokens only. Used with loom-pitch.css (lp-section, lp-head, lp-item, lp-diagram). */
+
+/* The rail: the four steps in order, each showing whether it is done, out of date or running. */
+.bp-rail { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
+.bp-rail li { position: relative; min-width: 0; }
+.bp-rail li::before { content: ""; position: absolute; top: 14px; left: 0; right: 0; height: 2px; background: var(--line); }
+.bp-rail li:first-child::before { left: 14px; }
+.bp-rail li:last-child::before { right: calc(100% - 14px); }
+.bp-rail li[data-state="ready"]::before { background: var(--good); }
+.bp-rail a { position: relative; display: flex; flex-direction: column; gap: 6px; padding-right: 12px; color: inherit; text-decoration: none; }
+.bp-rail a:hover { text-decoration: none; box-shadow: none; }
+.bp-rail a:hover .bp-rail-name { color: var(--accent-text); }
+.bp-dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-head); font-weight: 700; font-size: 13.5px; font-variant-numeric: tabular-nums; background: var(--surface-2); color: var(--muted); border: 2px solid var(--line-strong); }
+.bp-rail-name { font-weight: 600; font-size: 14px; line-height: 1.25; }
+.bp-rail-state { font-size: 12.5px; color: var(--muted); }
+[data-state="ready"] > a > .bp-dot { background: var(--good); border-color: var(--good); color: var(--surface); }
+[data-state="stale"] > a > .bp-dot { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+[data-state="stale"] > a > .bp-rail-state { color: var(--warn); font-weight: 600; }
+[data-state="working"] > a > .bp-dot { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); animation: bp-pulse 1.1s ease-in-out infinite; }
+[data-state="working"] > a > .bp-rail-state { color: var(--accent-text); font-weight: 600; }
+@keyframes bp-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 22%, transparent); } }
+@media (prefers-reduced-motion: reduce) { [data-state="working"] > a > .bp-dot { animation: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); } }
+
+.bp-step { scroll-margin-top: 80px; }
+.bp-step > .lp-head h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bp-num { font-family: var(--font-head); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bp-step input:not([type="checkbox"]):not([type="radio"]):not([type="number"]):not([type="file"]), .bp-step textarea, .bp-step select { width: 100%; }
+.bp-note { margin: 0; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--warn-soft); color: var(--warn); font-size: 14px; }
+.bp-step .lp-diagram svg { max-height: 560px; }
+.bp-step textarea { field-sizing: content; min-height: 2lh; }   /* a box grows to fit its text where the browser can; the rows set in code are the fallback */
+.bp-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
+/* Step 1: pain points. The chosen one is the angle. */
+.bp-pains { display: flex; flex-direction: column; gap: 8px; }
+.bp-pain { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.bp-pain.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.bp-pain input[type="radio"] { width: 18px; height: 18px; margin-top: 10px; accent-color: var(--accent); }
+.bp-pain-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bp-pain-top { display: grid; grid-template-columns: minmax(0, 1fr) 168px; gap: 8px; align-items: center; }
+.bp-rank { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+.bp-quote { margin: 0; padding-left: 10px; border-left: 3px solid var(--line-strong); color: var(--text-2); font-size: 14px; font-style: italic; overflow-wrap: anywhere; }
+
+/* Step 2: the three matches. */
+.bp-matches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.bp-match { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); min-width: 0; }
+.bp-match.on { border-color: var(--good); background: color-mix(in srgb, var(--good) 6%, transparent); }
+.bp-match h4 { margin: 0; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.bp-match p { margin: 0; }
+.bp-match .bp-match-foot { margin-top: auto; }
+.bp-apps { display: flex; flex-wrap: wrap; gap: 4px; }
+.bp-apps .badge { font-weight: 500; }
+.bp-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.bp-chosen { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--good-soft); }
+.bp-chosen p { margin: 0; }
+
+/* Step 3: the walkthrough and the case study. */
+.bp-walk { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bp-walk li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: start; }
+.bp-walk-n { height: 26px; width: 26px; margin-top: 7px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bp-walk textarea { min-height: 0; resize: none; display: block; }
+.bp-walk-name { display: block; margin-top: 3px; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.bp-case { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.bp-case dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 4px 12px; margin: 0; }
+.bp-case dt { font-size: 12.5px; font-weight: 600; color: var(--muted); padding-top: 2px; }
+.bp-case dd { margin: 0; }
+
+/* Step 4: the flow, the milestones and the price. */
+.bp-flow { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.bp-flow li { display: grid; grid-template-columns: 26px minmax(0, 0.7fr) minmax(0, 2fr) minmax(0, 0.6fr) auto; gap: 8px; align-items: start; }
+.bp-miles { display: flex; flex-direction: column; gap: 8px; }
+.bp-mile { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) 110px 78px 78px minmax(96px, auto) auto; gap: 8px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.bp-mile-sum { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding-top: 6px; text-align: right; font-variant-numeric: tabular-nums; }
+.bp-mile-sum b { font-family: var(--font-head); font-size: 16px; }
+.bp-mile-head { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) 110px 78px 78px minmax(96px, auto) 34px; gap: 8px; padding: 0 10px; }
+.bp-mile-head span { font-size: 12px; font-weight: 600; color: var(--muted); }
+.bp-x { min-height: 0; padding: 6px 8px; }
+.bp-lists { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.bp-price { font-family: var(--font-head); font-weight: 700; font-size: 26px; font-variant-numeric: tabular-nums; }
+
+/* The workflow library (Proposals > Proof and answers). */
+.bp-outline { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.bp-file { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .bp-matches, .bp-lists { grid-template-columns: minmax(0, 1fr); }
+  .bp-flow li { grid-template-columns: 26px minmax(0, 1fr) auto; }
+  .bp-flow li > :nth-child(3), .bp-flow li > :nth-child(4) { grid-column: 2 / -1; }
+  .bp-flow li > button { grid-column: 3; grid-row: 1; }
+  .bp-mile { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .bp-mile > :nth-child(1), .bp-mile > :nth-child(2) { grid-column: 1 / -1; }
+  .bp-mile-sum { grid-column: 1 / 3; align-items: flex-start; text-align: left; flex-direction: row; gap: 10px; align-items: baseline; }
+  .bp-mile-head { display: none; }
+}
+@media (max-width: 560px) {
+  .bp-rail-name { font-size: 12.5px; }
+  .bp-rail-state { font-size: 11.5px; }
+  .bp-rail a { padding-right: 6px; }
+  .bp-pain-top, .bp-search { grid-template-columns: minmax(0, 1fr); }
+  .bp-case dl { grid-template-columns: minmax(0, 1fr); }
+  .bp-step .lp-diagram svg { min-width: 620px; }   /* a wide diagram scrolls inside its box on a phone instead of shrinking to nothing */
+}
