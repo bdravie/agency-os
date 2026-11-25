@@ -48,7 +48,8 @@ export const MERMAID_MAX = 6000;
 
 const CONTACT = /[\w.+-]+@[\w-]+\.[\w.-]+|\+?\d[\d\s().-]{8,}\d/g;
 const FIGURE = /[£$€]\s?\d|\d\s?%|\b\d+(?:\.\d+)?\s?x\b|\bguarantee/i;
-const NUMBER = /\d[\d,]*(?:\.\d+)?/g;
+// A digit glued inside a word is part of a name (n8n, GA4, v2), not a figure, so it is neither checked nor counted as backing.
+const NUMBER = /(?<![A-Za-z\d])\d[\d,]*(?:\.\d+)?/g;
 // Past work for someone else: that only ever comes from the owner's own case study table.
 const PAST_WORK = /\b(?:my|our|another|previous|past|former|recent)\s+clients?\b|\bclients? of mine\b|\bfor (?:a|one|some|several|many) (?:of my )?clients?\b|\bcase study\b/i;
 

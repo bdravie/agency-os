@@ -268,6 +268,18 @@ test("the application text is put together by code, leaves out anything out of d
   assert.equal(applicationText({}, DEFAULT_RATES), "");
 });
 
+test("a digit inside a tool's name is not a made-up figure, and does not back a real one", () => {
+  assert.deepEqual(unbackedNumbers("n8n reads it, GA4 counts it, v2 of the S3 export", JOB), []);
+  assert.deepEqual(unbackedNumbers("n81 and 8 more", JOB), ["8"]);                                   // the rest of a name is skipped; a real number is still caught
+  assert.deepEqual(unbackedNumbers("8 branches", "We use n8n."), ["8"]);                               // the 8 in n8n does not excuse a figure
+  assert.deepEqual(unbackedNumbers("3 branches, 1,200 leads and 2.5 hours", `${JOB} 1,200 leads.`), ["2.5"]);
+  const withN8n = rawPlan();
+  withN8n.flow[1].tool = "n8n";
+  assert.deepEqual(finishPlan(withN8n, JOB, "leads go cold", "n8n:2").problems, []);                   // the job post never mentions n8n
+  assert.deepEqual(lineProblems("n8n checks whether the email is a real enquiry."), []);
+  assert.deepEqual(lineProblems("It replies within 5 minutes."), ["a number"]);
+});
+
 // ---------- The client page (buildPlanPageMath.ts) ----------
 
 test("the client page is the saved plan step by step, with tools as chips, the places the flow jumps, and the same prices as the application", async () => {
