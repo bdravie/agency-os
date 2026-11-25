@@ -25,10 +25,12 @@ import { loadCases, loadUsdRate } from "@/lib/buildPlan";
 import { caseStudyOf, stepStates, STEPS } from "@/lib/buildPlanMath";
 import { templatesOn } from "@/lib/n8nTemplates";
 import { loadProfile } from "@/lib/pitchLibrary";
+import DemoRunPanel from "@/components/DemoRunPanel";
+import { demoServing, demosFor } from "@/lib/demoRun";
 
 export const dynamic = "force-dynamic";
 
-const TABS = ["draft", "build", "fit", "plan", "loom", "improve", "demo"] as const;
+const TABS = ["draft", "build", "fit", "plan", "loom", "improve", "demo", "run"] as const;
 
 export default async function ProposalPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; run?: string }> }) {
   const id = Number((await params).id);
@@ -43,6 +45,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
   const tab = TABS.find((t) => t === asked) ?? (isLoom ? "loom" : isBuild ? "build" : "draft");
   const buildStates = stepStates(p.build_plan);
   const build = tab === "build" ? await Promise.all([loadCases(), loadProfile(), loadUsdRate()]) : null;
+  const demoRun = tab === "run" ? await demosFor(p.job_text ?? "") : null;
   const loomOwed = isLoom && !!p.loom_pitch && !p.loom_recorded_at && p.status === "Draft" && !p.archived_at;
   const loomPanel = <LoomPitchPanel id={id} title={proposalName(p)} pitch={p.loom_pitch} pitchAt={p.loom_pitch_at ? String(p.loom_pitch_at) : null} inputs={p.loom_inputs} loomUrl={p.loom_url} />;
   return (
@@ -69,6 +72,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
           { key: "loom", label: "Loom pitch", href: `/proposals/${id}?tab=loom`, count: loomOwed ? 1 : undefined, hot: loomOwed },
           { key: "improve", label: "Better fit", href: `/proposals/${id}?tab=improve`, count: p.improvements?.actions?.length },
           { key: "demo", label: "Demo brief", href: `/proposals/${id}?tab=demo`, count: p.demo_brief?.gaps?.length },
+          { key: "run", label: "Run a demo", href: `/proposals/${id}?tab=run` },
         ]}
       />
 
@@ -106,6 +110,7 @@ export default async function ProposalPage({ params, searchParams }: { params: P
       {tab === "plan" && <PlanPanel id={id} plan={p.plan} planAt={p.plan_at ? String(p.plan_at) : null} rates={rates} />}
       {tab === "loom" && loomPanel}
       {tab === "improve" && <ImprovePanel id={id} score={p.fit_score} improvements={p.improvements} at={p.improvements_at ? String(p.improvements_at) : null} hourly={rates.hourly_rate_gbp} jobPrice={jobPrice} />}
+      {tab === "run" && demoRun && <DemoRunPanel id={id} top={demoRun.top} closer={demoRun.closer} problems={demoRun.problems} demos={demoRun.demos} serving={demoServing()} />}
       {tab === "demo" && <DemoBriefPanel id={id} brief={p.demo_brief ?? null} prompt={p.demo_brief ? demoBriefPrompt(p.demo_brief, proposalName(p), p.job_text ?? "") : ""} at={p.demo_brief_at ? String(p.demo_brief_at) : null} hourly={rates.hourly_rate_gbp} />}
     </>
   );

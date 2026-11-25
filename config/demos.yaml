@@ -1,0 +1,108 @@
+# How the CRM runs the demo version of each demo in demos/ (Proposals > a proposal > Run a demo).
+#
+# The demo version is always the free one: fake data, no paid accounts, no AI calls, nothing sent. So every command
+# here uses the demo's own offline mode (--no-llm, the logic checks, the local stand-in pages), never the real thing.
+# The CRM only ever runs what is written in this file, exactly as written (no shell), from the project folder.
+#
+# One entry per demo:
+#   folder  the folder under demos/
+#   proof   the start of its name under Proposals > Proof and answers (that entry's tags, tools and wording are what it is scored on)
+#   title   its name on screen when there is no proof entry
+#   shows   one plain line on what running it shows
+#   steps   commands run once, in order; what they print is shown on screen. Each starts with node, python or npm.
+#   serve   optional: a local page that stays up until you press Stop.
+#             command, port, open (label and address on 127.0.0.1 at that port), cwd: demo (run inside the demo's folder), env
+#   n8n     optional: the workflow files, for the "show it inside n8n" import line
+#   note    optional: one more line shown under the result
+#
+# After adding a demo with /new-demo, add its entry here and add it under Proof and answers as a demo.
+demos:
+  - folder: missed-call-whatsapp-text-back
+    proof: Missed-call WhatsApp
+    title: Missed-call WhatsApp text-back
+    shows: The workflow's own steps played on sample calls (a missed call, a repeat caller, a withheld number, a reply on WhatsApp), with no phone line or WhatsApp account.
+    steps:
+      - [node, demos/missed-call-whatsapp-text-back/scripts/test-workflow.mjs]
+    n8n: [demos/missed-call-whatsapp-text-back/n8n/missed-call-text-back.json]
+    note: The live version (a real call and a real WhatsApp) needs Twilio, a tunnel and n8n running. The steps are in the demo's README.
+
+  - folder: ai-voice-receptionist
+    proof: AI voice receptionist
+    title: AI voice receptionist
+    shows: The workflow's own steps played on sample enquiries (the consent tick, the call limits, the front-desk alert), with no phone line or voice account.
+    steps:
+      - [node, demos/ai-voice-receptionist/scripts/test-workflow.mjs]
+    n8n: [demos/ai-voice-receptionist/n8n/voice-receptionist.json]
+    note: The live version (a real phone call) needs Twilio, ElevenLabs, a tunnel and n8n running. The steps are in the demo's README.
+
+  - folder: consent-first-lead-capture-and-journey-t
+    proof: Consent-first
+    title: Consent-first lead capture and journey tracker
+    shows: The website form and the team's journey view as working pages, on sample leads, with a local stand-in for n8n and the Google Sheet.
+    steps:
+      - [node, demos/consent-first-lead-capture-and-journey-t/scripts/local.mjs, seed]
+    serve:
+      command: [node, demos/consent-first-lead-capture-and-journey-t/scripts/local.mjs, serve]
+      port: 5690
+      open:
+        - label: Website form
+          url: "http://127.0.0.1:5690/?hook=http%3A%2F%2F127.0.0.1%3A5690%2Fwebhook%2Flead-capture"
+        - label: Team view
+          url: "http://127.0.0.1:5690/journey.html?hook=http%3A%2F%2F127.0.0.1%3A5690%2Fwebhook%2Flead-capture"
+    n8n: [demos/consent-first-lead-capture-and-journey-t/n8n/local/consent-first-lead-capture.local.json]
+
+  - folder: event-listing-to-social-post-queue
+    proof: Event listing
+    title: Event listing to social post queue
+    shows: The approval board with the mock event feed behind it, using rule-based post wording. The board fills when the two n8n workflows run.
+    steps:
+      - [python, -m, agency.event_social, reset]
+    serve:
+      command: [python, -m, agency.event_social, serve, --no-llm]
+      port: 8787
+      open:
+        - label: Approval board
+          url: "http://127.0.0.1:8787/"
+    n8n:
+      - demos/event-listing-to-social-post-queue/n8n/1-new-events-to-approval-queue.json
+      - demos/event-listing-to-social-post-queue/n8n/2-publish-approved-posts.json
+      - demos/event-listing-to-social-post-queue/n8n/3-failure-reporter.json
+    note: The board starts empty. Start n8n and run the first workflow to queue the posts, approve some on the board, then run the second.
+
+  - folder: invoice-inbox-to-draw-request
+    proof: Invoice inbox
+    title: Invoice inbox to draw request
+    shows: The sample supplier invoices read, filed, checked for duplicates and logged, then approved and turned into one month's draw, with the fields taken from the answer key instead of AI.
+    steps:
+      - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, reset]
+      - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, inbox, --no-llm]
+      - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, approve]
+      - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, draw, --project, MILL, --month, 2026-10]
+      - [python, demos/invoice-inbox-to-draw-request/scripts/run_local.py, show]
+    note: The Make.com version for the full Loom is set up by hand. The steps are in the demo's README.
+
+  - folder: client-report
+    proof: Weekly client report
+    title: Weekly client report
+    shows: The weekly report built from the sample ad figures with rule-based commentary. It is written to output/client-report/ as report.html.
+    steps:
+      - [python, -m, agency.client_report, demos/client-report/sample-data/harbour_metrics.csv, --client, "Harbour & Co Interiors", --no-llm, --no-pdf]
+    n8n: [demos/client-report/n8n/weekly-client-report.json]
+    note: Open the report.html it names in Finder. Nothing is emailed.
+
+  - folder: support-chatbot-with-human-handover
+    proof: Support chat
+    title: Support chat with human handover
+    shows: The chat and the staff page as working pages in offline mode, which answers with the closest help article and says it is offline.
+    steps: []
+    serve:
+      command: [npm, run, dev]
+      cwd: demo
+      port: 3100
+      env: { SUPPORT_DEMO_NO_LLM: "1" }
+      open:
+        - label: Customer chat
+          url: "http://127.0.0.1:3100/"
+        - label: Staff page
+          url: "http://127.0.0.1:3100/staff"
+    note: The first time, run npm install in the demo's folder on the Mac. Starting takes a few seconds longer than the others.
