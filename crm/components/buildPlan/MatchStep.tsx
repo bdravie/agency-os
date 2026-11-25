@@ -5,7 +5,7 @@ import { Check, ExternalLink } from "lucide-react";
 import { clearWorkflowAction, pasteWorkflowAction, pickWorkflowAction, runMatchesAction, sendMatchToN8nAction } from "@/lib/buildPlanActions";
 import type { N8nStatus } from "@/lib/n8nPush";
 import { N8nSentView, SendToN8nButton, type N8nSent } from "@/components/SendToN8n";
-import type { MatchStep as Matches, PainStep, Picked, StepState } from "@/lib/buildPlanMath";
+import { OWN_SIMILAR, type MatchStep as Matches, type PainStep, type Picked, type StepState } from "@/lib/buildPlanMath";
 import { looksLikeUrl } from "@/lib/n8nTemplatesMath";
 import { MAX_FILE_CHARS, parseWorkflowText } from "@/lib/workflowParse";
 import { useToast } from "@/components/Toast";
@@ -89,7 +89,7 @@ export default function MatchStep({ pains, step, picked, state, templatesOn, n8n
   return (
     <StepFrame step="matches" state={state} canRun={!!pains} runLabel={step ? "Search again" : "Find workflows"} onRun={find}
       stale="These were found for a different pain point. Search again, or keep the workflow you chose if it still fits."
-      intro={templatesOn ? "Looks through your own workflows first: the demos you have built and your saved library. n8n's public template library is only searched for the places left. You pick one." : "Looks through your own workflows: the demos you have built and your saved library (n8n's public library is switched off). You pick one, or paste one."}>
+      intro={templatesOn ? `Looks through your own workflows first: the demos you have built and your saved library. One of yours takes a place only when it scores over ${OWN_SIMILAR} out of 100 against the job; the other places go to n8n's public templates. You pick one.` : `Looks through your own workflows: the demos you have built and your saved library (n8n's public library is switched off). One of yours is listed first when it scores over ${OWN_SIMILAR} out of 100 against the job. You pick one, or paste one.`}>
       {pains && (
         <div className="bp-search">
           {field("Search words (up to 3 phrases, commas between)", <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing && !busy) find(); }} />)}

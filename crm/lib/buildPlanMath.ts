@@ -51,8 +51,12 @@ export const HEADING_PATTERN = "A workflow pattern I'd start from for this kind 
 export const HEADING_DEMO = "A demo workflow I built for this kind of problem";
 /** With "Search n8n's library as well" ticked, up to this many public templates are shown after the owner's own. */
 export const WIDE_EXTRA = 3;
-/** How well one of the owner's own workflows has to score against the job (out of 100, the Run a demo score) to be put ahead of public templates. */
-export const OWN_SIMILAR = 30;
+/**
+ * The bar for one of the owner's own workflows (a demo they built, or one from their library): it has to score **over** this against
+ * the job (out of 100, the Run a demo score) to take one of the top places. Under it, the place goes to a public n8n template instead
+ * (owner's rule, 25 Nov 2026; it was 30 or more before).
+ */
+export const OWN_SIMILAR = 60;
 export const DPA_NOTE = "The job points to personal data. A data processing agreement comes first, before any of their customers' personal data is handled.";
 export const MERMAID_MAX = 6000;
 
@@ -156,14 +160,39 @@ const codeReason = (c: Candidate) =>
 
 /**
  * The owner's own workflows (their demos and their library) scored against the job, best first, with the ones similar enough to go
- * ahead of any public template (`first`, three at most). The score is the same one the Run a demo tab shows: shared tags, tools and
+ * ahead of any public template (`first`, three at most: the ones scoring over `OWN_SIMILAR`). The score is the same one the Run a demo tab shows: shared tags, tools and
  * wording, worked out in code.
  */
 export function ownFirst(own: Candidate[], about: string): { ranked: Candidate[]; first: Candidate[] } {
   const mine = own.filter((c) => c.source !== "n8n"), byRef = new Map(mine.map((c) => [c.ref, c]));
   const scored = rankDemos(about, mine.map((c) => ({ key: c.ref, name: c.name, one_line: c.summary, problem: "", tags: c.tags ?? [], tools: c.apps, recipe: null })));
   const ranked = scored.map((m) => ({ ...byRef.get(m.key)!, score: m.score, shares: m.shares }));
-  return { ranked, first: ranked.filter((c) => (c.score ?? 0) >= OWN_SIMILAR).slice(0, 3) };
+  return { ranked, first: ranked.filter((c) => (c.score ?? 0) > OWN_SIMILAR).slice(0, 3) };
+}
+
+/**
+ * What the top places are chosen from. One of the owner's own that did not clear the bar (`held`) is left out, so a public template
+ * takes its place. Only when there is nothing else at all (none of theirs cleared it and no template was found) do the closest of
+ * theirs stay, as a `fallback` the page says out loud, so the step never comes back empty while they have workflows.
+ */
+export function clearTheBar(cands: Candidate[], first: Candidate[]): { pool: Candidate[]; held: Candidate[]; fallback: boolean } {
+  const keep = new Set(first.map((c) => c.ref));
+  const held = cands.filter((c) => c.source !== "n8n" && !keep.has(c.ref));
+  const pool = cands.filter((c) => c.source === "n8n" || keep.has(c.ref));
+  return pool.length || !held.length ? { pool, held, fallback: false } : { pool: cands, held: [], fallback: true };
+}
+
+/** A near miss: one of the owner's own that scored this or more but not over the bar. Only these are named; one that is nowhere near the job needs no word. */
+export const OWN_NEAR = 30;
+
+/** One plain line naming the owner's own near misses that were left out, closest first, so one they might expect to see is never dropped without a word. */
+export function heldNote(held: Candidate[]): string {
+  const near = held.filter((c) => (c.score ?? 0) >= OWN_NEAR).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  if (!near.length) return "";
+  const closest = `${near[0].name} at ${near[0].score} out of 100`;
+  return near.length === 1
+    ? `Your own ${closest} did not score over ${OWN_SIMILAR}, so it was left out. A public n8n template is offered in its place where one was found.`
+    : `${near.length} of your own workflows came close but did not score over ${OWN_SIMILAR} (the closest was ${closest}), so they were left out. Public n8n templates are offered in their place where any were found.`;
 }
 
 /**

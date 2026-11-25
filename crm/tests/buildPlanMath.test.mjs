@@ -292,7 +292,8 @@ test("your own workflows come first: the demos you built and your library are sc
   const { ranked, first } = ownFirst([...mine, ...pub], CLINIC);
   assert.deepEqual(ranked.map((c) => c.ref), ["demo:missed-call", "lib:7", "demo:invoice-inbox"]);       // public templates are never scored as yours
   assert.deepEqual(first.map((c) => c.ref), ["demo:missed-call", "lib:7"]);
-  assert.ok(first.every((c) => c.score >= OWN_SIMILAR) && ranked[2].score < OWN_SIMILAR);
+  assert.equal(OWN_SIMILAR, 60);                                                                          // the owner's bar: over 60 out of 100
+  assert.ok(first.every((c) => c.score > OWN_SIMILAR) && ranked[2].score <= OWN_SIMILAR);
   assert.ok(first[0].shares.includes("Twilio") && first[0].shares.includes("missed calls"));
 
   // Whatever the AI ranks, your similar ones stay in front, in their own order; the AI's picks fill what is left.
@@ -450,4 +451,34 @@ test("Send to my n8n from step 2: only a workflow this plan found or chose, and 
   assert.equal(sendKind({ workflow: { ref: "pasted:abc" } }, "pasted:abc"), null);
   assert.equal(sendKind({}, "n8n:1750"), null);
   assert.equal(sendKind(bp, ""), null);
+});
+
+test("one of your own takes a place only over 60: under it, it is left out and named, and a public template takes the place", async () => {
+  const { clearTheBar, heldNote, finishMatches, OWN_SIMILAR } = await import("../lib/buildPlanMath.ts");
+  const own = (ref, source, score) => ({ ref, source, name: `Workflow ${ref}`, summary: "", apps: [], url: null, score, shares: [] });
+  const strong = own("demo:missed-call", "demo", 75), exact = own("demo:on-the-line", "demo", OWN_SIMILAR), weak = own("lib:7", "library", 41);
+  const pub = [1, 2, 3].map((n) => ({ ref: `n8n:${n}`, source: "n8n", name: `Template ${n}`, summary: "", apps: [], url: `https://n8n.io/workflows/${n}` }));
+
+  // One of yours cleared the bar: it leads, the two under it (60 exactly is not over 60) are left out, and templates fill the places.
+  const some = clearTheBar([strong, exact, weak, ...pub], [strong]);
+  assert.deepEqual(some.pool.map((c) => c.ref), ["demo:missed-call", "n8n:1", "n8n:2", "n8n:3"]);
+  assert.deepEqual([some.held.map((c) => c.ref), some.fallback], [["demo:on-the-line", "lib:7"], false]);
+  assert.deepEqual(finishMatches(null, some.pool, [strong]).map((m) => m.ref), ["demo:missed-call", "n8n:1", "n8n:2"]);
+  assert.match(heldNote(some.held), /^2 of your own workflows came close but did not score over 60 \(the closest was Workflow demo:on-the-line at 60 out of 100\)/);
+
+  // None of yours cleared it: all three places go to public templates, whatever the AI says about yours.
+  const none = clearTheBar([exact, weak, ...pub], []);
+  assert.deepEqual(none.pool.map((c) => c.source), ["n8n", "n8n", "n8n"]);
+  assert.deepEqual(finishMatches({ picks: [{ ref: "lib:7", reason: "Close." }] }, none.pool, []).map((m) => m.ref), ["n8n:1", "n8n:2", "n8n:3"]);
+  assert.match(heldNote([weak]), /^Your own Workflow lib:7 at 41 out of 100 did not score over 60, so it was left out\./);
+
+  // One of yours cleared it and no template was found: only that one is offered, never padded out with the weaker ones.
+  assert.deepEqual(clearTheBar([strong, weak], [strong]).pool.map((c) => c.ref), ["demo:missed-call"]);
+  // Nothing else at all: the closest of yours stay, flagged as a fallback, so the step is never empty while you have workflows.
+  assert.deepEqual(clearTheBar([exact, weak], []), { pool: [exact, weak], held: [], fallback: true });
+  assert.deepEqual(clearTheBar(pub, []), { pool: pub, held: [], fallback: false });
+  assert.deepEqual(clearTheBar([], []), { pool: [], held: [], fallback: false });
+  assert.equal(heldNote([]), "");
+  assert.equal(heldNote([own("demo:far", "demo", 5)]), "");                                               // nowhere near the job: left out without a word
+  assert.match(heldNote([own("demo:far", "demo", 5), weak]), /^Your own Workflow lib:7 at 41 out of 100/); // only the near miss is named
 });

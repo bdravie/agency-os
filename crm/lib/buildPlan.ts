@@ -15,7 +15,7 @@ import { fetchTemplate, searchTemplates, templatesOn } from "./n8nTemplates.ts";
 import { broaden, ENOUGH_HITS, TEMPLATE_PAGE } from "./n8nTemplatesMath.ts";
 import { loadLibrary, loadLibraryWorkflow } from "./workflowLibrary.ts";
 import {
-  eligibleCases, finishDemo, finishMatches, finishPains, finishPlan, ownFirst, rankCandidates, settleDemo, WIDE_EXTRA,
+  clearTheBar, eligibleCases, finishDemo, finishMatches, finishPains, finishPlan, heldNote, OWN_SIMILAR, ownFirst, rankCandidates, settleDemo, WIDE_EXTRA,
   type Candidate, type CaseItem, type DemoStep, type MatchStep, type Pain, type PainStep, type Picked, type TailoredStep,
 } from "./buildPlanMath.ts";
 
@@ -94,7 +94,7 @@ export async function loadDemoWorkflows(): Promise<DemoWorkflow[]> {
 
 /**
  * Looks for workflows that solve the pain point, **the owner's own first**: the workflows of the demos they have built and the ones
- * in their library are scored against the job in code, and those similar enough go to the front. n8n's public library is only
+ * in their library are scored against the job in code, and those scoring over the bar (`OWN_SIMILAR`) go to the front; the ones under it are left out so a public template takes the place. n8n's public library is only
  * searched to fill the places left (or when `wide` asks for it anyway), unless it is switched off or over today's limit. A cheap
  * model picks among the rest and writes the reasons; if it fails, the keyword ranking stands. `requests` is how many calls to n8n
  * were really made (5 at most: up to 3 phrases, and 2 shorter ones if those found little).
@@ -110,7 +110,7 @@ export async function findMatches(job: string, pain: Pain, search: string[], bas
   }
   const own = ownFirst(cands, `${pain.pain} ${search.join(" ")} ${post(job)}`), first = own.first;
   cands.splice(0, cands.length, ...own.ranked);   // each of the owner's own now carries its score and what it shares
-  if (first.length) notes.push(`${first.length === 1 ? "One of your own workflows is" : `${first.length} of your own workflows are`} close to this job, so ${first.length === 1 ? "it is" : "they are"} listed first.`);
+  if (first.length) notes.push(`${first.length === 1 ? "One of your own workflows scores" : `${first.length} of your own workflows score`} over ${OWN_SIMILAR} out of 100 against this job, so ${first.length === 1 ? "it is" : "they are"} listed first.`);
   if (!templatesOn()) notes.push("n8n's library is switched off (N8N_TEMPLATES=off), so only your own workflows were searched.");
   else if (first.length >= 3 && !wide) notes.push("Three of your own fit, so n8n's public library was not searched. Tick \"Search n8n's library as well\" to see what is there too.");
   else {
@@ -133,7 +133,11 @@ export async function findMatches(job: string, pain: Pain, search: string[], bas
     if ((await look(search)) && found() < ENOUGH_HITS) await look(broaden(search));
   }
   if (!cands.length) return { step: { basis, search, matches: [], considered: 0, notes: [...notes, "Nothing was found. Change the search words, or paste a workflow."] }, requests };
-  const rest = rankCandidates(cands.filter((c) => !first.some((f) => f.ref === c.ref)), `${pain.pain} ${search.join(" ")}`, 12 - first.length);
+  // One of the owner's own takes a place only when it scores over the bar; the rest are left out, and said so, so a template takes the place.
+  const { pool, held, fallback } = clearTheBar(cands, first);
+  if (heldNote(held)) notes.push(heldNote(held));
+  if (fallback) notes.push(`None of your own workflows scored over ${OWN_SIMILAR} out of 100 and no n8n template was found, so the closest of yours are shown. Change the search words, or paste a workflow.`);
+  const rest = rankCandidates(pool.filter((c) => !first.some((f) => f.ref === c.ref)), `${pain.pain} ${search.join(" ")}`, 12 - first.length);
   const short = [...first, ...rest];
   // Asked for n8n's library as well: the owner's own stay in front, and up to three public templates follow them.
   const limit = wide && first.length ? Math.min(6, first.length + WIDE_EXTRA) : 3;
