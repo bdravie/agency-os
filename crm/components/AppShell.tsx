@@ -26,6 +26,9 @@ function MenuButton({ open, onClick }: { open: boolean; onClick: () => void }) {
   );
 }
 
+// Pages shown to someone else, so drawn with no menu around them: the Build plan's client page.
+const BARE = /^\/proposals\/\d+\/build-plan$/;
+
 // Sidebar on wide screens; a slide-in drawer with a top bar on narrow ones.
 export default function AppShell({ children, demo, signOut, theme, collapsed, rendered }: { children: React.ReactNode; demo: boolean; signOut: () => Promise<void>; theme: "light" | "dark"; collapsed: boolean; rendered: number }) {
   const [open, setOpen] = useState(false);
@@ -52,7 +55,7 @@ export default function AppShell({ children, demo, signOut, theme, collapsed, re
   }, [palette, toggleRail]);
 
   // The password page never shows the app. This layout stays mounted during in-app navigation (Sign out, an expired session), so check the path here too.
-  if (pathname === "/login") return <>{children}</>;
+  if (pathname === "/login" || BARE.test(pathname)) return <>{children}</>;
 
   return (
     <ToastProvider>

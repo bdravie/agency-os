@@ -267,3 +267,46 @@ test("the application text is put together by code, leaves out anything out of d
   assert.ok(!moved.includes("MY PLAN FOR YOU") && !moved.includes("WORKFLOW PATTERN"));
   assert.equal(applicationText({}, DEFAULT_RATES), "");
 });
+
+// ---------- The client page (buildPlanPageMath.ts) ----------
+
+test("the client page is the saved plan step by step, with tools as chips, the places the flow jumps, and the same prices as the application", async () => {
+  const { clientPage, clientPageBlock, clientPageHref, splitTools } = await import("../lib/buildPlanPageMath.ts");
+  const pains = finishPains(rawPains(), JOB).step, basis = painBasis({ pains });
+  const demo = finishDemo(rawDemo(), picked(), eligibleCases(PROOF), basis).step, plan = finishPlan(rawPlan(), JOB, basis, "n8n:2").step;
+  const bp = { pains, workflow: picked(), demo, plan };
+  const page = clientPage(bp, DEFAULT_RATES);
+  assert.equal(clientPageBlock(bp), null);
+  assert.deepEqual(page.problem, { text: pains.pains[0].pain, quote: pains.pains[0].quote });
+  assert.deepEqual(page.steps.map((s) => [s.n, s.title, s.tools]), [[1, "Rightmove enquiry arrives", ["Gmail"]], [2, "Read the enquiry", []], [3, "Add to your CRM", ["Your CRM"]], [4, "Reply straight away", ["Gmail"]], [5, "Tell the branch", []]]);
+  assert.deepEqual(page.steps[1].jumps, [{ label: "Not an enquiry", to: 5, back: false }]);         // the next step in line is not a jump
+  assert.deepEqual(page.steps[0].jumps, []);
+  assert.deepEqual(page.outcomes, plan.outcomes);
+  assert.deepEqual(page.milestones.map((m) => [m.name, m.when, m.price]), [["Enquiry capture", "Day 1", "£260"], ["Replies and branch alerts", "Day 2", "£260"]]);
+  assert.equal(page.timeline, "2 working days");
+  assert.equal(page.total, "£520");
+  assert.equal(page.caseStudy.client_type, "A lettings agency");
+  assert.ok(!JSON.stringify(page).includes("Harbour"));                                              // a real client is never named
+  assert.equal(page.dataNote, null);
+
+  assert.equal(clientPage(bp, DEFAULT_RATES, { currency: "USD", usdToGbp: 0.75, showPrice: true }).total, "$695");
+  const quiet = clientPage(bp, DEFAULT_RATES, { currency: "GBP", usdToGbp: null, showPrice: false });
+  assert.equal(quiet.total, null);
+  assert.deepEqual(quiet.milestones.map((m) => m.price), [null, null]);
+  assert.equal(quiet.timeline, "2 working days");                                                    // the days stay when the price is left off
+
+  // A plan built for another angle gives no page; a stale demo only loses its case study.
+  const moved = { ...bp, pains: { ...pains, chosen: "p2" } };
+  assert.equal(clientPage(moved, DEFAULT_RATES), null);
+  assert.match(clientPageBlock(moved), /different pain point/);
+  assert.match(clientPageBlock({ pains }), /step 4/);
+  assert.equal(clientPage({}, DEFAULT_RATES), null);
+  assert.equal(clientPage({ ...bp, demo: { ...demo, ref: "n8n:9" } }, DEFAULT_RATES).caseStudy, null);
+  assert.match(clientPage({ ...bp, plan: finishPlan(rawPlan(), `${JOB} We hold tenants' personal data.`, basis, "n8n:2").step }, DEFAULT_RATES).dataNote, /data processing agreement comes first/);
+
+  assert.deepEqual(splitTools("Shopify, Klaviyo / OpenAI and shopify"), ["Shopify", "Klaviyo", "OpenAI"]);
+  assert.deepEqual(splitTools("Your CRM"), ["Your CRM"]);
+  assert.deepEqual(splitTools(null), []);
+  assert.equal(clientPageHref(7, { currency: "GBP", showPrice: true }), "/proposals/7/build-plan");
+  assert.equal(clientPageHref(7, { currency: "USD", showPrice: false }), "/proposals/7/build-plan?currency=usd&price=0");
+});
