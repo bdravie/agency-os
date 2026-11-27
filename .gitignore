@@ -53,3 +53,9 @@ graphify-out/
 .vscode/
 # n8n workflow copies with real account details filled in (build-workflow.py --local)
 demos/*/n8n/local/
+
+# Lead lists hold named people and their work emails: never commit them (only the empty folders are kept)
+leads/unenriched/*
+!leads/unenriched/.gitkeep
+leads/enriched/*
+!leads/enriched/.gitkeep
