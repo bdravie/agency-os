@@ -20,6 +20,12 @@ def client() -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=config.require("ANTHROPIC_API_KEY"))
 
 
+@lru_cache(maxsize=1)
+def async_client() -> anthropic.AsyncAnthropic:
+    """For tools that run many calls side by side (agency.icebreakers). Waits and retries when rate limited."""
+    return anthropic.AsyncAnthropic(api_key=config.require("ANTHROPIC_API_KEY"), max_retries=5)
+
+
 def resolve_model(model: str) -> str:
     """Accept a short alias (opus/sonnet/haiku) or a full model ID."""
     return MODELS.get(model, model)

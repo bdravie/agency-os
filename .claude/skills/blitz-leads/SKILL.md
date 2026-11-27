@@ -20,7 +20,7 @@ packages). Run it from the project folder.
 | Where | What |
 |---|---|
 | `leads/unenriched/` | Finished lead lists, one file per pull, saved automatically by the last step |
-| `leads/enriched/` | For leads after personalisation. The owner will ask for that step separately: this skill never writes here |
+| `leads/enriched/` | Leads after personalisation. This skill never writes here: the owner runs `uv run python -m agency.icebreakers "leads/unenriched/<list>.csv"` when they want the Icebreaker column added |
 | `data/blitz/<run>/` | The working folder of one saved search: the ICP, everyone pulled, the verdicts and an audit file |
 
 All three are git-ignored on purpose, so named people and their emails never reach GitHub.
@@ -230,8 +230,9 @@ the Mac's Downloads folder; if they want a copy there, give them the line for th
 - **No emails before the check, and no phone numbers ever.** Emails come after the company check
   so the owner pays only for people who fit; only work addresses at the contact's own company are
   kept; phone numbers are never requested.
-- **No personalisation.** Enriching a lead for personalisation is a separate step the owner will
-  ask for; until then leave `leads/enriched/` alone.
+- **No personalisation.** Enriching a lead for personalisation is a separate step
+  (`agency.icebreakers`, which costs AI calls); run it only when the owner asks, and otherwise
+  leave `leads/enriched/` alone.
 - **Nothing goes into the CRM and nothing is sent.** The list is a file. The CRM's own rules
   still decide who may be contacted from the CRM: a company must be a verified active ltd, llp or
   plc and in a niche that allows outreach. Remind the owner of that once when a list is new.
